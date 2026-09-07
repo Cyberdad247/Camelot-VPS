@@ -278,7 +278,18 @@ export const OperatorConsoleHtmx: React.FC<{
   onExecuteCommand?: (cmd: string) => void;
   onNavigateTab?: (tab: string) => void;
 }> = ({ onExecuteCommand, onNavigateTab }) => {
-  const [activeTab, setActiveTab] = useState<'approvals' | 'contracts' | 'webgpu' | 'architecture' | 'adversarial'>('approvals');
+  const [activeTab, setActiveTab] = useState<'approvals' | 'contracts' | 'webgpu' | 'architecture' | 'adversarial' | 'omarchy' | 'bitnet'>('approvals');
+  const [omarchyVitals, setOmarchyVitals] = useState<OmarchySystemVitals | null>(null);
+  const [omarchySlices, setOmarchySlices] = useState<SliceMetric[]>([]);
+
+  useEffect(() => {
+    const manager = OmarchyManager.getInstance();
+    const unsubscribe = manager.subscribe((vitals, slices) => {
+      setOmarchyVitals(vitals);
+      setOmarchySlices(slices);
+    });
+    return () => unsubscribe();
+  }, []);
   const [approvals, setApprovals] = useState<EffectManifestItem[]>(INITIAL_APPROVALS);
   const [selectedApproval, setSelectedApproval] = useState<EffectManifestItem | null>(INITIAL_APPROVALS[0]);
   const [selectedSchema, setSelectedSchema] = useState<ContractSchema>(CONTRACT_SCHEMAS[0]);

@@ -40,8 +40,8 @@ import { SystemTelemetry } from './SystemTelemetry';
 import { ProcessMatrix } from './ProcessMatrix';
 import { SystemLogPanel } from './SystemLogPanel';
 import { SystemCommandsPanel } from './SystemCommandsPanel';
-import { MemcastleModal } from './MemcastleModal';
-import { TwinBrainsModal } from './TwinBrainsModal';
+const MemcastleModal = lazy(() => import('./MemcastleModal').then(m => ({ default: m.MemcastleModal })));
+const TwinBrainsModal = lazy(() => import('./TwinBrainsModal').then(m => ({ default: m.TwinBrainsModal })));
 import confetti from 'canvas-confetti';
 
 interface BentoGridOverviewProps {

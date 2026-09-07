@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { 
   RAW_BOOTSTRAP_PROMPT,
   BOOTSTRAP_PHASES,
@@ -19,17 +19,30 @@ import {
 } from './types';
 import { Header } from './components/Header';
 import { OmarchyManager } from './utils/OmarchyManager';
-import { MasterWorldTreeDeck } from './components/MasterWorldTreeDeck';
-import { BentoGridOverview } from './components/BentoGridOverview';
-import { BootstrapTerminal } from './components/BootstrapTerminal';
-import { VKGHud } from './components/VKGHud';
-import { MissionArena } from './components/MissionArena';
-import { SovereignLaws } from './components/SovereignLaws';
-import { ScarcityProtocol } from './components/ScarcityProtocol';
-import { MasterBootstrapScript } from './components/MasterBootstrapScript';
-import { OperatorConsoleHtmx } from './components/OperatorConsoleHtmx';
-import { VpsHubInitiationConsole } from './components/VpsHubInitiationConsole';
-import { DocumentationForge } from './components/DocumentationForge';
+
+const MasterWorldTreeDeck = lazy(() => import('./components/MasterWorldTreeDeck').then(m => ({ default: m.MasterWorldTreeDeck })));
+const BentoGridOverview = lazy(() => import('./components/BentoGridOverview').then(m => ({ default: m.BentoGridOverview })));
+const BootstrapTerminal = lazy(() => import('./components/BootstrapTerminal').then(m => ({ default: m.BootstrapTerminal })));
+const VKGHud = lazy(() => import('./components/VKGHud').then(m => ({ default: m.VKGHud })));
+const MissionArena = lazy(() => import('./components/MissionArena').then(m => ({ default: m.MissionArena })));
+const SovereignLaws = lazy(() => import('./components/SovereignLaws').then(m => ({ default: m.SovereignLaws })));
+const ScarcityProtocol = lazy(() => import('./components/ScarcityProtocol').then(m => ({ default: m.ScarcityProtocol })));
+const MasterBootstrapScript = lazy(() => import('./components/MasterBootstrapScript').then(m => ({ default: m.MasterBootstrapScript })));
+const OperatorConsoleHtmx = lazy(() => import('./components/OperatorConsoleHtmx').then(m => ({ default: m.OperatorConsoleHtmx })));
+const VpsHubInitiationConsole = lazy(() => import('./components/VpsHubInitiationConsole').then(m => ({ default: m.VpsHubInitiationConsole })));
+const DocumentationForge = lazy(() => import('./components/DocumentationForge').then(m => ({ default: m.DocumentationForge })));
+
+
+
+
+
+
+
+
+
+
+
+
 import { Layers, Maximize2, Plus, Minus, TreeDeciduous, Terminal, Server, Flame, Lock, Cpu, FileCode, ShieldCheck, HardDrive, BookOpen } from 'lucide-react';
 
 const INITIAL_LOGS: TerminalLog[] = [
@@ -318,6 +331,7 @@ export default function App() {
 
       {/* Main Content Arena */}
       <main className={`flex-1 w-full ${(activeTab === 'vps_init' || activeTab === 'docs' || activeTab === 'deck' || activeTab === 'operator') ? 'p-0' : 'p-2 sm:p-4'}`}>
+        <Suspense fallback={<div className="flex-1 flex flex-col items-center justify-center min-h-[500px]"><div className="w-12 h-12 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div><div className="mt-4 text-cyan-500 font-mono text-sm tracking-widest font-bold animate-pulse">INITIATING DMA TRANSFER...</div></div>}>
         {isCurrentTabMinimized ? (
           <div className="max-w-4xl mx-auto my-12 p-8 bg-[#0a1020]/90 border-2 border-cyan-500/40 rounded-2xl text-center space-y-4 shadow-2xl animate-fadeIn">
             <div className="w-12 h-12 mx-auto rounded-full bg-cyan-500/10 border border-cyan-400 flex items-center justify-center text-cyan-300">
@@ -443,6 +457,7 @@ export default function App() {
             )}
           </>
         )}
+        </Suspense>
       </main>
 
       {/* Floating Minimized Tabs Dock */}

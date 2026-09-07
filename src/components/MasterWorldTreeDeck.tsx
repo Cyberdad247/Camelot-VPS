@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { 
   Sparkles, 
   Volume2, 
@@ -50,9 +50,10 @@ import {
 import { ThreeWorldTreeScene } from './ThreeWorldTreeScene';
 import { WorldTreeVisual } from './WorldTreeVisual';
 import { audioEngine } from '../utils/audioEngine';
-import { MemcastleModal } from './MemcastleModal';
-import { TwinBrainsModal } from './TwinBrainsModal';
-import { VikingRefractionsModal } from './VikingRefractionsModal';
+const MemcastleModal = lazy(() => import('./MemcastleModal').then(m => ({ default: m.MemcastleModal })));
+const TwinBrainsModal = lazy(() => import('./TwinBrainsModal').then(m => ({ default: m.TwinBrainsModal })));
+const VikingRefractionsModal = lazy(() => import('./VikingRefractionsModal').then(m => ({ default: m.VikingRefractionsModal })));
+const OuroborosModal = lazy(() => import('./OuroborosModal').then(m => ({ default: m.OuroborosModal })));
 import { WorldTreeHUD } from './worldtree/WorldTreeHUD';
 import { SovereignWorldTreeScrollingExperience } from './SovereignWorldTreeScrollingExperience';
 import { Interactive3DShowcase } from './Interactive3DShowcase';
@@ -187,7 +188,7 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
   const [energyPulseTrigger, setEnergyPulseTrigger] = useState(0);
 
   // Active Modals
-  const [activeModal, setActiveModal] = useState<'memcastle' | 'twin_brains' | 'viking' | null>(null);
+  const [activeModal, setActiveModal] = useState<'memcastle' | 'twin_brains' | 'viking' | 'ouroboros' | null>(null);
 
   // Parallax Mouse tilt state
   const [mouseTilt, setMouseTilt] = useState({ x: 0, y: 0 });
@@ -381,6 +382,7 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
   const handleOuroborosTrigger = () => {
     audioEngine.playStatePulse();
     setEnergyPulseTrigger((prev) => prev + 1);
+    setActiveModal('ouroboros');
     showFeedback('⚡ OUROBOROS SSM: 1.58-BIT TERNARY STATE LOOP PULSED');
     if (onExecuteCommand) {
       onExecuteCommand('ouroboros --pulse-ssm --ternary-step');
@@ -1151,7 +1153,7 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
                 <WorldTreeVisual
                   onOpenMemcastle={() => setActiveModal('memcastle')}
                   onOpenTwinBrains={() => setActiveModal('twin_brains')}
-                  onOpenOuroboros={() => setActiveModal('twin_brains')}
+                  onOpenOuroboros={() => setActiveModal('ouroboros')}
                   onOpenViking={() => setActiveModal('viking')}
                   onOpenGraphify={() => onNavigateTab ? onNavigateTab('vkg') : undefined}
                 />
@@ -1765,15 +1767,27 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
       )}
 
       {/* ================= MODAL OVERLAYS ================= */}
-      {activeModal === 'memcastle' && (
-        <MemcastleModal isOpen={true} onClose={() => setActiveModal(null)} />
-      )}
-      {activeModal === 'twin_brains' && (
-        <TwinBrainsModal isOpen={true} onClose={() => setActiveModal(null)} />
-      )}
-      {activeModal === 'viking' && (
-        <VikingRefractionsModal isOpen={true} onClose={() => setActiveModal(null)} />
-      )}
+      <Suspense fallback={
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md">
+          <div className="flex flex-col items-center gap-4 text-cyan-400 font-mono">
+            <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="text-xs uppercase tracking-widest font-bold">Dynamically Loading Matrix...</div>
+          </div>
+        </div>
+      }>
+        {activeModal === 'memcastle' && (
+          <MemcastleModal isOpen={true} onClose={() => setActiveModal(null)} />
+        )}
+        {activeModal === 'twin_brains' && (
+          <TwinBrainsModal isOpen={true} onClose={() => setActiveModal(null)} />
+        )}
+        {activeModal === 'viking' && (
+          <VikingRefractionsModal isOpen={true} onClose={() => setActiveModal(null)} />
+        )}
+        {activeModal === 'ouroboros' && (
+          <OuroborosModal isOpen={true} onClose={() => setActiveModal(null)} />
+        )}
+      </Suspense>
     </div>
   );
 };

@@ -1,18 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, ShieldAlert, CheckCircle2, Lock, Activity } from 'lucide-react';
+import { Shield, ShieldAlert, CheckCircle2, Lock, Activity, Key } from 'lucide-react';
+
+export interface ILease {
+  leaseId: string;
+  agentId: string;
+  expiresAt: number; // Unix timestamp
+  allowedEffects: string[];
+}
+
+export interface ITaskExecutionRequest {
+  taskId: string;
+  agentId: string;
+  requestedEffect: string;
+  missionPrompt: string;
+}
 
 interface SentinelPolicyEngineProps {
-  missionPrompt: string;
-  agentId: string;
-  requireValidLease: boolean;
+  request: ITaskExecutionRequest;
+  activeLeases: ILease[];
   onAuthorize: () => void;
   onReject: (reason: string) => void;
 }
 
 export const SentinelPolicyEngine: React.FC<SentinelPolicyEngineProps> = ({
-  missionPrompt,
-  agentId,
-  requireValidLease,
+  request,
+  activeLeases,
   onAuthorize,
   onReject,
 }) => {
@@ -32,20 +44,44 @@ export const SentinelPolicyEngine: React.FC<SentinelPolicyEngineProps> = ({
       };
 
       await addLog('[SENTINEL] Intercepting execution request...', 200);
-      await addLog(`[SENTINEL] Manifest Agent: ${agentId}`, 300);
+      await addLog(`[SENTINEL] Manifest Agent: ${request.agentId}`, 300);
+      await addLog(`[SENTINEL] Requested Effect: ${request.requestedEffect}`, 300);
       
-      if (!requireValidLease) {
+      const lease = activeLeases.find(l => l.agentId === request.agentId);
+      
+      if (!lease) {
         await addLog('[SENTINEL] WARNING: Operating without valid Sentinel lease.', 300);
         await addLog('[SENTINEL] Zero-Trust Violation detected. Rejecting payload.', 400);
         if (mounted) {
           setStatus('rejected');
-          setTimeout(() => onReject('Missing capability lease.'), 1500);
+          setTimeout(() => onReject('Missing capability lease for this agent.'), 1500);
         }
         return;
       }
 
-      await addLog('[SENTINEL] Validating Ed25519 signature on capability lease...', 400);
+      await addLog(`[SENTINEL] Validating Ed25519 signature on capability lease ${lease.leaseId}...`, 400);
+
+      const now = Date.now();
+      if (now > lease.expiresAt) {
+        await addLog('[SENTINEL] WARNING: Lease expired.', 300);
+        if (mounted) {
+          setStatus('rejected');
+          setTimeout(() => onReject('Capability lease has expired.'), 1500);
+        }
+        return;
+      }
+
       await addLog('[SENTINEL] Matching EffectManifest against active capabilities...', 500);
+      
+      if (!lease.allowedEffects.includes(request.requestedEffect) && !lease.allowedEffects.includes('*')) {
+        await addLog(`[SENTINEL] WARNING: Effect '${request.requestedEffect}' not authorized in lease.`, 300);
+        if (mounted) {
+          setStatus('rejected');
+          setTimeout(() => onReject(`Unauthorized effect: ${request.requestedEffect}`), 1500);
+        }
+        return;
+      }
+
       await addLog('[SENTINEL] 8GB Scarcity Protocol limits verified.', 300);
       await addLog('[SENTINEL] Authorization APPROVED.', 300);
       
@@ -57,7 +93,7 @@ export const SentinelPolicyEngine: React.FC<SentinelPolicyEngineProps> = ({
     
     runVerification();
     return () => { mounted = false; };
-  }, [agentId, requireValidLease, onAuthorize, onReject]);
+  }, [request, activeLeases, onAuthorize, onReject]);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
