@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot.vps/schemas/ouroboros-loop.schema.json",
+  "title": "Ouroboros Loop",
+  "description": "Phase 4 schema defining recursive, self-healing execution loops.",
+  "type": "object",
+  "properties": {
+    "loop_id": { "type": "string", "format": "uuid" },
+    "trigger_condition": { "type": "string" },
+    "max_iterations": { "type": "integer", "minimum": 1 },
+    "halt_condition": { "type": "string" },
+    "fallback_action": { "type": "string" }
+  },
+  "required": ["loop_id", "trigger_condition", "max_iterations", "halt_condition"],
+  "additionalProperties": false
+}

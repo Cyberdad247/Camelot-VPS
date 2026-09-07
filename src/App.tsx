@@ -18,6 +18,7 @@ import {
   TerminalLog 
 } from './types';
 import { Header } from './components/Header';
+import { OmarchyManager } from './utils/OmarchyManager';
 import { MasterWorldTreeDeck } from './components/MasterWorldTreeDeck';
 import { BentoGridOverview } from './components/BentoGridOverview';
 import { BootstrapTerminal } from './components/BootstrapTerminal';
@@ -75,6 +76,20 @@ const INITIAL_MISSIONS: AgentMission[] = [
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('deck');
   const [vitals, setVitals] = useState<SystemVitals>(INITIAL_VITALS);
+  const [omarchyVitals, setOmarchyVitals] = useState<any>(null);
+  const [omarchySlices, setOmarchySlices] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    const manager = OmarchyManager.getInstance();
+    const unsubscribe = manager.subscribe((newVitals, newSlices) => {
+      setOmarchyVitals(newVitals);
+      setOmarchySlices(newSlices);
+    });
+    return () => {
+      unsubscribe();
+      manager.stopSimulation();
+    };
+  }, []);
   const [services, setServices] = useState<CamelotService[]>(CAMELOT_SERVICES);
   const [phases, setPhases] = useState<BootstrapPhase[]>(BOOTSTRAP_PHASES);
   const [laws, setLaws] = useState<SovereignLaw[]>(SOVEREIGN_LAWS);

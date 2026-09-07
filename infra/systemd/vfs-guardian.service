@@ -1,0 +1,17 @@
+[Unit]
+Description=Camelot VFS Guardian
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Slice=camelot-critical.slice
+ExecStart=/opt/camelot/bin/vfs-guardian
+WorkingDirectory=/opt/camelot
+Restart=always
+RestartSec=3
+LimitNOFILE=65536
+Environment=RUST_LOG=info
+
+[Install]
+WantedBy=multi-user.target

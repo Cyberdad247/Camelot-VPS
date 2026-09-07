@@ -1,0 +1,18 @@
+[Unit]
+Description=Camelot Sentinel Policy Engine
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Sentinel is a critical authority gate; bind to critical slice
+Slice=camelot-critical.slice
+ExecStart=/opt/camelot/bin/sentinel
+WorkingDirectory=/opt/camelot
+Restart=always
+RestartSec=3
+LimitNOFILE=65536
+Environment=RUST_LOG=info
+
+[Install]
+WantedBy=multi-user.target

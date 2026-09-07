@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot.vps/schemas/gideon-verdict.schema.json",
+  "title": "Gideon Verdict",
+  "description": "Verification output from the Gideon gate.",
+  "type": "object",
+  "properties": {
+    "verdict_id": { "type": "string", "format": "uuid" },
+    "target_manifest_id": { "type": "string", "format": "uuid" },
+    "verified": { "type": "boolean" },
+    "checks_performed": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "violations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "verifier_signature": { "type": "string" }
+  },
+  "required": ["verdict_id", "target_manifest_id", "verified", "checks_performed", "timestamp", "verifier_signature"],
+  "additionalProperties": false
+}

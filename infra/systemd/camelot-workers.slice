@@ -1,0 +1,7 @@
+# /etc/systemd/system/camelot-workers.slice
+[Slice]
+CPUAccounting=yes
+MemoryAccounting=yes
+MemoryHigh=1536M
+MemoryMax=2304M
+TasksMax=256

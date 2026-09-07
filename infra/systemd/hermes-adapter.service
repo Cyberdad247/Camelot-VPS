@@ -1,0 +1,17 @@
+[Unit]
+Description=Camelot Hermes Adapter
+After=network.target
+
+[Service]
+Type=simple
+Slice=camelot-workers.slice
+ExecStart=/opt/camelot/bin/hermes-adapter
+WorkingDirectory=/opt/camelot
+Restart=always
+RestartSec=3
+LimitNOFILE=65536
+Environment=GOMAXPROCS=1
+Environment=GOGC=50
+
+[Install]
+WantedBy=multi-user.target

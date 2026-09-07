@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot.vps/schemas/receipt.schema.json",
+  "title": "Camelot Receipt",
+  "description": "Cryptographically verifiable proof of an action, state change, or verification.",
+  "type": "object",
+  "properties": {
+    "receipt_id": { "type": "string", "format": "uuid" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "actor_id": { "type": "string" },
+    "action_type": { "type": "string" },
+    "resource_uri": { "type": "string", "format": "uri" },
+    "payload_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "parent_receipt_hash": { "type": ["string", "null"], "pattern": "^sha256:[a-f0-9]{64}$" },
+    "signature": { "type": "string" }
+  },
+  "required": ["receipt_id", "timestamp", "tenant_id", "actor_id", "action_type", "resource_uri", "payload_hash", "signature"],
+  "additionalProperties": false
+}

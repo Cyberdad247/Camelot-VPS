@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SentinelPolicyEngine } from './SentinelPolicyEngine';
 import { 
   Flame, 
   ShieldCheck, 
@@ -43,6 +44,7 @@ export const MissionArena: React.FC<MissionArenaProps> = ({
 
   // Minimization states
   const [minimizedAgents, setMinimizedAgents] = useState(false);
+  const [showSentinel, setShowSentinel] = useState(false);
   const [minimizedReceipts, setMinimizedReceipts] = useState(false);
 
   // Hidden Aspect: Protocol Ragnarok // Secret 9th Knight: Arthur Pendragon

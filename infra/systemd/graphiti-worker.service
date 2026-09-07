@@ -1,0 +1,15 @@
+[Unit]
+Description=Camelot Graphiti Ingestion Adapter
+After=network.target
+
+[Service]
+Type=simple
+# Bounded to worker slice to prevent ingestion from consuming core memory
+Slice=camelot-workers.slice
+ExecStart=/usr/bin/python3 /opt/camelot/adapters/graphiti/worker.py
+WorkingDirectory=/opt/camelot/adapters/graphiti
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

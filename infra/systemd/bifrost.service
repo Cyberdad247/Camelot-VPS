@@ -1,0 +1,20 @@
+[Unit]
+Description=Bifrost Hub Ingress Gateway
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Bind directly to the kernel cgroup slice for strict memory enforcement
+Slice=camelot-critical.slice
+ExecStart=/opt/camelot/bin/bifrost
+WorkingDirectory=/opt/camelot
+Restart=always
+RestartSec=3
+LimitNOFILE=65536
+# Tune Go garbage collector and thread limits for low-resource environments
+Environment=GOMAXPROCS=2
+Environment=GOGC=50
+
+[Install]
+WantedBy=multi-user.target

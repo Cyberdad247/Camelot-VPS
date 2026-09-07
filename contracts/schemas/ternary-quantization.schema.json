@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot.vps/schemas/ternary-quantization.schema.json",
+  "title": "Ternary Quantization",
+  "description": "Phase 4 schema defining BitNet 1.58b parameter quantization bounds.",
+  "type": "object",
+  "properties": {
+    "model_id": { "type": "string" },
+    "weight_format": { "type": "string", "enum": ["-1", "0", "1"] },
+    "scaling_factor": { "type": "number", "minimum": 0 },
+    "activation_bits": { "type": "integer", "enum": [8, 16] },
+    "zero_point": { "type": "integer" }
+  },
+  "required": ["model_id", "weight_format", "scaling_factor", "activation_bits"],
+  "additionalProperties": false
+}

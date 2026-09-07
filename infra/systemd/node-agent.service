@@ -1,0 +1,16 @@
+[Unit]
+Description=Camelot Node Agent (Wasmtime)
+After=network.target
+
+[Service]
+Type=simple
+Slice=camelot-workers.slice
+ExecStart=/opt/camelot/bin/node-agent
+WorkingDirectory=/opt/camelot
+Restart=always
+RestartSec=3
+LimitNOFILE=65536
+Environment=RUST_LOG=info
+
+[Install]
+WantedBy=multi-user.target

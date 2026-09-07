@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot.vps/schemas/effect-manifest.schema.json",
+  "title": "Effect Manifest",
+  "description": "Declaration of a proposed side-effect requiring approval and lease verification.",
+  "type": "object",
+  "properties": {
+    "manifest_id": { "type": "string", "format": "uuid" },
+    "task_id": { "type": "string", "format": "uuid" },
+    "proposed_action": { "type": "string" },
+    "target_resource": { "type": "string" },
+    "parameters": { "type": "object", "additionalProperties": true },
+    "required_lease_type": { "type": "string" },
+    "estimated_cost_credits": { "type": "number", "minimum": 0 },
+    "hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+  },
+  "required": ["manifest_id", "task_id", "proposed_action", "target_resource", "parameters", "required_lease_type", "hash"],
+  "additionalProperties": false
+}

@@ -1,0 +1,8 @@
+# /etc/systemd/system/camelot-critical.slice
+[Slice]
+CPUAccounting=yes
+MemoryAccounting=yes
+MemoryHigh=896M
+MemoryMax=1152M
+TasksMax=512
+OOMPolicy=stop

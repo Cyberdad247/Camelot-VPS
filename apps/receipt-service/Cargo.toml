@@ -1,0 +1,15 @@
+[package]
+name = "receipt-service"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+camelot-crypto = { path = "../../crates/camelot-crypto" }
+camelot-receipts = { path = "../../crates/camelot-receipts" }
+axum = "0.7"
+tokio = { version = "1.36", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.7", features = ["v4", "serde"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"

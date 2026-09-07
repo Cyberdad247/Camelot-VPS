@@ -1,0 +1,20 @@
+[Unit]
+Description=Camelot Receipt Evidence Engine
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Bind to the data slice to prevent memory leaks from starving the control plane
+Slice=camelot-data.slice
+ExecStart=/opt/camelot/bin/receipt-service
+WorkingDirectory=/opt/camelot
+Restart=always
+RestartSec=3
+LimitNOFILE=65536
+Environment=RUST_LOG=info
+# Optimize Rust memory allocator (optional if using jemalloc, but good default)
+Environment=MALLOC_ARENA_MAX=2
+
+[Install]
+WantedBy=multi-user.target

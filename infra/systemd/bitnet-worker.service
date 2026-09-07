@@ -1,0 +1,22 @@
+[Unit]
+Description=Camelot Phase 4 BitNet 1.58b Worker
+After=network.target
+
+[Service]
+Type=simple
+# Bind strictly to the intelligence slice
+Slice=camelot-intelligence.slice
+# Enforce hard OS memory limits to prevent OOM cascade
+MemoryHigh=2G
+MemoryMax=3G
+
+ExecStart=/opt/camelot/venv/bin/python /opt/camelot/apps/bitnet-worker/worker.py
+WorkingDirectory=/opt/camelot/apps/bitnet-worker
+Restart=always
+RestartSec=5
+
+Environment=PYTHONUNBUFFERED=1
+Environment=OMP_NUM_THREADS=4
+
+[Install]
+WantedBy=multi-user.target

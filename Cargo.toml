@@ -1,0 +1,13 @@
+[workspace]
+members = [
+    "crates/camelot-crypto",
+    "crates/camelot-receipts",
+    "crates/camelot-lease",
+    "crates/camelot-vfs",
+    "apps/receipt-service",
+    "apps/sentinel",
+    "apps/vfs-guardian",
+    "apps/node-agent",
+    "apps/gideon"
+]
+resolver = "2"

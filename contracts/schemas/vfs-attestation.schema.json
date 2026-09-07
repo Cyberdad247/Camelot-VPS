@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot.vps/schemas/vfs-attestation.schema.json",
+  "title": "VFS Attestation",
+  "description": "Cryptographic proof of workspace state before/after an execution.",
+  "type": "object",
+  "properties": {
+    "attestation_id": { "type": "string", "format": "uuid" },
+    "workspace_id": { "type": "string", "format": "uuid" },
+    "epoch": { "type": "integer", "minimum": 0 },
+    "merkle_root": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "vfs_signature": { "type": "string" }
+  },
+  "required": ["attestation_id", "workspace_id", "epoch", "merkle_root", "timestamp", "vfs_signature"],
+  "additionalProperties": false
+}

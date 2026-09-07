@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot.vps/schemas/capability-lease.schema.json",
+  "title": "Capability Lease",
+  "description": "Time-bounded, scoped permission grant for agents or workers.",
+  "type": "object",
+  "properties": {
+    "lease_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "actor_id": { "type": "string" },
+    "capabilities": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "resource_bounds": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "issued_at": { "type": "string", "format": "date-time" },
+    "expires_at": { "type": "string", "format": "date-time" },
+    "issuer_id": { "type": "string" },
+    "revoked": { "type": "boolean", "default": false }
+  },
+  "required": ["lease_id", "tenant_id", "actor_id", "capabilities", "issued_at", "expires_at", "issuer_id"],
+  "additionalProperties": false
+}

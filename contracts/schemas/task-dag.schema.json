@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot.vps/schemas/task-dag.schema.json",
+  "title": "Task DAG",
+  "description": "Directed Acyclic Graph defining a mission's execution plan.",
+  "type": "object",
+  "properties": {
+    "dag_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "task_id": { "type": "string", "format": "uuid" },
+          "type": { "type": "string" },
+          "status": { "type": "string", "enum": ["pending", "running", "completed", "failed", "cancelled"] },
+          "assigned_cartridge": { "type": "string" }
+        },
+        "required": ["task_id", "type", "status"]
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "from": { "type": "string", "format": "uuid" },
+          "to": { "type": "string", "format": "uuid" }
+        },
+        "required": ["from", "to"]
+      }
+    },
+    "status": { "type": "string", "enum": ["draft", "preflight", "running", "completed", "failed"] }
+  },
+  "required": ["dag_id", "mission_id", "tenant_id", "nodes", "edges", "status"],
+  "additionalProperties": false
+}
