@@ -1,0 +1,36 @@
+{
+  "@context": "https://camelot-os.dev/ukg/v1000/skill",
+  "@type": "Sovereign_Skill_Cartridge",
+  "skill_id": "immersive_web",
+  "version": "v1000.max",
+  "identity": "Ω_SKILL_IMMERSIVE_WEB",
+  "target_knight": "Sir_Visage",
+  "domain": "WebGPU Spatial Optimization & Spline Isolation",
+  "execution_logic": "Controls the export and mounting parameters for lightweight interactive 3D elements.",
+  "aesthetic_enforcement": {
+    "background_mode": "background: transparent; alpha: true",
+    "ui_overlays": "Strip all third-party branding, logos, navigation watermarks, and debug controls.",
+    "color_tokens": {
+      "kinetic_obsidian": "#050505",
+      "luxora_gold": "#D4AF37",
+      "royal_purple": "#2E0854",
+      "cyan_accent": "#00E5FF",
+      "amber_warning": "#FFBF00"
+    }
+  },
+  "lighting_constraint": {
+    "shadow_policy": "Bake shadows and ambient occlusion directly into texture maps before export.",
+    "runtime_lights": "Disallow expensive multiple dynamic runtime shadow-casting lights on the mobile edge.",
+    "render_budget": "Strictly optimize shader passes to prevent GPU thermal throttling."
+  },
+  "scarcity_constraint": {
+    "client_vram_ceiling": "<50MB",
+    "hardware_ram_ceiling": "8GB_STRICT_EDGE_BOUNDARY"
+  },
+  "operational_rules": [
+    "Always mount WebGL / WebGPU scene with transparent background clearColor(0, 0, 0, 0).",
+    "Dispose geometry, materials, and textures upon unmount to eliminate memory leaks.",
+    "Expose clean interaction hooks for hover, click, and dimensional orbit."
+  ],
+  "seal": "⚜️_SOVEREIGN_TRUTH"
+}

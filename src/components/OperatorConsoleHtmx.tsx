@@ -274,7 +274,8 @@ const INITIAL_EDGES: WebGpuEdge[] = [
 
 export const OperatorConsoleHtmx: React.FC<{
   onExecuteCommand?: (cmd: string) => void;
-}> = ({ onExecuteCommand }) => {
+  onNavigateTab?: (tab: string) => void;
+}> = ({ onExecuteCommand, onNavigateTab }) => {
   const [activeTab, setActiveTab] = useState<'approvals' | 'contracts' | 'webgpu' | 'architecture' | 'adversarial'>('approvals');
   const [approvals, setApprovals] = useState<EffectManifestItem[]>(INITIAL_APPROVALS);
   const [selectedApproval, setSelectedApproval] = useState<EffectManifestItem | null>(INITIAL_APPROVALS[0]);
@@ -433,10 +434,10 @@ export const OperatorConsoleHtmx: React.FC<{
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-4 font-mono text-slate-200">
+    <div className="w-full min-h-[calc(100vh-80px)] bg-[#050505] space-y-3 font-mono text-slate-200 p-2 sm:p-4">
       
       {/* Top Architecture Assertion Ribbon */}
-      <div className="p-4 rounded-2xl bg-[#070b14] border-2 border-[#D4AF37]/50 shadow-2xl backdrop-blur-xl flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="p-3 sm:p-4 rounded-xl bg-[#070b14] border border-[#D4AF37]/50 shadow-2xl backdrop-blur-xl flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#D4AF37] animate-pulse" />
@@ -451,24 +452,37 @@ export const OperatorConsoleHtmx: React.FC<{
           </p>
         </div>
 
-        {/* Live SSE Stream Badge */}
-        <div className="flex items-center gap-3 self-start md:self-auto bg-black/80 px-3 py-2 rounded-xl border border-cyan-800/60 text-xs">
-          <Radio className={`w-3.5 h-3.5 ${sseActive ? 'text-emerald-400 animate-pulse' : 'text-slate-600'}`} />
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-slate-400 font-bold uppercase">SSE FRAGMENT BUS:</span>
-              <span className="text-emerald-400 font-bold text-[10px]">CONNECTED</span>
+        {/* Live SSE Stream Badge & VPS Hub link */}
+        <div className="flex items-center gap-2">
+          {onNavigateTab && (
+            <button
+              onClick={() => onNavigateTab('vps_init')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#2E0854] hover:bg-purple-900 border border-[#D4AF37]/60 text-[#D4AF37] text-xs font-bold transition-all shadow-[0_0_12px_rgba(212,175,55,0.25)] cursor-pointer shrink-0"
+              title="Open VPS Hub Initiation Plan for vps3573819"
+            >
+              <Server className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <span>VPS HUB INITIATION</span>
+            </button>
+          )}
+
+          <div className="flex items-center gap-3 bg-black/80 px-3 py-2 rounded-xl border border-cyan-800/60 text-xs shrink-0">
+            <Radio className={`w-3.5 h-3.5 ${sseActive ? 'text-emerald-400 animate-pulse' : 'text-slate-600'}`} />
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-slate-400 font-bold uppercase">SSE BUS:</span>
+                <span className="text-emerald-400 font-bold text-[10px]">CONNECTED</span>
+              </div>
+              <div className="text-[10px] text-cyan-300 max-w-[140px] sm:max-w-xs truncate">
+                {lastSseEvent}
+              </div>
             </div>
-            <div className="text-[10px] text-cyan-300 max-w-xs truncate">
-              {lastSseEvent}
-            </div>
+            <button
+              onClick={() => setSseActive(!sseActive)}
+              className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-white cursor-pointer"
+            >
+              {sseActive ? 'PAUSE' : 'RESUME'}
+            </button>
           </div>
-          <button
-            onClick={() => setSseActive(!sseActive)}
-            className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-white"
-          >
-            {sseActive ? 'PAUSE' : 'RESUME'}
-          </button>
         </div>
       </div>
 

@@ -21,7 +21,9 @@ import {
   Plus,
   Crown,
   Eye,
-  Key
+  Key,
+  HardDrive,
+  BookOpen
 } from 'lucide-react';
 import { SystemVitals } from '../types';
 
@@ -54,11 +56,13 @@ export const Header: React.FC<HeaderProps> = ({
   const ramPercent = Math.round((vitals.usedRamMB / vitals.scarcityCapMB) * 100);
 
   const tabs = [
-    { id: 'deck', label: 'World Tree UI (2D ➔ 3D)', icon: TreeDeciduous },
+    { id: 'deck', label: 'World Tree UI (2D ➔ 3D Continuity)', icon: TreeDeciduous },
+    { id: 'vps_init', label: 'VPS Hub Initiation (vps3573819)', icon: Server },
+    { id: 'docs', label: 'Docs Forge (νKG-Crystal)', icon: BookOpen },
     { id: 'operator', label: 'HTMX Console & WebGPU HUD', icon: ShieldCheck },
     { id: 'bento', label: 'Bento Grid Hub', icon: Layers },
     { id: 'terminal', label: 'Baremetal Terminal', icon: Terminal },
-    { id: 'vkg', label: 'VKG-HUD Services', icon: Server },
+    { id: 'vkg', label: 'VKG-HUD Services', icon: HardDrive },
     { id: 'mission', label: 'Mission Arena', icon: Flame },
     { id: 'laws', label: 'Sovereign Laws & Ledger', icon: Lock },
     { id: 'scarcity', label: '8GB Scarcity Protocol', icon: Cpu },

@@ -1,6 +1,6 @@
 {
   "name": "Camelot-OS VPS Hub",
-  "description": "The Sovereign World Tree Control Center featuring 2D reference canvas, Three.js 3D animation engine, and real-time interactive VKG-HUD telemetry.",
+  "description": "Sovereign Bare-Metal Control Center for InterServer KVM VPS (162.35.107.134) with World Tree, HTMX HUD, and νKG_CRYSTAL Enterprise Documentation Suite.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

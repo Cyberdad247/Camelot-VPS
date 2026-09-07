@@ -1,0 +1,28 @@
+{
+  "@context": "https://camelot-os.dev/ukg/v1000/skill",
+  "@type": "Sovereign_Skill_Cartridge",
+  "skill_id": "effects_menu",
+  "version": "v1000.max",
+  "identity": "Ω_SKILL_EFFECTS_MENU",
+  "target_knight": "Sir_Stitch",
+  "domain": "Frame-by-Frame Scroll Physics & Kinetic Motion",
+  "execution_logic": "Bypasses real-time 3D rendering. Accepts a high-fidelity 3D video exported as a sequence of JPEG/WEBP frames (e.g., 001.jpg to 150.jpg).",
+  "kinetic_hook": {
+    "frameworks": ["framer-motion", "gsap-scrolltrigger", "native-raf"],
+    "binding": "Ties the array index of the pre-rendered image sequence directly to window.scrollY progression.",
+    "interpolation": "Linear or easeInOutCubic scroll-fraction mapping to frame array bounds [0, N - 1]."
+  },
+  "scarcity_constraint": {
+    "client_vram_ceiling": "<50MB",
+    "hardware_ram_ceiling": "8GB_STRICT_EDGE_BOUNDARY",
+    "rendering_primitive": "HTMLCanvasElement.drawImage() with requestAnimationFrame",
+    "cache_protocol": "Preloaded ImageBitmap / HTMLImageElement buffer pool",
+    "gc_trigger": "Memory_Interrupt_Guard_90_Percent_GC_Trigger"
+  },
+  "operational_rules": [
+    "NEVER instantiate unbaked real-time heavy 3D meshes when pre-rendered frame arrays are requested.",
+    "Clamp canvas resolution to device pixel ratio with maximum boundary cap to prevent VRAM explosion.",
+    "Ensure zero-copy paint pass via single canvas context buffer."
+  ],
+  "seal": "⚜️_SOVEREIGN_TRUTH"
+}

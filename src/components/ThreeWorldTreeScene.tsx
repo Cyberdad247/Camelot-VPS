@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { isWebGLAvailable } from '../utils/webglHelper';
 
 interface ThreeWorldTreeSceneProps {
   onHotspotClick?: (zone: string) => void;
@@ -26,6 +27,11 @@ export const ThreeWorldTreeScene: React.FC<ThreeWorldTreeSceneProps> = ({
     const container = containerRef.current;
     if (!container) return;
 
+    if (!isWebGLAvailable()) {
+      // Gracefully exit without calling any WebGL creation when WebGL is not available
+      return;
+    }
+
     const width = container.clientWidth || 800;
     const height = container.clientHeight || 600;
 
@@ -33,6 +39,11 @@ export const ThreeWorldTreeScene: React.FC<ThreeWorldTreeSceneProps> = ({
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
     camera.position.set(0, 0, 100);
+
+    // Check WebGL availability first before attempting context creation
+    if (!isWebGLAvailable()) {
+      return;
+    }
 
     // 2. WebGL Renderer with transparency
     let renderer: THREE.WebGLRenderer;

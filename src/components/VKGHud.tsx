@@ -23,7 +23,8 @@ import {
   Sparkles,
   Key,
   Brain,
-  Github
+  Github,
+  Server
 } from 'lucide-react';
 import { CamelotService, ServiceCategory, SystemVitals } from '../types';
 import confetti from 'canvas-confetti';
@@ -34,6 +35,7 @@ interface VKGHudProps {
   onRestartService: (serviceId: string) => void;
   onExecuteCommand?: (cmd: string) => void;
   onOpenOperatorConsole?: () => void;
+  onOpenVpsInitiation?: () => void;
 }
 
 export const VKGHud: React.FC<VKGHudProps> = ({
@@ -41,7 +43,8 @@ export const VKGHud: React.FC<VKGHudProps> = ({
   vitals,
   onRestartService,
   onExecuteCommand,
-  onOpenOperatorConsole
+  onOpenOperatorConsole,
+  onOpenVpsInitiation
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -136,6 +139,17 @@ export const VKGHud: React.FC<VKGHudProps> = ({
 
           {/* Quick Actions & Minimization */}
           <div className="flex flex-wrap items-center gap-2">
+            {onOpenVpsInitiation && (
+              <button
+                onClick={onOpenVpsInitiation}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/60 text-emerald-300 text-xs font-bold transition-all shadow-[0_0_12px_rgba(16,185,129,0.3)] cursor-pointer"
+                title="Open InterServer VPS Hub Initiation Console"
+              >
+                <Server className="w-3.5 h-3.5 text-emerald-400" />
+                <span>VPS HUB INITIATION</span>
+              </button>
+            )}
+
             {onOpenOperatorConsole && (
               <button
                 onClick={onOpenOperatorConsole}

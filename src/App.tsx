@@ -27,7 +27,9 @@ import { SovereignLaws } from './components/SovereignLaws';
 import { ScarcityProtocol } from './components/ScarcityProtocol';
 import { MasterBootstrapScript } from './components/MasterBootstrapScript';
 import { OperatorConsoleHtmx } from './components/OperatorConsoleHtmx';
-import { Layers, Maximize2, Plus, Minus, TreeDeciduous, Terminal, Server, Flame, Lock, Cpu, FileCode, ShieldCheck } from 'lucide-react';
+import { VpsHubInitiationConsole } from './components/VpsHubInitiationConsole';
+import { DocumentationForge } from './components/DocumentationForge';
+import { Layers, Maximize2, Plus, Minus, TreeDeciduous, Terminal, Server, Flame, Lock, Cpu, FileCode, ShieldCheck, HardDrive, BookOpen } from 'lucide-react';
 
 const INITIAL_LOGS: TerminalLog[] = [
   { id: '1', timestamp: '12:00:01', level: 'sovereign', message: 'WORLD_TREE_BOOTSTRAP... OK' },
@@ -89,11 +91,13 @@ export default function App() {
   const [minimizedTabs, setMinimizedTabs] = useState<Record<string, boolean>>({});
 
   const tabLabels: Record<string, { label: string; icon: any }> = {
-    deck: { label: '3D World Tree Deck', icon: TreeDeciduous },
+    vps_init: { label: 'VPS Hub Initiation (vps3573819)', icon: Server },
+    docs: { label: 'Docs Forge (νKG-Crystal)', icon: BookOpen },
+    deck: { label: 'World Tree UI (2D ➔ 3D Continuity)', icon: TreeDeciduous },
     operator: { label: 'HTMX Operator Console', icon: ShieldCheck },
     bento: { label: 'Bento Grid Hub', icon: Layers },
     terminal: { label: 'Baremetal Terminal', icon: Terminal },
-    vkg: { label: 'VKG-HUD Services', icon: Server },
+    vkg: { label: 'VKG-HUD Services', icon: HardDrive },
     mission: { label: 'Mission Arena', icon: Flame },
     laws: { label: 'Sovereign Laws & Ledger', icon: Lock },
     scarcity: { label: '8GB Scarcity Protocol', icon: Cpu },
@@ -298,7 +302,7 @@ export default function App() {
       />
 
       {/* Main Content Arena */}
-      <main className={`flex-1 w-full ${activeTab === 'deck' ? 'p-0' : 'p-2 sm:p-4'}`}>
+      <main className={`flex-1 w-full ${(activeTab === 'vps_init' || activeTab === 'docs' || activeTab === 'deck' || activeTab === 'operator') ? 'p-0' : 'p-2 sm:p-4'}`}>
         {isCurrentTabMinimized ? (
           <div className="max-w-4xl mx-auto my-12 p-8 bg-[#0a1020]/90 border-2 border-cyan-500/40 rounded-2xl text-center space-y-4 shadow-2xl animate-fadeIn">
             <div className="w-12 h-12 mx-auto rounded-full bg-cyan-500/10 border border-cyan-400 flex items-center justify-center text-cyan-300">
@@ -319,6 +323,20 @@ export default function App() {
           </div>
         ) : (
           <>
+            {activeTab === 'vps_init' && (
+              <VpsHubInitiationConsole
+                onExecuteCommand={handleRunCustomCommand}
+                onNavigateTab={setActiveTab}
+              />
+            )}
+
+            {activeTab === 'docs' && (
+              <DocumentationForge
+                onNavigateTab={setActiveTab}
+                onExecuteCommand={handleRunCustomCommand}
+              />
+            )}
+
             {activeTab === 'deck' && (
               <MasterWorldTreeDeck 
                 vitals={vitals}
@@ -330,6 +348,7 @@ export default function App() {
             {activeTab === 'operator' && (
               <OperatorConsoleHtmx
                 onExecuteCommand={handleRunCustomCommand}
+                onNavigateTab={setActiveTab}
               />
             )}
 
@@ -371,6 +390,7 @@ export default function App() {
                 onRestartService={handleRestartService}
                 onExecuteCommand={handleRunCustomCommand}
                 onOpenOperatorConsole={() => setActiveTab('operator')}
+                onOpenVpsInitiation={() => setActiveTab('vps_init')}
               />
             )}
 

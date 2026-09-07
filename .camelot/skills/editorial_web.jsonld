@@ -1,0 +1,43 @@
+{
+  "@context": "https://camelot-os.dev/ukg/v1000/skill",
+  "@type": "Sovereign_Skill_Cartridge",
+  "skill_id": "editorial_web",
+  "version": "v1000.max",
+  "identity": "Ω_SKILL_EDITORIAL_WEB",
+  "target_knight": "Sir_Hydron",
+  "domain": "Z-Index Parallax Layering & DOM Scaffolding",
+  "execution_logic": "Constructs the DOM architecture to support faux-volumetric depth using standard CSS.",
+  "stacking_protocol": {
+    "sandwich_architecture": [
+      {
+        "layer": "L0_DOM_Typography_Background",
+        "z_index": 1,
+        "description": "Bento Grid cards, massive display H1 typography, and background telemetry."
+      },
+      {
+        "layer": "L1_Spatial_Canvas_Midground",
+        "z_index": 10,
+        "description": "Transparent immersive_web 3D Canvas / Frame-scroll matrix."
+      },
+      {
+        "layer": "L2_Foreground_HUD_Controls",
+        "z_index": 20,
+        "description": "Interactive action buttons, navigation tabs, modal drawers, and critical status pills."
+      }
+    ],
+    "positioning_strategy": "relative container with absolute inset spatial viewports"
+  },
+  "pointer_governance": {
+    "canvas_pointer_events": "pointer-events: none on transparent 3D layers where underlying DOM typography must be selectable/clickable.",
+    "interactive_hotspots": "Attach isolated pointer-events: auto only to actionable 3D gizmos or dedicated floating controls."
+  },
+  "layout_shift_guarantee": {
+    "cls_target": "0.00",
+    "enforcement": "Explicit aspect-ratio reservation and fixed dimensional bounds on scroll containers to prevent layout reflows."
+  },
+  "scarcity_constraint": {
+    "client_vram_ceiling": "<50MB",
+    "hardware_ram_ceiling": "8GB_STRICT_EDGE_BOUNDARY"
+  },
+  "seal": "⚜️_SOVEREIGN_TRUTH"
+}

@@ -42,7 +42,10 @@ import {
   ChevronUp,
   Sliders,
   Heart,
-  Gauge
+  Gauge,
+  Server,
+  Columns2,
+  Pause
 } from 'lucide-react';
 import { ThreeWorldTreeScene } from './ThreeWorldTreeScene';
 import { WorldTreeVisual } from './WorldTreeVisual';
@@ -50,6 +53,10 @@ import { audioEngine } from '../utils/audioEngine';
 import { MemcastleModal } from './MemcastleModal';
 import { TwinBrainsModal } from './TwinBrainsModal';
 import { VikingRefractionsModal } from './VikingRefractionsModal';
+import { WorldTreeHUD } from './worldtree/WorldTreeHUD';
+import { SovereignWorldTreeScrollingExperience } from './SovereignWorldTreeScrollingExperience';
+import { Interactive3DShowcase } from './Interactive3DShowcase';
+import { FixedThreeUiOverlay } from './FixedThreeUiOverlay';
 
 interface MasterWorldTreeDeckProps {
   vitals?: any;
@@ -63,6 +70,7 @@ interface StratumConfig {
   id: string;
   name: string;
   subTitle: string;
+  altitude: string;
   scrollStart: number;
   scrollEnd: number;
   targetScroll: number; // 0 to 1
@@ -80,6 +88,7 @@ const STRATA: StratumConfig[] = [
     id: 'apex',
     name: 'Apex Memcastle & Celestial Spires',
     subTitle: '/vfs/mempalace/* • Zero-Trust Gateways • Port 6379',
+    altitude: '+4500m',
     scrollStart: 0.0,
     scrollEnd: 0.28,
     targetScroll: 0.05,
@@ -95,6 +104,7 @@ const STRATA: StratumConfig[] = [
     id: 'brains',
     name: 'Cognitive Canopy & Twin Brains',
     subTitle: 'Open-Notebook (8502) ⟷ NotebookLM Cognitive Sink',
+    altitude: '+2800m',
     scrollStart: 0.28,
     scrollEnd: 0.58,
     targetScroll: 0.42,
@@ -110,6 +120,7 @@ const STRATA: StratumConfig[] = [
     id: 'ouroboros',
     name: 'Axis Trunk & Ouroboros SSM',
     subTitle: '1.58-Bit Ternary Recurrent Loop • W_ij ∈ {-1,0,1}',
+    altitude: '+1200m',
     scrollStart: 0.58,
     scrollEnd: 0.82,
     targetScroll: 0.70,
@@ -125,6 +136,7 @@ const STRATA: StratumConfig[] = [
     id: 'rivers',
     name: 'Ancient Roots & Emerald Data Rivers',
     subTitle: '/vfs/refractions/* • Viking Drakkar DMA Buffers',
+    altitude: '+0000m',
     scrollStart: 0.82,
     scrollEnd: 1.0,
     targetScroll: 0.95,
@@ -144,11 +156,24 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
   onNavigateTab,
   onExecuteCommand
 }) => {
-  // Primary View Mode: 'artwork' (Scroll-Driven 3D World Tree) | 'canvas' (Living Canvas Mode)
-  const [primaryView, setPrimaryView] = useState<'artwork' | 'canvas'>('artwork');
+  // Continuity Architecture State
+  // Continuity Layout: 'showcase' (Gemini 3.8 Flash Interactive 3D Showcase) | 'scroller' (Scrolling Interactive UI of 7 Pictures) | 'hud' (Continuous 2D ➔ 3D HUD) | 'unified' (Morphing Canvas) | 'split' (Dual-Sync) | 'overlay' (Fixed Canvas + Pass-Through UI Overlay)
+  const [continuityLayout, setContinuityLayout] = useState<'showcase' | 'scroller' | 'hud' | 'unified' | 'split' | 'overlay'>('showcase');
 
-  // Dimensional Mode: '2d' (Orthographic Flat) | '3d' (Scroll-Driven 3D Spatial Chamber)
-  const [dimensionalMode, setDimensionalMode] = useState<'2d' | '3d'>('3d');
+  // Continuous Dimension Factor: 0.00 (2.0D Flat Blueprint) to 1.00 (3.0D Spatial WebGL)
+  const [dimensionBlend, setDimensionBlend] = useState<number>(0.75);
+
+  // Auto-Morph Cinema Loop: continuous sinusoidal breath between 2D and 3D
+  const [isAutoMorphing, setIsAutoMorphing] = useState<boolean>(false);
+
+  // Scroll-Driven Morphing: page scroll unfolds the third dimension
+  const [isScrollMorphEnabled, setIsScrollMorphEnabled] = useState<boolean>(false);
+
+  // 2D Architectural Blueprint & Elevation Wireframe Overlay
+  const [showBlueprintWireframe, setShowBlueprintWireframe] = useState<boolean>(true);
+
+  // WebGL 3D Three.js Engine visibility
+  const [enableThreeWebGL, setEnableThreeWebGL] = useState<boolean>(true);
 
   // Dimension Z-Depth scale multiplier
   const [depthScale, setDepthScale] = useState<number>(85);
@@ -223,6 +248,26 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
     audioEngine.setEnabled(soundEnabled);
   }, [soundEnabled]);
 
+  // Auto-Morph Sinusoidal Cinema Loop: smoothly glides dimensionBlend between 0.05 and 0.95
+  useEffect(() => {
+    if (!isAutoMorphing) return;
+    let animId: number;
+    const cycleDurationMs = 9000; // 9 second breathing oscillation
+    const startTime = performance.now();
+
+    const morphLoop = (now: number) => {
+      const elapsed = (now - startTime) % cycleDurationMs;
+      const t = elapsed / cycleDurationMs;
+      // Sinusoidal easing: 0 -> 1 -> 0
+      const currentBlend = (Math.sin(t * Math.PI * 2 - Math.PI / 2) + 1) / 2;
+      setDimensionBlend(Number(currentBlend.toFixed(3)));
+      animId = requestAnimationFrame(morphLoop);
+    };
+
+    animId = requestAnimationFrame(morphLoop);
+    return () => cancelAnimationFrame(animId);
+  }, [isAutoMorphing]);
+
   // Handle Scroll Progress smoothly using requestAnimationFrame
   useEffect(() => {
     let animationFrameId: number;
@@ -243,6 +288,11 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
         const rawProgress = currentTop / totalHeight;
         const clampedProgress = Math.min(Math.max(rawProgress, 0), 1);
         setScrollProgress(clampedProgress);
+
+        if (isScrollMorphEnabled) {
+          // As you descend the tree (0 to 1), dimension blend smoothly unfolds from 0.05 to 1.00
+          setDimensionBlend(Number((0.05 + clampedProgress * 0.95).toFixed(3)));
+        }
       });
     };
 
@@ -253,9 +303,9 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
       window.removeEventListener('scroll', handleScroll);
       window.cancelAnimationFrame(animationFrameId);
     };
-  }, [primaryView]);
+  }, [continuityLayout, isScrollMorphEnabled]);
 
-  // Keyboard shortcut: 'c' for cinema, '3' for 3D toggle, 'b' for breathe toggle
+  // Keyboard shortcut: 'c' for cinema, '3' for 3D toggle, 'b' for breathe toggle, 'm' for auto-morph
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
@@ -268,6 +318,10 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
         audioEngine.playClick();
         handleToggleDimensionalMode();
       }
+      if (e.key === 'm' || e.key === 'M') {
+        audioEngine.playClick();
+        setIsAutoMorphing((prev) => !prev);
+      }
       if (e.key === 'b' || e.key === 'B') {
         audioEngine.playClick();
         setBreatheModeActive((prev) => !prev);
@@ -276,11 +330,11 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [dimensionalMode, breatheModeActive]);
+  }, [dimensionBlend, breatheModeActive, isAutoMorphing]);
 
   // Parallax tracking
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!parallaxEnabled || dimensionalMode === '2d' || isKineticOrbiting) return;
+    if (!parallaxEnabled || dimensionBlend < 0.1 || isKineticOrbiting) return;
     const { clientX, clientY, currentTarget } = e;
     const rect = currentTarget.getBoundingClientRect();
     const xRatio = (clientX - rect.left) / rect.width - 0.5;
@@ -289,23 +343,25 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
   };
 
   const handleMouseLeave = () => {
-    if (dimensionalMode === '2d' || isKineticOrbiting) return;
+    if (dimensionBlend < 0.1 || isKineticOrbiting) return;
     setMouseTilt({ x: 0, y: 0 });
   };
 
   // Toggle Dimensional Mode (2D <-> 3D)
   const handleToggleDimensionalMode = () => {
     audioEngine.playClick();
-    if (dimensionalMode === '2d') {
-      setDimensionalMode('3d');
+    setIsAutoMorphing(false);
+    setIsScrollMorphEnabled(false);
+    if (dimensionBlend < 0.5) {
+      setDimensionBlend(1.0);
       setDepthScale(85);
-      showFeedback('DIMENSIONAL EXPANSION: 3D SPATIAL SCROLL MATRIX ENGAGED');
+      showFeedback('DIMENSIONAL EXPANSION: 3.0D SPATIAL SCROLL MATRIX ENGAGED');
     } else {
-      setDimensionalMode('2d');
+      setDimensionBlend(0.0);
       setDepthScale(0);
       setIsKineticOrbiting(false);
       setMouseTilt({ x: 0, y: 0 });
-      showFeedback('ORTHOGRAPHIC LOCK: 2D FLAT MATRIX RESTORED');
+      showFeedback('ORTHOGRAPHIC LOCK: 2.0D FLAT MATRIX RESTORED');
     }
   };
 
@@ -345,7 +401,7 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
 
   // Interpolate camera parameters smoothly across strata
   const getInterpolatedCamera = () => {
-    if (dimensionalMode === '2d') {
+    if (dimensionBlend < 0.05) {
       const panY = 10 - scrollProgress * 75;
       return { rotX: 0, rotY: 0, panY, scale: 1.05 };
     }
@@ -373,11 +429,13 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
   };
 
   const camera = getInterpolatedCamera();
-  const dFactor = dimensionalMode === '2d' ? 0 : depthScale / 100;
+  const dFactor = dimensionBlend * (depthScale / 100);
 
-  // Final 3D rotation with optional mouse parallax
-  const finalRotX = isKineticOrbiting ? 0 : camera.rotX * dFactor + (parallaxEnabled ? mouseTilt.y : 0);
-  const finalRotY = isKineticOrbiting ? 0 : camera.rotY * dFactor + (parallaxEnabled ? mouseTilt.x : 0);
+  // Final 3D rotation with optional mouse parallax, continuous with dimensionBlend
+  const finalRotX = isKineticOrbiting ? 0 : (camera.rotX * dimensionBlend) + (parallaxEnabled ? mouseTilt.y * dimensionBlend : 0);
+  const finalRotY = isKineticOrbiting ? 0 : (camera.rotY * dimensionBlend) + (parallaxEnabled ? mouseTilt.x * dimensionBlend : 0);
+  const perspectiveCss = dimensionBlend < 0.03 ? 'none' : `${Math.round(2800 - dimensionBlend * 1600)}px`;
+  const blueprintOpacity = showBlueprintWireframe ? Math.max(0.12, 1 - dimensionBlend * 0.45) : 0;
 
   return (
     <div 
@@ -409,38 +467,157 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
             </span>
           </div>
 
-          {/* 2D vs 3D Dimensional Mode Switcher */}
-          <div className="flex items-center gap-1 bg-black/80 p-0.5 rounded-xl border border-[#D4AF37]/40 shadow-inner">
+          {/* 2D to 3D Dimension Continuity Control Hub */}
+          <div className="flex items-center gap-1.5 bg-black/90 p-1 rounded-xl border border-[#D4AF37]/50 shadow-[0_0_20px_rgba(212,175,55,0.2)]">
+            <div className="flex items-center gap-1 px-1.5 py-0.5">
+              <Move3d className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <span className="text-[10px] font-extrabold text-[#D4AF37] tracking-wider uppercase hidden xl:inline">
+                CONTINUITY:
+              </span>
+              <span className="text-[11px] font-extrabold text-cyan-300 font-mono">
+                {(2.0 + dimensionBlend).toFixed(2)}D
+              </span>
+            </div>
+
+            {/* Discrete Dimension Presets */}
+            <div className="flex items-center gap-0.5 bg-slate-950 p-0.5 rounded-lg border border-slate-800">
+              <button
+                onClick={() => {
+                  setIsAutoMorphing(false);
+                  setIsScrollMorphEnabled(false);
+                  setDimensionBlend(0.0);
+                  setDepthScale(0);
+                  showFeedback('2.0D BLUEPRINT: Orthographic planar projection active');
+                }}
+                className={`px-2 py-0.5 rounded text-[9px] font-bold transition-all cursor-pointer ${
+                  dimensionBlend < 0.15
+                    ? 'bg-gradient-to-r from-cyan-600 to-emerald-600 text-white shadow-[0_0_12px_rgba(34,211,238,0.5)]'
+                    : 'text-slate-400 hover:text-cyan-300'
+                }`}
+                title="2.0D Blueprint: Flat orthographic CAD view without perspective distortion"
+              >
+                2.0D
+              </button>
+              <button
+                onClick={() => {
+                  setIsAutoMorphing(false);
+                  setIsScrollMorphEnabled(false);
+                  setDimensionBlend(0.5);
+                  setDepthScale(55);
+                  showFeedback('2.5D ISOMETRIC: Stratum relief extrusion active');
+                }}
+                className={`px-2 py-0.5 rounded text-[9px] font-bold transition-all cursor-pointer ${
+                  dimensionBlend >= 0.35 && dimensionBlend <= 0.65
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_12px_rgba(168,85,247,0.5)]'
+                    : 'text-slate-400 hover:text-purple-300'
+                }`}
+                title="2.5D Isometric Relief: Layered depth elevation with subtle parallax"
+              >
+                2.5D
+              </button>
+              <button
+                onClick={() => {
+                  setIsAutoMorphing(false);
+                  setIsScrollMorphEnabled(false);
+                  setDimensionBlend(1.0);
+                  setDepthScale(85);
+                  showFeedback('3.0D SPATIAL: Full stereoscopic WebGL volumetric matrix engaged');
+                }}
+                className={`px-2 py-0.5 rounded text-[9px] font-bold transition-all cursor-pointer ${
+                  dimensionBlend > 0.85
+                    ? 'bg-gradient-to-r from-[#D4AF37] via-amber-500 to-[#2E0854] text-black font-extrabold shadow-[0_0_15px_rgba(212,175,55,0.6)]'
+                    : 'text-slate-400 hover:text-[#D4AF37]'
+                }`}
+                title="3.0D Spatial: Full stereoscopic perspective chamber with WebGL particles"
+              >
+                3.0D
+              </button>
+            </div>
+
+            {/* Continuous Continuity Slider */}
+            <div className="flex items-center gap-1.5 w-20 sm:w-28 xl:w-32 px-1">
+              <span className="text-[8px] text-slate-500 font-mono">2D</span>
+              <input 
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={Math.round(dimensionBlend * 100)}
+                onChange={(e) => {
+                  setIsAutoMorphing(false);
+                  setIsScrollMorphEnabled(false);
+                  setDimensionBlend(Number(e.target.value) / 100);
+                }}
+                className="w-full h-1.5 accent-[#D4AF37] bg-slate-800 rounded-lg cursor-pointer"
+                title="Slide to smoothly morph continuously between 2D Blueprint and 3D Volumetric Mesh"
+              />
+              <span className="text-[8px] text-slate-500 font-mono">3D</span>
+            </div>
+
+            {/* Auto-Morph Cinema Loop */}
             <button
               onClick={() => {
-                if (dimensionalMode !== '2d') handleToggleDimensionalMode();
+                const next = !isAutoMorphing;
+                setIsAutoMorphing(next);
+                if (next) {
+                  setIsScrollMorphEnabled(false);
+                  showFeedback('AUTO-MORPH CINEMA: Continuous 2D ⟷ 3D respiration loop engaged');
+                } else {
+                  showFeedback('Auto-Morph paused');
+                }
               }}
-              className={`px-3 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                dimensionalMode === '2d'
-                  ? 'bg-gradient-to-r from-cyan-600 to-emerald-600 text-white shadow-[0_0_15px_rgba(34,211,238,0.5)]'
-                  : 'text-slate-400 hover:text-cyan-300'
+              className={`px-2 py-1 rounded-lg text-[9px] font-extrabold flex items-center gap-1 border transition-all cursor-pointer ${
+                isAutoMorphing
+                  ? 'bg-gradient-to-r from-purple-600 to-amber-500 text-white border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-pulse'
+                  : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
               }`}
-              title="2D Flat Mode: Straightens perspective, pure orthographic scroll alignment"
+              title="Toggle continuous sinusoidal morph loop between 2D and 3D (Press 'M')"
             >
-              <Layers className="w-3.5 h-3.5" />
-              <span>2D FLAT</span>
+              <Sparkles className="w-3 h-3 text-amber-300" />
+              <span>{isAutoMorphing ? 'AUTO-MORPH' : 'MORPH'}</span>
             </button>
 
+            {/* Scroll Unfurl Toggle */}
             <button
               onClick={() => {
-                if (dimensionalMode !== '3d') handleToggleDimensionalMode();
+                const next = !isScrollMorphEnabled;
+                setIsScrollMorphEnabled(next);
+                if (next) {
+                  setIsAutoMorphing(false);
+                  showFeedback('SCROLL-MORPH: Yggdrasil descent dynamically unfolds 2D into 3D!');
+                } else {
+                  showFeedback('Scroll-Morph disengaged');
+                }
               }}
-              className={`px-3 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                dimensionalMode === '3d'
-                  ? 'bg-gradient-to-r from-[#D4AF37] via-amber-500 to-[#2E0854] text-black font-extrabold shadow-[0_0_20px_rgba(212,175,55,0.6)]'
-                  : 'text-slate-400 hover:text-[#D4AF37]'
+              className={`hidden md:flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-bold border transition-all cursor-pointer ${
+                isScrollMorphEnabled
+                  ? 'bg-cyan-950 border-cyan-400 text-cyan-200 shadow-[0_0_12px_rgba(34,211,238,0.4)]'
+                  : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
               }`}
-              title="3D Scroll Mode: Full spatial perspective panning down Yggdrasil"
+              title="Map vertical scroll position down the tree to dimensional emergence"
             >
-              <Move3d className="w-3.5 h-3.5" />
-              <span>3D SCROLL MATRIX</span>
+              <SlidersHorizontal className="w-3 h-3" />
+              <span>{isScrollMorphEnabled ? 'UNFURL ON' : 'UNFURL'}</span>
             </button>
           </div>
+
+          {/* Blueprint Wireframe Grid Toggle */}
+          <button
+            onClick={() => {
+              setShowBlueprintWireframe(!showBlueprintWireframe);
+              showFeedback(showBlueprintWireframe ? 'Blueprint wireframe hidden' : 'Blueprint architectural wireframe & elevation datum active');
+            }}
+            className={`px-2.5 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 border transition-all cursor-pointer ${
+              showBlueprintWireframe
+                ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                : 'bg-slate-900 border-slate-700 text-slate-500 hover:text-slate-300'
+            }`}
+            title="Toggle 2D Architectural Blueprint Coordinate Grid & Elevation Datum Lines"
+          >
+            <Layers className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">BLUEPRINT:</span>
+            <span>{showBlueprintWireframe ? 'ON' : 'OFF'}</span>
+          </button>
 
           {/* RESPIRATION & MEMORY SYNCHRONIZATION WIDGET */}
           <button
@@ -473,10 +650,114 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
           </button>
         </div>
 
-        {/* Right: Actions, Kinetic Orbit, Sound, Cinema Mode */}
+        {/* Right: Layout Switcher, Orbit, Sound, Cinema, Quick Actions */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Continuity View Layout: Showcase vs Scroller vs HUD vs Unified Morph vs Dual-Sync Split */}
+          <div className="flex items-center gap-1 bg-black/90 p-0.5 rounded-xl border border-[#D4AF37]/50 shadow-inner">
+            <button
+              onClick={() => {
+                audioEngine.playClick();
+                setContinuityLayout('showcase');
+                showFeedback('GEMINI 3.8 FLASH 3D SHOWCASE: Cinematic Model Orbit, Two-Row Marquee & Bento Grid');
+              }}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                continuityLayout === 'showcase'
+                  ? 'bg-gradient-to-r from-[#D4AF37] via-amber-400 to-[#D4AF37] text-black font-extrabold shadow-[0_0_16px_rgba(212,175,55,0.7)]'
+                  : 'text-[#D4AF37] hover:text-white'
+              }`}
+              title="Interactive 3D Website Showcase (Gemini 3.8 Flash, Two-Row Infinite Marquee, Bento Grid)"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>3D SHOWCASE</span>
+            </button>
+
+            <button
+              onClick={() => {
+                audioEngine.playClick();
+                setContinuityLayout('scroller');
+                showFeedback('SCROLL MATRIX: Interactive 7-Picture World Tree Strata (Apex to VFS Roots & Throne Room)');
+              }}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                continuityLayout === 'scroller'
+                  ? 'bg-gradient-to-r from-amber-500/40 to-cyan-500/40 text-white border border-[#D4AF37]/60 shadow-[0_0_12px_rgba(212,175,55,0.4)]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Scrolling Interactive UI of 7 Pictures (Full Tree, VFS Roots, Open Notebook, Throne Room)"
+            >
+              <span>7 PICS SCROLL</span>
+            </button>
+
+            <button
+              onClick={() => {
+                audioEngine.playClick();
+                setContinuityLayout('hud');
+                showFeedback('WORLD TREE HUD: 2D ➔ 3D Continuous Force Graph Topology HUD');
+              }}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                continuityLayout === 'hud'
+                  ? 'bg-gradient-to-r from-amber-500/30 to-[#2E0854] text-[#D4AF37] border border-[#D4AF37] shadow-[0_0_12px_rgba(212,175,55,0.4)]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Continuous 2D to 3D Force-Directed World Tree HUD"
+            >
+              <TreeDeciduous className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <span>2D ➔ 3D HUD</span>
+            </button>
+
+            <button
+              onClick={() => {
+                audioEngine.playClick();
+                setContinuityLayout('unified');
+                showFeedback('UNIFIED CONTINUITY: Immersive full-screen 2D ➔ 3D morphing viewport');
+              }}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                continuityLayout === 'unified'
+                  ? 'bg-[#2E0854] text-[#D4AF37] border border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="Unified continuous morphing canvas"
+            >
+              <Move3d className="w-3.5 h-3.5" />
+              <span>SCROLL DECK</span>
+            </button>
+
+            <button
+              onClick={() => {
+                audioEngine.playClick();
+                setContinuityLayout('split');
+                showFeedback('DUAL-SYNC SPLIT: 2D Blueprint & 3D Spatial Chamber side-by-side with quantum synchronization');
+              }}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                continuityLayout === 'split'
+                  ? 'bg-cyan-950 text-cyan-300 border border-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.4)]'
+                  : 'text-slate-400 hover:text-cyan-200'
+              }`}
+              title="Side-by-side dual inspection: 2D Blueprint Schematic on left, 3D Spatial Chamber on right"
+            >
+              <Columns2 className="w-3.5 h-3.5" />
+              <span>DUAL-SYNC</span>
+            </button>
+
+            <button
+              onClick={() => {
+                audioEngine.playClick();
+                setContinuityLayout('overlay');
+                showFeedback('3D CANVAS OVERLAY: Fixed Three.js viewport (z-0) with HTML UI Overlay (z-1+)');
+              }}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                continuityLayout === 'overlay'
+                  ? 'bg-purple-950 text-purple-300 border border-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.5)]'
+                  : 'text-slate-400 hover:text-purple-300'
+              }`}
+              title="Fixed Three.js canvas layer with pointer-events pass-through HTML UI overlay"
+            >
+              <Layers className="w-3.5 h-3.5 text-purple-400" />
+              <span>3D OVERLAY</span>
+            </button>
+          </div>
+
           {/* Kinetic Orbit Toggle */}
-          {dimensionalMode === '3d' && (
+          {dimensionBlend > 0.3 && (
             <button
               onClick={() => {
                 audioEngine.playClick();
@@ -505,7 +786,7 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
             title="Launch Open-Notebook & Twin Quantum Brains Studio"
           >
             <Brain className="w-3.5 h-3.5 text-purple-300" />
-            <span>OPEN-NOTEBOOK</span>
+            <span className="hidden sm:inline">OPEN-NOTEBOOK</span>
           </button>
 
           {/* Cinema / Clean Mode Toggle */}
@@ -522,7 +803,7 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
             title="Toggle Clean Cinema View (Hide all overlays - Press 'C')"
           >
             {cinemaMode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            <span>{cinemaMode ? 'CINEMA' : 'HUD ON'}</span>
+            <span>{cinemaMode ? 'CINEMA' : 'HUD'}</span>
           </button>
 
           {/* Sound Toggle */}
@@ -549,29 +830,27 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
             <span>PULSE SSM</span>
           </button>
 
-          {/* Switch to Living Canvas Mode if needed */}
-          <button
-            onClick={() => {
-              audioEngine.playClick();
-              setPrimaryView(primaryView === 'artwork' ? 'canvas' : 'artwork');
-            }}
-            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-cyan-800 text-cyan-300 text-[10px] flex items-center gap-1 transition-all cursor-pointer"
-            title="Toggle between Scroll 3D Deck and Vector Canvas Visualizer"
-          >
-            <TreeDeciduous className="w-3 h-3 text-emerald-400" />
-            <span>{primaryView === 'artwork' ? 'CANVAS VIEW' : 'SCROLL DECK'}</span>
-          </button>
-
-          {/* Quick link to HTMX Operator Console & WebGPU HUD */}
+          {/* Quick link to VPS Hub Initiation & HTMX Operator Console */}
           {onNavigateTab && (
-            <button
-              onClick={() => onNavigateTab('operator')}
-              className="px-2.5 py-1 rounded-lg bg-[#2E0854] hover:bg-purple-900 border border-[#D4AF37]/60 text-[#D4AF37] text-[10px] font-bold flex items-center gap-1 transition-all shadow-[0_0_10px_rgba(212,175,55,0.25)] cursor-pointer"
-              title="Navigate to Go/Rust Operator Console & WebGPU Topology"
-            >
-              <ShieldCheck className="w-3 h-3 text-[#D4AF37]" />
-              <span>HTMX CONSOLE</span>
-            </button>
+            <>
+              <button
+                onClick={() => onNavigateTab('vps_init')}
+                className="hidden xl:flex px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/60 text-emerald-300 text-[10px] font-bold items-center gap-1 transition-all shadow-[0_0_10px_rgba(16,185,129,0.25)] cursor-pointer"
+                title="Navigate to InterServer KVM VPS Hub Initiation Plan (vps3573819)"
+              >
+                <Server className="w-3 h-3 text-emerald-400" />
+                <span>VPS INITIATION</span>
+              </button>
+
+              <button
+                onClick={() => onNavigateTab('operator')}
+                className="hidden xl:flex px-2.5 py-1 rounded-lg bg-[#2E0854] hover:bg-purple-900 border border-[#D4AF37]/60 text-[#D4AF37] text-[10px] font-bold items-center gap-1 transition-all shadow-[0_0_10px_rgba(212,175,55,0.25)] cursor-pointer"
+                title="Navigate to Go/Rust Operator Console & WebGPU Topology"
+              >
+                <ShieldCheck className="w-3 h-3 text-[#D4AF37]" />
+                <span>HTMX CONSOLE</span>
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -793,17 +1072,184 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
         </div>
       </aside>
 
-      {/* ================= FULL PAGE STICKY 3D WORLD TREE VIEWPORT ================= */}
-      {primaryView === 'canvas' ? (
-        <div className="w-full max-w-[1720px] mx-auto p-4 pt-16">
-          <div className="rounded-2xl border border-cyan-900/60 overflow-hidden shadow-2xl bg-[#030712]">
-            <WorldTreeVisual
-              onOpenMemcastle={() => setActiveModal('memcastle')}
-              onOpenTwinBrains={() => setActiveModal('twin_brains')}
-              onOpenOuroboros={() => setActiveModal('twin_brains')}
-              onOpenViking={() => setActiveModal('viking')}
-              onOpenGraphify={() => onNavigateTab ? onNavigateTab('vkg') : undefined}
-            />
+      {/* ================= CONTINUOUS 2D ➔ 3D WORLD TREE VIEWPORT ================= */}
+      {continuityLayout === 'showcase' ? (
+        <div className="w-full">
+          <Interactive3DShowcase
+            vitals={vitals}
+            onNavigateTab={onNavigateTab}
+            onExecuteCommand={onExecuteCommand}
+            onSwitchContinuityView={(view) => setContinuityLayout(view)}
+          />
+        </div>
+      ) : continuityLayout === 'scroller' ? (
+        <div className="w-full">
+          <SovereignWorldTreeScrollingExperience 
+            onNavigateTab={onNavigateTab}
+            onExecuteCommand={onExecuteCommand}
+          />
+        </div>
+      ) : continuityLayout === 'overlay' ? (
+        <div className="w-full h-screen pt-12">
+          <FixedThreeUiOverlay onClose={() => setContinuityLayout('showcase')} />
+        </div>
+      ) : continuityLayout === 'hud' ? (
+        <div className="w-full max-w-[1880px] mx-auto p-2 sm:p-4 pt-16 pb-8">
+          <WorldTreeHUD 
+            onOpenModal={(m) => setActiveModal(m)}
+            onNavigateTab={onNavigateTab}
+            onExecuteCommand={onExecuteCommand}
+          />
+        </div>
+      ) : continuityLayout === 'split' ? (
+        <div className="w-full max-w-[1780px] mx-auto p-2 sm:p-4 pt-16 space-y-4">
+          {/* Dual-Sync Header Ribbon */}
+          <div className="hud-panel hud-panel-luxora p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs border border-[#D4AF37]/50 shadow-xl">
+            <div className="flex items-center gap-2">
+              <Columns2 className="w-4 h-4 text-cyan-400" />
+              <span className="font-bold text-[#D4AF37] tracking-wider uppercase">
+                DUAL-SYNC CONTINUITY WORKSTATION
+              </span>
+              <span className="text-slate-500 font-mono text-[10px]">
+                [PARITY LOCK: 100% • ANYA_GATE SYNCHRONIZED]
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 text-[11px] font-mono">
+              <span className="text-slate-400">STRATUM:</span>
+              <span className="text-cyan-300 font-bold uppercase">{currentStratum.name.split('&')[0]}</span>
+              <span className="text-slate-600">|</span>
+              <span className="text-slate-400">DESCENT:</span>
+              <span className="text-[#D4AF37] font-bold">{Math.round(scrollProgress * 100)}%</span>
+              <span className="text-slate-600">|</span>
+              <span className="text-slate-400">ALTITUDE:</span>
+              <span className="text-emerald-400 font-bold">{currentStratum.altitude}</span>
+            </div>
+          </div>
+
+          {/* Dual-Column Synchronization Grid */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch">
+            {/* LEFT PANE: 2D Living Blueprint Schematic */}
+            <div className="relative rounded-3xl border-2 border-cyan-800/60 overflow-hidden shadow-2xl bg-[#030712] flex flex-col justify-between">
+              {/* Top Banner */}
+              <div className="p-3 bg-black/80 border-b border-cyan-900/60 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="text-cyan-300 font-bold tracking-wider text-[11px]">
+                    2.0D BLUEPRINT SCHEMATIC // ORTHOGRAPHIC DATUM
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] px-2 py-0.5 rounded bg-cyan-950 border border-cyan-600/50 text-cyan-300 font-mono">
+                    SCALE 1:1 • FLAT CAD
+                  </span>
+                </div>
+              </div>
+
+              {/* 2D Vector Visualizer */}
+              <div className="p-2 sm:p-4">
+                <WorldTreeVisual
+                  onOpenMemcastle={() => setActiveModal('memcastle')}
+                  onOpenTwinBrains={() => setActiveModal('twin_brains')}
+                  onOpenOuroboros={() => setActiveModal('twin_brains')}
+                  onOpenViking={() => setActiveModal('viking')}
+                  onOpenGraphify={() => onNavigateTab ? onNavigateTab('vkg') : undefined}
+                />
+              </div>
+
+              {/* Bottom Datum Ruler */}
+              <div className="p-2 bg-black/80 border-t border-cyan-900/60 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                <span>DATUM: WGS-84 AXIS MUNDI</span>
+                <span className="text-cyan-400">ACTIVE: {currentStratum.id.toUpperCase()}</span>
+                <span>STATUS: NOMINAL</span>
+              </div>
+            </div>
+
+            {/* RIGHT PANE: 3D Spatial Chamber & WebGL Matrix */}
+            <div className="relative rounded-3xl border-2 border-[#D4AF37]/50 overflow-hidden shadow-2xl bg-[#050505] flex flex-col justify-between min-h-[640px]">
+              {/* Top Banner */}
+              <div className="p-3 bg-black/80 border-b border-[#D4AF37]/40 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <Move3d className="w-3.5 h-3.5 text-[#D4AF37]" />
+                  <span className="text-[#D4AF37] font-bold tracking-wider text-[11px]">
+                    3.0D SPATIAL CHAMBER // STEREOSCOPIC MATRIX
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] px-2 py-0.5 rounded bg-purple-950 border border-purple-500/50 text-purple-300 font-mono">
+                    PERSPECTIVE 1400px • WEBGL ACTIVE
+                  </span>
+                </div>
+              </div>
+
+              {/* 3D Scene Viewport */}
+              <div 
+                className="relative flex-1 w-full overflow-hidden flex items-center justify-center p-2"
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+                style={{ perspective: '1400px' }}
+              >
+                <div 
+                  className="relative w-full h-full min-h-[560px] rounded-2xl border border-[#D4AF37]/40 overflow-hidden shadow-2xl transition-transform duration-300 ease-out"
+                  style={{
+                    transformStyle: 'preserve-3d',
+                    transform: `rotateX(${finalRotX}deg) rotateY(${finalRotY}deg) translateZ(15px)`,
+                    backgroundColor: '#050505'
+                  }}
+                >
+                  {/* Master Image */}
+                  <div 
+                    className="absolute inset-0 pointer-events-none transition-transform duration-300 ease-out"
+                    style={{
+                      transform: `translateY(${camera.panY}%) scale(${camera.scale})`,
+                      transformStyle: 'preserve-3d'
+                    }}
+                  >
+                    <img 
+                      src="/1787629062694-01a036fd-ed60-74c1-b1c7-5e5177f9ba69.png"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = 'https://i.postimg.cc/Lssx07X3/1787629062694-01a036fd-ed60-74c1-b1c7-5e5177f9ba69.png';
+                      }}
+                      alt="Camelot-OS Sovereign World Tree"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-auto min-h-[140%] object-cover object-center pointer-events-none transition-all duration-700 brightness-105 contrast-110 select-none"
+                    />
+                  </div>
+
+                  {/* WebGL Overlay */}
+                  <ThreeWorldTreeScene 
+                    energyPulseTrigger={energyPulseTrigger}
+                    depthLayer={5}
+                    onHotspotClick={(zone) => {
+                      if (zone === 'memcastle') setActiveModal('memcastle');
+                      if (zone === 'brains') setActiveModal('twin_brains');
+                      if (zone === 'viking') setActiveModal('viking');
+                    }}
+                  />
+
+                  {/* Dynamic Stratum Floating Info */}
+                  <div className="absolute bottom-4 inset-x-4 pointer-events-none">
+                    <div className="hud-panel hud-panel-luxora p-3 rounded-xl flex items-center justify-between text-xs backdrop-blur-xl border border-[#D4AF37]/50 shadow-xl pointer-events-auto">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{currentStratum.icon}</span>
+                        <div>
+                          <div className="text-[10px] font-bold text-white uppercase">{currentStratum.name}</div>
+                          <div className="text-[9px] text-slate-400">{currentStratum.subTitle}</div>
+                        </div>
+                      </div>
+                      <span className="text-[#D4AF37] font-bold font-mono text-[11px]">{currentStratum.altitude}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Telemetry Bar */}
+              <div className="p-2 bg-black/80 border-t border-[#D4AF37]/40 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                <span>PITCH: {finalRotX.toFixed(1)}° • YAW: {finalRotY.toFixed(1)}°</span>
+                <span className="text-[#D4AF37]">PULSE: {breatheDurationCss}</span>
+                <span>DMA REFRACTION: 12μs</span>
+              </div>
+            </div>
           </div>
         </div>
       ) : (
@@ -815,19 +1261,19 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
             style={{
-              perspective: dimensionalMode === '2d' ? 'none' : '1400px',
+              perspective: perspectiveCss,
             }}
           >
             {/* The Physical 3D Tilting Frame */}
             <div 
               className={`relative w-full h-full max-w-[1720px] max-h-[92vh] rounded-3xl border transition-all duration-300 ease-out overflow-hidden shadow-2xl ${
-                dimensionalMode === '3d' 
-                  ? 'border-[#D4AF37]/40 shadow-[0_0_80px_rgba(0,0,0,0.9)]' 
-                  : 'border-cyan-900/40 shadow-[0_0_40px_rgba(0,0,0,0.7)]'
+                dimensionBlend > 0.4 
+                  ? 'border-[#D4AF37]/50 shadow-[0_0_80px_rgba(0,0,0,0.9)]' 
+                  : 'border-cyan-500/50 shadow-[0_0_40px_rgba(0,0,0,0.7)]'
               } ${isKineticOrbiting ? 'animate-kinetic-orbit' : ''}`}
               style={{
                 transformStyle: 'preserve-3d',
-                transform: dimensionalMode === '2d'
+                transform: dimensionBlend < 0.05
                   ? 'rotateX(0deg) rotateY(0deg) translateZ(0px)'
                   : isKineticOrbiting
                     ? undefined
@@ -903,6 +1349,105 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
                 <div className="absolute inset-0 bg-gradient-to-r from-[#050505]/80 via-transparent to-[#050505]/80 pointer-events-none" />
               </div>
 
+              {/* LAYER 0.5: 2D ARCHITECTURAL BLUEPRINT & ELEVATION DATUM WIREFRAME OVERLAY */}
+              {showBlueprintWireframe && (
+                <div 
+                  className="absolute inset-0 pointer-events-none z-10 transition-opacity duration-300"
+                  style={{ 
+                    opacity: blueprintOpacity,
+                    transform: `translateZ(${12 * (1 - dimensionBlend)}px)`,
+                    transformStyle: 'preserve-3d'
+                  }}
+                >
+                  <svg 
+                    className="w-full h-full" 
+                    viewBox="0 0 1000 700" 
+                    preserveAspectRatio="none"
+                  >
+                    <defs>
+                      {/* Architectural Blueprint Grid Pattern */}
+                      <pattern id="cadGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(34, 211, 238, 0.14)" strokeWidth="0.8" />
+                        <circle cx="0" cy="0" r="1.2" fill="rgba(34, 211, 238, 0.25)" />
+                      </pattern>
+                      <pattern id="cadMajorGrid" width="200" height="200" patternUnits="userSpaceOnUse">
+                        <rect width="200" height="200" fill="url(#cadGrid)" />
+                        <path d="M 200 0 L 0 0 0 200" fill="none" stroke="rgba(212, 175, 55, 0.25)" strokeWidth="1.2" />
+                      </pattern>
+                    </defs>
+
+                    {/* Cad Grid Background */}
+                    <rect width="1000" height="700" fill="url(#cadMajorGrid)" />
+
+                    {/* Central Plumb Line (Axis Mundi Trunk Alignment) */}
+                    <line 
+                      x1="500" y1="20" x2="500" y2="680" 
+                      stroke="rgba(212, 175, 55, 0.6)" 
+                      strokeWidth="1.5" 
+                      strokeDasharray="6 4"
+                    />
+
+                    {/* Stratum Datum Elevation Lines */}
+                    {/* S4: Apex Spire */}
+                    <g transform="translate(0, 110)">
+                      <line x1="80" y1="0" x2="920" y2="0" stroke="rgba(212, 175, 55, 0.55)" strokeWidth="1.2" strokeDasharray="4 2" />
+                      <circle cx="500" cy="0" r="5" fill="#D4AF37" />
+                      <circle cx="500" cy="0" r="14" fill="none" stroke="#D4AF37" strokeWidth="0.8" strokeDasharray="3 3" />
+                      <text x="90" y="-8" fill="#D4AF37" fontSize="10" fontFamily="monospace" fontWeight="bold">
+                        DATUM S4 // EL +4500m [APEX MEMCASTLE] // PORT: 6379
+                      </text>
+                    </g>
+
+                    {/* S3: Twin Quantum Brains */}
+                    <g transform="translate(0, 270)">
+                      <line x1="80" y1="0" x2="920" y2="0" stroke="rgba(168, 85, 247, 0.55)" strokeWidth="1.2" strokeDasharray="4 2" />
+                      <circle cx="500" cy="0" r="5" fill="#c084fc" />
+                      <circle cx="500" cy="0" r="14" fill="none" stroke="#c084fc" strokeWidth="0.8" strokeDasharray="3 3" />
+                      <text x="90" y="-8" fill="#c084fc" fontSize="10" fontFamily="monospace" fontWeight="bold">
+                        DATUM S3 // EL +2800m [TWIN QUANTUM BRAINS] // OPEN-NOTEBOOK
+                      </text>
+                    </g>
+
+                    {/* S2: Ouroboros Ternary SSM */}
+                    <g transform="translate(0, 430)">
+                      <line x1="80" y1="0" x2="920" y2="0" stroke="rgba(245, 158, 11, 0.55)" strokeWidth="1.2" strokeDasharray="4 2" />
+                      <circle cx="500" cy="0" r="5" fill="#fbbf24" />
+                      <circle cx="500" cy="0" r="14" fill="none" stroke="#fbbf24" strokeWidth="0.8" strokeDasharray="3 3" />
+                      <text x="90" y="-8" fill="#fbbf24" fontSize="10" fontFamily="monospace" fontWeight="bold">
+                        DATUM S2 // EL +1200m [1.58b OUROBOROS SSM] // TERNARY LOOP
+                      </text>
+                    </g>
+
+                    {/* S1: Viking Drakkar Emerald Basin */}
+                    <g transform="translate(0, 590)">
+                      <line x1="80" y1="0" x2="920" y2="0" stroke="rgba(16, 185, 129, 0.55)" strokeWidth="1.2" strokeDasharray="4 2" />
+                      <circle cx="500" cy="0" r="5" fill="#34d399" />
+                      <circle cx="500" cy="0" r="14" fill="none" stroke="#34d399" strokeWidth="0.8" strokeDasharray="3 3" />
+                      <text x="90" y="-8" fill="#34d399" fontSize="10" fontFamily="monospace" fontWeight="bold">
+                        DATUM S1 // EL +0000m [EMERALD RIVERS // VIKING PROTOCOL] // DMA RING
+                      </text>
+                    </g>
+
+                    {/* CAD Drawing Title Block (Bottom-Right) */}
+                    <g transform="translate(770, 605)">
+                      <rect width="210" height="75" fill="rgba(5, 5, 5, 0.9)" stroke="rgba(212, 175, 55, 0.6)" strokeWidth="1.2" rx="4" />
+                      <text x="10" y="18" fill="#D4AF37" fontSize="9" fontFamily="monospace" fontWeight="bold">
+                        DWG: CAMELOT_WORLD_TREE
+                      </text>
+                      <text x="10" y="34" fill="#22d3ee" fontSize="8" fontFamily="monospace">
+                        CONTINUITY: {(2.0 + dimensionBlend).toFixed(2)}D
+                      </text>
+                      <text x="10" y="50" fill="#94a3b8" fontSize="8" fontFamily="monospace">
+                        PROJECTION: {dimensionBlend < 0.1 ? 'ORTHOGRAPHIC 2D' : dimensionBlend > 0.8 ? 'VOLUMETRIC 3D' : 'ISOMETRIC HYBRID'}
+                      </text>
+                      <text x="10" y="65" fill="#34d399" fontSize="8" fontFamily="monospace">
+                        Z3_SAT: 44/44 PASS
+                      </text>
+                    </g>
+                  </svg>
+                </div>
+              )}
+
               {/* Respiratory Expanding Wave Ripple at Core of Axis Mundi */}
               {breatheModeActive && (
                 <div 
@@ -914,19 +1459,29 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
                 />
               )}
 
-              {/* Optional Three.js WebGL Particle Overlay */}
-              <ThreeWorldTreeScene 
-                energyPulseTrigger={energyPulseTrigger}
-                depthLayer={5}
-                onHotspotClick={(zone) => {
-                  if (zone === 'memcastle') setActiveModal('memcastle');
-                  if (zone === 'brains') setActiveModal('twin_brains');
-                  if (zone === 'viking') setActiveModal('viking');
-                }}
-              />
+              {/* Three.js WebGL Particle Overlay (smoothly blends opacity with dimension factor) */}
+              {enableThreeWebGL && (
+                <div 
+                  className="absolute inset-0 z-15 transition-opacity duration-300"
+                  style={{ 
+                    opacity: Math.max(0.12, dimensionBlend),
+                    pointerEvents: dimensionBlend > 0.25 ? 'auto' : 'none'
+                  }}
+                >
+                  <ThreeWorldTreeScene 
+                    energyPulseTrigger={energyPulseTrigger}
+                    depthLayer={5}
+                    onHotspotClick={(zone) => {
+                      if (zone === 'memcastle') setActiveModal('memcastle');
+                      if (zone === 'brains') setActiveModal('twin_brains');
+                      if (zone === 'viking') setActiveModal('viking');
+                    }}
+                  />
+                </div>
+              )}
 
               {/* LAYER 1: Z-STANCHION LASER CONNECTOR GUIDES */}
-              {dimensionalMode === '3d' && dFactor > 0.3 && !cinemaMode && (
+              {dimensionBlend > 0.25 && dFactor > 0.15 && !cinemaMode && (
                 <div className="absolute inset-0 pointer-events-none z-20" style={{ transformStyle: 'preserve-3d' }}>
                   <div 
                     className="z-stanchion"
@@ -1178,13 +1733,16 @@ export const MasterWorldTreeDeck: React.FC<MasterWorldTreeDeckProps> = ({
                   <div className="w-full max-w-xl mx-auto pointer-events-auto">
                     <div className="hud-panel hud-panel-luxora px-4 py-2 rounded-2xl flex items-center justify-between gap-3 text-[10px] backdrop-blur-xl border border-[#D4AF37]/50 shadow-xl">
                       <div className="flex items-center gap-2">
+                        <span className="text-slate-400">CONTINUITY:</span>
+                        <span className="text-cyan-300 font-bold font-mono">{(2.0 + dimensionBlend).toFixed(2)}D</span>
+                        <span className="text-slate-600">|</span>
                         <span className="text-slate-400">PITCH:</span>
                         <span className="text-[#D4AF37] font-bold font-mono">{finalRotX.toFixed(1)}°</span>
                         <span className="text-slate-600">|</span>
                         <span className="text-slate-400">YAW:</span>
                         <span className="text-cyan-300 font-bold font-mono">{finalRotY.toFixed(1)}°</span>
                         <span className="text-slate-600">|</span>
-                        <span className="text-slate-400">RESPIRATION:</span>
+                        <span className="text-slate-400">PULSE:</span>
                         <span className="text-emerald-400 font-bold font-mono">{breatheDurationCss}</span>
                       </div>
 

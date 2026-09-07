@@ -1,0 +1,51 @@
+openapi: 3.0.0
+info:
+  title: Camelot-VPS Hub API
+  version: 1.0.0
+servers:
+  - url: https://localhost:8443
+security:
+  - X-Camelot-Lease-ID: []
+paths:
+  /v1/memory/retrieve:
+    post:
+      summary: Retrieve context packet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                task_id: { type: string }
+                query: { type: string }
+                max_tokens: { type: integer }
+      responses:
+        '200':
+          description: Context packet
+  /v1/effects/{id}/decision:
+    post:
+      summary: Approve/deny effect
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                decision: { type: string, enum: [approve, deny] }
+                reason: { type: string }
+      responses:
+        '200':
+          description: Decision recorded
+components:
+  securitySchemes:
+    X-Camelot-Lease-ID:
+      type: apiKey
+      in: header
+      name: X-Camelot-Lease-ID
