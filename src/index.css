@@ -35,29 +35,207 @@
   background: rgba(34, 211, 238, 0.5);
 }
 
-/* HUD Bento Box styles */
+/* =========================================================================
+   HOLOGRAPHIC HUD & 3D DEPTH-PARALLAX ARCHITECTURE
+   ========================================================================= */
+
+:root {
+  --hud-depth-ground: 0px;
+  --hud-depth-1: 18px;
+  --hud-depth-2: 38px;
+  --hud-depth-3: 60px;
+  --hud-depth-4: 86px;
+  --hud-depth-apex: 112px;
+  --hud-depth-orbit: 136px;
+}
+
+/* Base HUD Panel with 3D Transform Space */
 .hud-panel {
-  background: rgba(8, 13, 24, 0.82);
+  --hud-z: var(--hud-depth-1);
+  --hud-lift: 22px;
+  position: relative;
+  background: rgba(8, 13, 24, 0.84);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(34, 211, 238, 0.22);
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.7), inset 0 0 12px rgba(34, 211, 238, 0.03);
+  transform-style: preserve-3d;
+  will-change: transform, box-shadow, border-color;
+  transform: translateZ(var(--hud-z));
+  box-shadow: 
+    0 calc(var(--hud-z) * 0.35) calc(var(--hud-z) * 0.75 + 14px) rgba(0, 0, 0, 0.75),
+    0 0 18px rgba(34, 211, 238, 0.06),
+    inset 0 0 14px rgba(34, 211, 238, 0.04);
+  transition: 
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.3s ease,
+    background-color 0.3s ease;
 }
 
+/* Holographic dynamic elevation upon hover into the near-plane */
 .hud-panel:hover {
-  border-color: rgba(34, 211, 238, 0.38);
-  box-shadow: 0 0 24px rgba(6, 182, 212, 0.12), inset 0 0 16px rgba(34, 211, 238, 0.05);
+  transform: translateZ(calc(var(--hud-z) + var(--hud-lift))) translateY(-2px);
+  border-color: rgba(34, 211, 238, 0.48);
+  box-shadow: 
+    0 calc((var(--hud-z) + var(--hud-lift)) * 0.45) calc((var(--hud-z) + var(--hud-lift)) * 0.9 + 20px) rgba(0, 0, 0, 0.88),
+    0 0 28px rgba(34, 211, 238, 0.22),
+    inset 0 0 18px rgba(34, 211, 238, 0.08);
 }
 
+/* Amber Variant */
 .hud-panel-amber {
-  background: rgba(12, 10, 18, 0.82);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.7), inset 0 0 12px rgba(245, 158, 11, 0.04);
+  --hud-z: var(--hud-depth-2);
+  background: rgba(16, 12, 10, 0.85);
+  border-color: rgba(245, 158, 11, 0.28);
+  box-shadow: 
+    0 calc(var(--hud-z) * 0.35) calc(var(--hud-z) * 0.75 + 14px) rgba(0, 0, 0, 0.75),
+    0 0 18px rgba(245, 158, 11, 0.07),
+    inset 0 0 14px rgba(245, 158, 11, 0.05);
 }
 
 .hud-panel-amber:hover {
-  border-color: rgba(245, 158, 11, 0.45);
+  border-color: rgba(245, 158, 11, 0.55);
+  box-shadow: 
+    0 calc((var(--hud-z) + var(--hud-lift)) * 0.45) calc((var(--hud-z) + var(--hud-lift)) * 0.9 + 20px) rgba(0, 0, 0, 0.88),
+    0 0 28px rgba(245, 158, 11, 0.25),
+    inset 0 0 18px rgba(245, 158, 11, 0.1);
+}
+
+/* Emerald Variant */
+.hud-panel-emerald {
+  --hud-z: var(--hud-depth-1);
+  background: rgba(6, 18, 14, 0.85);
+  border-color: rgba(52, 211, 153, 0.28);
+  box-shadow: 
+    0 calc(var(--hud-z) * 0.35) calc(var(--hud-z) * 0.75 + 14px) rgba(0, 0, 0, 0.75),
+    0 0 18px rgba(52, 211, 153, 0.07),
+    inset 0 0 14px rgba(52, 211, 153, 0.05);
+}
+
+.hud-panel-emerald:hover {
+  border-color: rgba(52, 211, 153, 0.55);
+  box-shadow: 
+    0 calc((var(--hud-z) + var(--hud-lift)) * 0.45) calc((var(--hud-z) + var(--hud-lift)) * 0.9 + 20px) rgba(0, 0, 0, 0.88),
+    0 0 28px rgba(52, 211, 153, 0.25),
+    inset 0 0 18px rgba(52, 211, 153, 0.1);
+}
+
+/* Purple Variant */
+.hud-panel-purple {
+  --hud-z: var(--hud-depth-2);
+  background: rgba(18, 8, 26, 0.85);
+  border-color: rgba(192, 132, 252, 0.28);
+  box-shadow: 
+    0 calc(var(--hud-z) * 0.35) calc(var(--hud-z) * 0.75 + 14px) rgba(0, 0, 0, 0.75),
+    0 0 18px rgba(192, 132, 252, 0.07),
+    inset 0 0 14px rgba(192, 132, 252, 0.05);
+}
+
+.hud-panel-purple:hover {
+  border-color: rgba(192, 132, 252, 0.55);
+  box-shadow: 
+    0 calc((var(--hud-z) + var(--hud-lift)) * 0.45) calc((var(--hud-z) + var(--hud-lift)) * 0.9 + 20px) rgba(0, 0, 0, 0.88),
+    0 0 28px rgba(192, 132, 252, 0.25),
+    inset 0 0 18px rgba(192, 132, 252, 0.1);
+}
+
+/* Discrete Z-Axis Depth-Parallax Tier Classes */
+.hud-depth-ground {
+  --hud-z: var(--hud-depth-ground);
+}
+
+.hud-depth-1 {
+  --hud-z: var(--hud-depth-1);
+}
+
+.hud-depth-2 {
+  --hud-z: var(--hud-depth-2);
+}
+
+.hud-depth-3 {
+  --hud-z: var(--hud-depth-3);
+}
+
+.hud-depth-4 {
+  --hud-z: var(--hud-depth-4);
+}
+
+.hud-depth-apex {
+  --hud-z: var(--hud-depth-apex);
+}
+
+.hud-depth-orbit {
+  --hud-z: var(--hud-depth-orbit);
+}
+
+/* Harmonic Floating Oscillations for Ambient Holographic Depth */
+@keyframes hud-float-subtle {
+  0%, 100% {
+    transform: translateZ(var(--hud-z)) translateY(0px);
+  }
+  50% {
+    transform: translateZ(calc(var(--hud-z) + 6px)) translateY(-3px);
+  }
+}
+
+@keyframes hud-float-delayed {
+  0%, 100% {
+    transform: translateZ(var(--hud-z)) translateY(0px);
+  }
+  50% {
+    transform: translateZ(calc(var(--hud-z) + 8px)) translateY(-4px);
+  }
+}
+
+@keyframes hud-float-apex {
+  0%, 100% {
+    transform: translateZ(var(--hud-z)) translateY(0px) rotateX(0deg);
+  }
+  50% {
+    transform: translateZ(calc(var(--hud-z) + 12px)) translateY(-5px) rotateX(0.75deg);
+  }
+}
+
+.hud-parallax-float {
+  animation: hud-float-subtle 6s ease-in-out infinite;
+}
+
+.hud-parallax-float-delayed {
+  animation: hud-float-delayed 7s ease-in-out 1.5s infinite;
+}
+
+.hud-parallax-float-high,
+.hud-parallax-float-apex {
+  animation: hud-float-apex 5.5s ease-in-out 0.8s infinite;
+}
+
+/* 3D Perspective Viewport Context for containers holding HUD Panels */
+.hud-perspective-field {
+  perspective: 1400px;
+  transform-style: preserve-3d;
+}
+
+/* Holographic Glint Top Edge */
+.hud-glint::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.6), transparent);
+  pointer-events: none;
+}
+
+.hud-glint-amber::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.6), transparent);
+  pointer-events: none;
 }
 
 /* Neon glow texts */
@@ -136,4 +314,213 @@
   stroke-dasharray: 8 12;
   animation: water-flow 4s linear infinite;
 }
+
+/* =========================================================================
+   Ω_EXCALIBUR_V1000 DIMENSIONAL SHIFT & 2D-TO-3D CSS SPATIAL PIPELINE
+   ========================================================================= */
+
+/* Aesthetic Palette Tokens */
+:root {
+  --kinetic-obsidian: #050505;
+  --luxora-gold: #D4AF37;
+  --royal-purple: #2E0854;
+}
+
+.bg-kinetic-obsidian {
+  background-color: #050505;
+}
+
+.text-luxora-gold {
+  color: #D4AF37;
+}
+
+.border-luxora-gold {
+  border-color: rgba(212, 175, 55, 0.45);
+}
+
+.bg-royal-purple {
+  background-color: #2E0854;
+}
+
+.glow-luxora {
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.7), 0 0 20px rgba(212, 175, 55, 0.35);
+}
+
+.glow-royal {
+  text-shadow: 0 0 10px rgba(168, 85, 247, 0.7), 0 0 20px rgba(46, 8, 84, 0.8);
+}
+
+/* 2D-to-3D Dimensional Shift Chamber */
+.dimensional-viewport {
+  perspective: 1500px;
+  perspective-origin: 50% 50%;
+  transform-style: preserve-3d;
+  transition: perspective 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dimensional-stage-2d {
+  transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) translateZ(0px);
+  transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dimensional-stage-3d {
+  transform: rotateX(16deg) rotateY(-12deg) rotateZ(0.5deg) translateZ(20px);
+  transition: transform 1.1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Continuous Kinetic Orbit Animation in 3D Space */
+@keyframes kinetic-spatial-orbit {
+  0% {
+    transform: rotateX(15deg) rotateY(-14deg) rotateZ(0.5deg) translateZ(20px);
+  }
+  33% {
+    transform: rotateX(19deg) rotateY(-5deg) rotateZ(-0.5deg) translateZ(35px);
+  }
+  66% {
+    transform: rotateX(12deg) rotateY(-18deg) rotateZ(1deg) translateZ(15px);
+  }
+  100% {
+    transform: rotateX(15deg) rotateY(-14deg) rotateZ(0.5deg) translateZ(20px);
+  }
+}
+
+.animate-kinetic-orbit {
+  animation: kinetic-spatial-orbit 18s ease-in-out infinite;
+}
+
+/* Holographic Laser Connector Stanchion */
+.z-stanchion {
+  position: absolute;
+  pointer-events: none;
+  border-left: 1px dashed rgba(212, 175, 55, 0.35);
+  transform-style: preserve-3d;
+  box-shadow: 0 0 6px rgba(34, 211, 238, 0.3);
+}
+
+/* Luxora Gold and Royal Purple Card Variant */
+.hud-panel-luxora {
+  --hud-z: var(--hud-depth-3);
+  background: rgba(14, 12, 6, 0.88);
+  border-color: rgba(212, 175, 55, 0.45);
+  box-shadow: 
+    0 calc(var(--hud-z) * 0.4) calc(var(--hud-z) * 0.8 + 16px) rgba(0, 0, 0, 0.85),
+    0 0 22px rgba(212, 175, 55, 0.15),
+    inset 0 0 16px rgba(212, 175, 55, 0.08);
+}
+
+.hud-panel-luxora:hover {
+  border-color: rgba(212, 175, 55, 0.75);
+  box-shadow: 
+    0 calc((var(--hud-z) + var(--hud-lift)) * 0.5) calc((var(--hud-z) + var(--hud-lift)) * 0.95 + 24px) rgba(0, 0, 0, 0.92),
+    0 0 32px rgba(212, 175, 55, 0.35),
+    inset 0 0 22px rgba(212, 175, 55, 0.14);
+}
+
+.hud-panel-royal {
+  --hud-z: var(--hud-depth-2);
+  background: rgba(20, 6, 36, 0.88);
+  border-color: rgba(168, 85, 247, 0.45);
+  box-shadow: 
+    0 calc(var(--hud-z) * 0.4) calc(var(--hud-z) * 0.8 + 16px) rgba(0, 0, 0, 0.85),
+    0 0 22px rgba(168, 85, 247, 0.15),
+    inset 0 0 16px rgba(46, 8, 84, 0.25);
+}
+
+.hud-panel-royal:hover {
+  border-color: rgba(192, 132, 252, 0.75);
+  box-shadow: 
+    0 calc((var(--hud-z) + var(--hud-lift)) * 0.5) calc((var(--hud-z) + var(--hud-lift)) * 0.95 + 24px) rgba(0, 0, 0, 0.92),
+    0 0 32px rgba(168, 85, 247, 0.35),
+    inset 0 0 22px rgba(168, 85, 247, 0.15);
+}
+
+/* ==========================================================================
+   WORLD TREE RESPIRATION & PULSE ANIMATION PIPELINE
+   Synchronized with the 8GB Scarcity RAM Confinement
+   Respiration slows down as system memory approaches 8GB capacity limit
+   ========================================================================== */
+
+@keyframes world-tree-breathe {
+  0% {
+    transform: scale(1) translateZ(0px);
+    filter: brightness(1.0) contrast(1.1) saturate(1.15) drop-shadow(0 0 14px var(--tree-breathe-glow, rgba(212, 175, 55, 0.25)));
+  }
+  50% {
+    transform: scale(var(--tree-breathe-scale, 1.036)) translateZ(var(--tree-breathe-z, 16px));
+    filter: brightness(1.18) contrast(1.18) saturate(1.36) drop-shadow(0 0 38px var(--tree-breathe-glow, rgba(212, 175, 55, 0.65)));
+  }
+  100% {
+    transform: scale(1) translateZ(0px);
+    filter: brightness(1.0) contrast(1.1) saturate(1.15) drop-shadow(0 0 14px var(--tree-breathe-glow, rgba(212, 175, 55, 0.25)));
+  }
+}
+
+@keyframes world-tree-aura-pulse {
+  0% {
+    transform: scale(0.96);
+    opacity: 0.22;
+    filter: blur(20px);
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.68;
+    filter: blur(36px);
+  }
+  100% {
+    transform: scale(0.96);
+    opacity: 0.22;
+    filter: blur(20px);
+  }
+}
+
+@keyframes world-tree-veins-pulse {
+  0% {
+    opacity: 0.25;
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.3));
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.025);
+    filter: drop-shadow(0 0 20px var(--tree-breathe-glow, rgba(212, 175, 55, 0.75)));
+  }
+  100% {
+    opacity: 0.25;
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.3));
+  }
+}
+
+@keyframes tree-wave-ripple {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+.world-tree-breathe-active {
+  animation: world-tree-breathe var(--tree-breathe-duration, 4.8s) ease-in-out infinite;
+  transform-style: preserve-3d;
+  will-change: transform, filter;
+}
+
+.world-tree-aura-active {
+  animation: world-tree-aura-pulse var(--tree-breathe-duration, 4.8s) ease-in-out infinite;
+  will-change: transform, opacity, filter;
+}
+
+.world-tree-veins-active {
+  animation: world-tree-veins-pulse var(--tree-breathe-duration, 4.8s) ease-in-out infinite;
+  will-change: opacity, transform, filter;
+}
+
+.tree-ripple-effect {
+  animation: tree-wave-ripple var(--tree-breathe-duration, 4.8s) ease-out infinite;
+  will-change: transform, opacity;
+}
+
 

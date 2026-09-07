@@ -158,6 +158,14 @@ export const ThreeWorldTreeScene: React.FC<ThreeWorldTreeSceneProps> = ({
     const particleSystem = new THREE.Points(particleGeo, particleMat);
     scene.add(particleSystem);
 
+    // 4.5 Holographic Grid Floor
+    const gridHelper = new THREE.GridHelper(200, 100, 0x22d3ee, 0x0891b2);
+    gridHelper.position.set(0, -45, 0);
+    gridHelper.material.transparent = true;
+    gridHelper.material.opacity = 0.25;
+    gridHelper.material.blending = THREE.AdditiveBlending;
+    scene.add(gridHelper);
+
     // 5. 3D Coiled Ouroboros Golden Serpent Torus
     const ouroborosGroup = new THREE.Group();
     const torusGeo = new THREE.TorusGeometry(12, 0.8, 16, 64);
@@ -231,6 +239,17 @@ export const ThreeWorldTreeScene: React.FC<ThreeWorldTreeSceneProps> = ({
       new THREE.Vector3(0, -6, 5)
     );
 
+    // Visible Conduits
+    const leftConduitGeo = new THREE.BufferGeometry().setFromPoints(leftCurve.getPoints(50));
+    const leftConduitMat = new THREE.LineBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending });
+    const leftConduit = new THREE.Line(leftConduitGeo, leftConduitMat);
+    scene.add(leftConduit);
+
+    const rightConduitGeo = new THREE.BufferGeometry().setFromPoints(rightCurve.getPoints(50));
+    const rightConduitMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending });
+    const rightConduit = new THREE.Line(rightConduitGeo, rightConduitMat);
+    scene.add(rightConduit);
+
     // Left Photon
     const photonGeo = new THREE.SphereGeometry(0.9, 12, 12);
     const leftPhotonMat = new THREE.MeshBasicMaterial({
@@ -250,6 +269,29 @@ export const ThreeWorldTreeScene: React.FC<ThreeWorldTreeSceneProps> = ({
 
     // 8. 3D Floating Viking Drakkar Vessel
     const shipGroup = new THREE.Group();
+    
+    // 8b. Central Data Spine (Yggdrasil Core)
+    const spineGeo = new THREE.CylinderGeometry(2, 2, 160, 12, 30, true);
+    const spineMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.25,
+      blending: THREE.AdditiveBlending
+    });
+    const dataSpine = new THREE.Mesh(spineGeo, spineMat);
+    scene.add(dataSpine);
+
+    const outerSpineGeo = new THREE.CylinderGeometry(5, 5, 160, 16, 20, true);
+    const outerSpineMat = new THREE.MeshBasicMaterial({
+      color: 0x22d3ee,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.1,
+      blending: THREE.AdditiveBlending
+    });
+    const outerDataSpine = new THREE.Mesh(outerSpineGeo, outerSpineMat);
+    scene.add(outerDataSpine);
     
     // Hull
     const hullGeo = new THREE.CylinderGeometry(0.8, 1.4, 8, 8);
@@ -336,15 +378,27 @@ export const ThreeWorldTreeScene: React.FC<ThreeWorldTreeSceneProps> = ({
       ouroborosTorus.rotation.z = elapsedTime * 0.3;
       ouroborosCage.rotation.z = -elapsedTime * 0.4;
       ouroborosGroup.position.y = Math.sin(elapsedTime * 0.8) * 1.2;
+      const ouroScale = 1 + Math.sin(elapsedTime * 0.5) * 0.03;
+      ouroborosGroup.scale.set(ouroScale, ouroScale, ouroScale);
 
       // Animate Twin Brains
       leftBrainMesh.rotation.y = elapsedTime * 0.4;
       leftBrainMesh.rotation.x = Math.sin(elapsedTime * 0.3) * 0.2;
       leftBrainGroup.position.y = 1 + Math.sin(elapsedTime * 0.9) * 0.8;
+      const leftScale = 1 + Math.sin(elapsedTime * 1.5) * 0.05;
+      leftBrainGroup.scale.set(leftScale, leftScale, leftScale);
 
       rightBrainMesh.rotation.y = -elapsedTime * 0.4;
       rightBrainMesh.rotation.x = Math.cos(elapsedTime * 0.3) * 0.2;
       rightBrainGroup.position.y = 1 + Math.cos(elapsedTime * 0.9) * 0.8;
+      const rightScale = 1 + Math.cos(elapsedTime * 1.5) * 0.05;
+      rightBrainGroup.scale.set(rightScale, rightScale, rightScale);
+
+      // Animate Central Spine
+      dataSpine.rotation.y = elapsedTime * -0.05;
+      dataSpine.position.y = Math.sin(elapsedTime * 0.2) * 2;
+      outerDataSpine.rotation.y = elapsedTime * 0.03;
+      outerDataSpine.position.y = Math.sin(elapsedTime * 0.3) * 1.5;
 
       // Animate Traveling Photons along conduits
       const leftT = (elapsedTime * 0.6) % 1;

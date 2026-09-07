@@ -26,7 +26,7 @@ export const ProcessMatrix: React.FC<ProcessMatrixProps> = ({
 
   return (
     <div 
-      className="hud-panel rounded-xl p-3 flex flex-col justify-between h-full group font-mono text-[10px]"
+      className="hud-panel hud-glint hud-depth-1 rounded-xl p-3 flex flex-col justify-between h-full group font-mono text-[10px]"
       id="bento-process-matrix"
     >
       {/* Header */}

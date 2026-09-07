@@ -37,7 +37,7 @@ export const SystemTelemetry: React.FC<SystemTelemetryProps> = ({ vitals, onOpen
 
   return (
     <div 
-      className="hud-panel rounded-xl p-3 flex flex-col justify-between h-full group font-mono"
+      className="hud-panel hud-glint hud-depth-2 rounded-xl p-3 flex flex-col justify-between h-full group font-mono"
       id="bento-system-telemetry"
     >
       {/* Header */}

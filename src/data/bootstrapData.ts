@@ -280,6 +280,22 @@ export const SOVEREIGN_LAWS: SovereignLaw[] = [
     enforcement: 'Full containment of stochastic generative output behind deterministic validation firewalls.',
     status: 'ENFORCED',
     axiom: 'AI proposes; the Sovereign OS disposes.'
+  },
+  {
+    id: 9,
+    title: 'Policy Authorizes Effects — Not a Model or UI',
+    description: 'Models generate candidates and the UI renders evidence; only Sentinel policy decision and Ed25519 capability leases authorize execution.',
+    enforcement: 'Deterministic OPA/Sentinel policy gates and cryptographic lease verification prior to any side effect.',
+    status: 'ENFORCED',
+    axiom: 'Authority is derived from verified policy, never from probabilistic generation.'
+  },
+  {
+    id: 10,
+    title: 'Strict Ingress vs Enforcement Separation: Go Hub ⊕ Rust privileged Core',
+    description: 'Go owns network-facing mTLS, session auth, and HTMX fragment rendering; Rust owns VFS, Wasmtime, Z3 verification, and receipt journals.',
+    enforcement: 'Unidirectional dependency flow: Bifrost authenticates and transports; it never issues effect authority or makes policy decisions.',
+    status: 'ENFORCED',
+    axiom: 'Go coordinates IO concurrency; Rust enforces invariants and isolation.'
   }
 ];
 

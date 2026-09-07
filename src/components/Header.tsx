@@ -54,7 +54,8 @@ export const Header: React.FC<HeaderProps> = ({
   const ramPercent = Math.round((vitals.usedRamMB / vitals.scarcityCapMB) * 100);
 
   const tabs = [
-    { id: 'deck', label: '3D World Tree Deck', icon: TreeDeciduous },
+    { id: 'deck', label: 'World Tree UI (2D ➔ 3D)', icon: TreeDeciduous },
+    { id: 'operator', label: 'HTMX Console & WebGPU HUD', icon: ShieldCheck },
     { id: 'bento', label: 'Bento Grid Hub', icon: Layers },
     { id: 'terminal', label: 'Baremetal Terminal', icon: Terminal },
     { id: 'vkg', label: 'VKG-HUD Services', icon: Server },
@@ -68,18 +69,20 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="border-b border-cyan-900/50 bg-[#060a14]/95 backdrop-blur-xl sticky top-0 z-40">
       {/* Top Banner / System Ribbon */}
       {!compactHeader && (
-        <div className="px-4 py-1.5 bg-gradient-to-r from-cyan-950/60 via-[#0a1224] to-purple-950/50 border-b border-cyan-950/80 flex flex-wrap items-center justify-between text-xs gap-3 font-mono">
+        <div className="px-4 py-1.5 bg-gradient-to-r from-[#050505] via-[#0a1224] to-[#2E0854]/70 border-b border-[#D4AF37]/30 flex flex-wrap items-center justify-between text-xs gap-3 font-mono">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300">
-              <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="font-bold text-[10px] uppercase tracking-wider">EXCALIBUR_ZERO_TRUST</span>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#2E0854]/80 border border-[#D4AF37]/50 text-[#D4AF37] shadow-[0_0_12px_rgba(212,175,55,0.3)]">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <span className="font-bold text-[10px] uppercase tracking-wider">Ω_EXCALIBUR_V1000 // AEGIS SHIELD</span>
             </div>
-            <div className="hidden sm:flex items-center gap-2 text-slate-400 text-[11px]">
+            <div className="hidden sm:flex items-center gap-2 text-slate-300 text-[11px]">
+              <span className="text-[#D4AF37] font-bold">ANYA_IS_THE_GATE</span>
+              <span className="text-slate-600">|</span>
               <span>HOST: <span className="text-cyan-200 font-semibold">{vitals.targetHost}</span></span>
               <span className="text-slate-600">|</span>
-              <span>ALIAS: <span className="text-slate-300">{vitals.hostAlias}</span></span>
+              <span className="text-purple-300">BitNet 1.58b Ternary Plane</span>
               <span className="text-slate-600">|</span>
-              <span className="text-amber-400">cgroups v2: 7.2GB CAP</span>
+              <span className="text-amber-400">8GB Strict Edge Boundary</span>
             </div>
           </div>
 

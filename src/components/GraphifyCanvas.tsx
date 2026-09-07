@@ -88,7 +88,7 @@ export const GraphifyCanvas: React.FC<GraphifyCanvasProps> = ({ onExpandModal })
 
   return (
     <div 
-      className="hud-panel rounded-xl p-3 flex flex-col justify-between h-full group font-mono text-[10px]"
+      className="hud-panel hud-glint hud-depth-3 rounded-xl p-3 flex flex-col justify-between h-full group font-mono text-[10px]"
       id="bento-graphify-canvas"
     >
       {/* Header */}

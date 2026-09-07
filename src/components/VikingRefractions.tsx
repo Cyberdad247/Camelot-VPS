@@ -17,7 +17,7 @@ export const VikingRefractions: React.FC<VikingRefractionsProps> = ({ onOpenDeta
 
   return (
     <div 
-      className="hud-panel rounded-xl p-3 flex flex-col justify-between h-full group font-mono text-[10px]"
+      className="hud-panel hud-panel-emerald hud-depth-2 rounded-xl p-3 flex flex-col justify-between h-full group font-mono text-[10px]"
       id="bento-viking-refractions"
     >
       {/* Header */}

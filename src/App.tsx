@@ -26,7 +26,8 @@ import { MissionArena } from './components/MissionArena';
 import { SovereignLaws } from './components/SovereignLaws';
 import { ScarcityProtocol } from './components/ScarcityProtocol';
 import { MasterBootstrapScript } from './components/MasterBootstrapScript';
-import { Layers, Maximize2, Plus, Minus, TreeDeciduous, Terminal, Server, Flame, Lock, Cpu, FileCode } from 'lucide-react';
+import { OperatorConsoleHtmx } from './components/OperatorConsoleHtmx';
+import { Layers, Maximize2, Plus, Minus, TreeDeciduous, Terminal, Server, Flame, Lock, Cpu, FileCode, ShieldCheck } from 'lucide-react';
 
 const INITIAL_LOGS: TerminalLog[] = [
   { id: '1', timestamp: '12:00:01', level: 'sovereign', message: 'WORLD_TREE_BOOTSTRAP... OK' },
@@ -89,6 +90,7 @@ export default function App() {
 
   const tabLabels: Record<string, { label: string; icon: any }> = {
     deck: { label: '3D World Tree Deck', icon: TreeDeciduous },
+    operator: { label: 'HTMX Operator Console', icon: ShieldCheck },
     bento: { label: 'Bento Grid Hub', icon: Layers },
     terminal: { label: 'Baremetal Terminal', icon: Terminal },
     vkg: { label: 'VKG-HUD Services', icon: Server },
@@ -296,7 +298,7 @@ export default function App() {
       />
 
       {/* Main Content Arena */}
-      <main className="flex-1 w-full p-2 sm:p-4">
+      <main className={`flex-1 w-full ${activeTab === 'deck' ? 'p-0' : 'p-2 sm:p-4'}`}>
         {isCurrentTabMinimized ? (
           <div className="max-w-4xl mx-auto my-12 p-8 bg-[#0a1020]/90 border-2 border-cyan-500/40 rounded-2xl text-center space-y-4 shadow-2xl animate-fadeIn">
             <div className="w-12 h-12 mx-auto rounded-full bg-cyan-500/10 border border-cyan-400 flex items-center justify-center text-cyan-300">
@@ -318,7 +320,17 @@ export default function App() {
         ) : (
           <>
             {activeTab === 'deck' && (
-              <MasterWorldTreeDeck />
+              <MasterWorldTreeDeck 
+                vitals={vitals}
+                onNavigateTab={setActiveTab}
+                onExecuteCommand={handleRunCustomCommand}
+              />
+            )}
+
+            {activeTab === 'operator' && (
+              <OperatorConsoleHtmx
+                onExecuteCommand={handleRunCustomCommand}
+              />
             )}
 
             {activeTab === 'bento' && (
@@ -358,6 +370,7 @@ export default function App() {
                 vitals={vitals}
                 onRestartService={handleRestartService}
                 onExecuteCommand={handleRunCustomCommand}
+                onOpenOperatorConsole={() => setActiveTab('operator')}
               />
             )}
 

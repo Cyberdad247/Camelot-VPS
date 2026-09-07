@@ -33,13 +33,15 @@ interface VKGHudProps {
   vitals?: SystemVitals;
   onRestartService: (serviceId: string) => void;
   onExecuteCommand?: (cmd: string) => void;
+  onOpenOperatorConsole?: () => void;
 }
 
 export const VKGHud: React.FC<VKGHudProps> = ({
   services,
   vitals,
   onRestartService,
-  onExecuteCommand
+  onExecuteCommand,
+  onOpenOperatorConsole
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -134,6 +136,17 @@ export const VKGHud: React.FC<VKGHudProps> = ({
 
           {/* Quick Actions & Minimization */}
           <div className="flex flex-wrap items-center gap-2">
+            {onOpenOperatorConsole && (
+              <button
+                onClick={onOpenOperatorConsole}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#2E0854]/90 hover:bg-[#2E0854] border border-[#D4AF37]/60 text-[#D4AF37] text-xs font-bold transition-all shadow-[0_0_12px_rgba(212,175,55,0.3)] cursor-pointer"
+                title="Open HTMX Operator Console & WebGPU HUD"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-[#D4AF37]" />
+                <span>OPERATOR CONSOLE (HTMX)</span>
+              </button>
+            )}
+
             {/* HIDDEN ASPECT: Shadow Channel 0xDEADBEEF */}
             <button
               onClick={toggleShadowChannel}

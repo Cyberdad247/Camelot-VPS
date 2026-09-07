@@ -33,7 +33,7 @@ export const OuroborosMatrix: React.FC<OuroborosMatrixProps> = ({ onOpenDetails 
 
   return (
     <div 
-      className="hud-panel rounded-xl p-3 flex flex-col justify-between h-full group font-mono text-[10px]"
+      className="hud-panel hud-panel-amber hud-glint-amber hud-depth-3 rounded-xl p-3 flex flex-col justify-between h-full group font-mono text-[10px]"
       id="bento-ouroboros-matrix"
     >
       {/* Header */}

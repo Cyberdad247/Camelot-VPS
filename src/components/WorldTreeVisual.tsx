@@ -19,7 +19,7 @@ interface WorldTreeVisualProps {
   onOpenTwinBrains: () => void;
   onOpenOuroboros: () => void;
   onOpenViking: () => void;
-  onOpenGraphify: () => void;
+  onOpenGraphify?: () => void;
 }
 
 export const WorldTreeVisual: React.FC<WorldTreeVisualProps> = ({
@@ -54,14 +54,14 @@ export const WorldTreeVisual: React.FC<WorldTreeVisualProps> = ({
     window.addEventListener('resize', handleResize);
 
     // Bioluminescent floating spores / particles
-    const particles = Array.from({ length: 70 }, () => ({
+    const particles = Array.from({ length: 95 }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
-      vx: (Math.random() - 0.5) * 0.5,
-      vy: (Math.random() - 0.5) * 0.5 - 0.2,
-      size: Math.random() * 2.4 + 0.6,
-      color: ['#22d3ee', '#fbbf24', '#34d399', '#c084fc', '#38bdf8', '#a855f7'][Math.floor(Math.random() * 6)],
-      alpha: Math.random() * 0.7 + 0.3
+      vx: (Math.random() - 0.5) * 0.55,
+      vy: (Math.random() - 0.5) * 0.55 - 0.25,
+      size: Math.random() * 2.6 + 0.8,
+      color: ['#22d3ee', '#fbbf24', '#34d399', '#c084fc', '#38bdf8', '#a855f7', '#f472b6'][Math.floor(Math.random() * 7)],
+      alpha: Math.random() * 0.75 + 0.25
     }));
 
     let tick = 0;
@@ -128,6 +128,27 @@ export const WorldTreeVisual: React.FC<WorldTreeVisualProps> = ({
       ctx.shadowColor = '#38bdf8';
       ctx.fill();
       ctx.shadowBlur = 0;
+
+      // Vertical trunk energy conduit (Roots -> Ouroboros -> Memcastle)
+      ctx.beginPath();
+      ctx.moveTo(trunkX, height * 0.85);
+      ctx.lineTo(trunkX, height * 0.15);
+      ctx.strokeStyle = 'rgba(251, 191, 36, 0.15)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Rising sap energy pulses up the sacred trunk
+      for (let i = 0; i < 3; i++) {
+        const pulseT = (tick * 0.35 + i * 0.33) % 1;
+        const py = height * 0.82 - pulseT * (height * 0.65);
+        ctx.beginPath();
+        ctx.arc(trunkX + Math.sin(pulseT * 8) * 3, py, 2.5 + Math.sin(tick * 2) * 0.8, 0, Math.PI * 2);
+        ctx.fillStyle = i === 1 ? '#34d399' : '#fbbf24';
+        ctx.shadowBlur = 14;
+        ctx.shadowColor = i === 1 ? '#34d399' : '#fbbf24';
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
 
       // Draw floating cosmic particles
       particles.forEach((p) => {

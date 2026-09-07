@@ -29,7 +29,7 @@ export const SystemCommandsPanel: React.FC<SystemCommandsPanelProps> = ({
 
   return (
     <div 
-      className="hud-panel rounded-xl p-3 flex flex-col justify-between h-full group font-mono text-[10px]"
+      className="hud-panel hud-glint hud-depth-2 rounded-xl p-3 flex flex-col justify-between h-full group font-mono text-[10px]"
       id="bento-system-commands"
     >
       {/* Header */}
