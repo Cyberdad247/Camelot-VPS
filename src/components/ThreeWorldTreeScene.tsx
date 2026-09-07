@@ -35,7 +35,37 @@ export const ThreeWorldTreeScene: React.FC<ThreeWorldTreeSceneProps> = ({
     camera.position.set(0, 0, 100);
 
     // 2. WebGL Renderer with transparency
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    let renderer: THREE.WebGLRenderer;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+    try {
+      // Temporarily suppress console.error and console.warn to avoid triggering error overlays for WebGL fallback
+      console.error = () => {};
+      console.warn = () => {};
+      
+      const canvas = document.createElement('canvas');
+      canvas.addEventListener('webglcontextcreationerror', (e) => {
+        e.preventDefault();
+      }, false);
+      
+      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      
+      if (!gl) {
+        throw new Error('WebGL not supported');
+      }
+      
+      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, canvas });
+      
+      // Restore console methods
+      console.error = originalError;
+      console.warn = originalWarn;
+    } catch (e) {
+      // Restore console methods
+      console.error = originalError;
+      console.warn = originalWarn;
+      console.log("WebGL is not supported or context could not be created in this environment. Proceeding without 3D background.");
+      return;
+    }
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
@@ -384,7 +414,7 @@ export const ThreeWorldTreeScene: React.FC<ThreeWorldTreeSceneProps> = ({
   return (
     <div 
       ref={containerRef} 
-      className="absolute inset-0 w-full h-full pointer-events-none z-20 overflow-hidden"
+      className="absolute inset-0 w-full h-full pointer-events-none z-10 overflow-hidden"
     />
   );
 };

@@ -24,6 +24,22 @@ import {
 import { BootstrapPhase, TerminalLog } from '../types';
 import confetti from 'canvas-confetti';
 
+const AVAILABLE_COMMANDS = [
+  'clear',
+  'optimize',
+  'sync-engines',
+  'help',
+  'matrix',
+  'odin_vision',
+  '//GO_LIVE',
+  '//DISPATCH',
+  '//RUN_MISSION sir_codex',
+  '//RUN_MISSION sir_boris',
+  '//RUN_MISSION sir_helio',
+  'camelot-vitals',
+  'cgroup-inspect'
+];
+
 interface BootstrapTerminalProps {
   phases: BootstrapPhase[];
   onExecutePhase: (phaseId: number) => void;
@@ -50,6 +66,9 @@ export const BootstrapTerminal: React.FC<BootstrapTerminalProps> = ({
   const [commandInput, setCommandInput] = useState('');
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -115,6 +134,7 @@ export const BootstrapTerminal: React.FC<BootstrapTerminalProps> = ({
     if (!commandInput.trim()) return;
 
     const cmd = commandInput.trim();
+    setShowSuggestions(false);
     setCommandHistory((prev) => [...prev, cmd]);
     setHistoryIndex(-1);
 
@@ -133,13 +153,78 @@ export const BootstrapTerminal: React.FC<BootstrapTerminalProps> = ({
     setCommandInput('');
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCommandInput(value);
+
+    if (value.trim()) {
+      const filtered = AVAILABLE_COMMANDS.filter((cmd) =>
+        cmd.toLowerCase().startsWith(value.trim().toLowerCase())
+      );
+      setSuggestions(filtered);
+      setShowSuggestions(filtered.length > 0);
+      setActiveSuggestionIndex(-1);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const selectSuggestion = (suggestion: string) => {
+    setCommandInput(suggestion);
+    setShowSuggestions(false);
+    inputRef.current?.focus();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (showSuggestions && suggestions.length > 0) {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveSuggestionIndex((prev) => (prev <= 0 ? suggestions.length - 1 : prev - 1));
+        return;
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveSuggestionIndex((prev) => (prev === suggestions.length - 1 ? 0 : prev + 1));
+        return;
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        const index = activeSuggestionIndex >= 0 ? activeSuggestionIndex : 0;
+        selectSuggestion(suggestions[index]);
+        return;
+      } else if (e.key === 'Enter') {
+        if (activeSuggestionIndex >= 0) {
+          e.preventDefault();
+          const cmd = suggestions[activeSuggestionIndex];
+          
+          setCommandHistory((prev) => [...prev, cmd]);
+          setHistoryIndex(-1);
+          const lower = cmd.toLowerCase();
+          if (lower === 'matrix') {
+            setMatrixActive(!matrixActive);
+            onRunCustomCommand('[EASTER_EGG]: Matrix rain canvas stream toggled.');
+          } else if (lower === 'odin_vision' || lower === 'odin') {
+            setOdinVisionActive(!odinVisionActive);
+            confetti({ particleCount: 30, spread: 70, origin: { y: 0.6 } });
+            onRunCustomCommand('[ODIN_VISION]: Runic ASCII Sovereign World Tree manifested.');
+          } else {
+            onRunCustomCommand(cmd);
+          }
+          setCommandInput('');
+          setShowSuggestions(false);
+          return;
+        }
+      } else if (e.key === 'Escape') {
+        setShowSuggestions(false);
+        return;
+      }
+    }
+
     if (e.key === 'ArrowUp') {
       e.preventDefault();
       if (commandHistory.length > 0) {
         const newIndex = historyIndex === -1 ? commandHistory.length - 1 : Math.max(0, historyIndex - 1);
         setHistoryIndex(newIndex);
         setCommandInput(commandHistory[newIndex]);
+        setShowSuggestions(false);
       }
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -152,6 +237,7 @@ export const BootstrapTerminal: React.FC<BootstrapTerminalProps> = ({
           setHistoryIndex(newIndex);
           setCommandInput(commandHistory[newIndex]);
         }
+        setShowSuggestions(false);
       }
     }
   };
@@ -464,6 +550,26 @@ export const BootstrapTerminal: React.FC<BootstrapTerminalProps> = ({
 
         {/* Terminal Interactive Input Box */}
         <form onSubmit={handleSubmit} className="border-t border-slate-800 bg-[#0b0f19] p-2.5 flex items-center gap-2 relative z-30">
+          
+          {/* Autocomplete Dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute bottom-full left-0 w-64 mb-1 ml-2 bg-[#0c101a] border border-slate-700/80 rounded shadow-[0_0_15px_rgba(0,0,0,0.5)] overflow-hidden z-50">
+              {suggestions.map((suggestion, idx) => (
+                <div
+                  key={suggestion}
+                  onClick={() => selectSuggestion(suggestion)}
+                  className={`px-3 py-1.5 text-xs font-mono cursor-pointer transition-colors ${
+                    idx === activeSuggestionIndex 
+                      ? 'bg-amber-500/20 text-amber-300 border-l-2 border-amber-500' 
+                      : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200 border-l-2 border-transparent'
+                  }`}
+                >
+                  {suggestion}
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-center gap-1.5 text-amber-400 font-terminal text-xs shrink-0 pl-1">
             <span className="text-slate-500">root@cybertronia:~#</span>
           </div>
@@ -472,10 +578,12 @@ export const BootstrapTerminal: React.FC<BootstrapTerminalProps> = ({
             id="terminal-input-command"
             type="text"
             value={commandInput}
-            onChange={(e) => setCommandInput(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder="Enter directive (e.g. //GO_LIVE, matrix, odin_vision, //RUN_MISSION, help)..."
+            placeholder="Enter directive (e.g. clear, optimize, sync-engines, matrix)..."
             className="flex-1 bg-transparent text-amber-200 font-terminal text-xs focus:outline-none placeholder:text-slate-600 caret-amber-400"
+            autoComplete="off"
+            spellCheck={false}
           />
           <button
             type="submit"
