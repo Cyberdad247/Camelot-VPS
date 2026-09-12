@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { BattleModeScrollCommandCenter } from './BattleModeScrollCommandCenter';
+import { BattleCinematicLayer } from './BattleCinematicLayer';
 import { BATTLE_WORLD_SCENES } from '../world-director/battleWorld';
 import './battle-world-assimilation.css';
 
@@ -27,7 +28,8 @@ function qualityTier(): 'high' | 'medium' | 'scarcity' {
 /**
  * Native Camelot assimilation of scroll-world's strongest mechanics:
  * weighted scenes, dwell/linger, continuous camera interpolation, mobile scarcity,
- * and reduced-motion fallback. The live Battle Mode UI remains React-owned.
+ * reduced-motion fallback, and a media layer that can promote from posters to
+ * exact-frame scrubbed scene/connector video without replacing live React controls.
  */
 export const BattleWorldAssimilation: React.FC = () => {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -138,6 +140,7 @@ export const BattleWorldAssimilation: React.FC = () => {
   return (
     <div ref={hostRef} className="battle-world-assimilation">
       <BattleModeScrollCommandCenter />
+      <BattleCinematicLayer />
     </div>
   );
 };
