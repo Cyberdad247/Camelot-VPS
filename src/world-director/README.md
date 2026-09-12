@@ -24,6 +24,7 @@ The upstream project is optimized for cinematic landing pages. Camelot keeps a d
 ```text
 scroll / camera physics   -> Camelot World Director
 cinematic media scrubbing -> BattleCinematicLayer
+operator comprehension    -> BattleComprehensionLayer
 visible spatial grammar   -> Sir Lumen / runtime UI
 live system state         -> Camelot React components
 routing                   -> Sir Hermes
@@ -41,6 +42,33 @@ engineering orchestration -> Sir Helios (development-only)
 - `camera`: x/y/scale/rotation/brightness/saturation/blur target
 
 The runtime interpolates camera state during the final portion of one scene into the next scene, creating a continuous spatial handoff instead of a hard section switch.
+
+## Operator comprehension layer
+
+`battleComprehension.ts` defines the human-facing meaning of every subsystem: what it is for, what the operator can interact with, what changes, and the recommended next action.
+
+`BattleComprehensionLayer.tsx` adds progressive disclosure without replacing live controls:
+
+- persistent **You are here** location context
+- concise **Why this matters** explanation
+- **Guided Mode** with section-specific interaction instructions and expected outcomes
+- **Expert Mode** that collapses explanation for experienced operators
+- Previous / Next navigation tied to the real scene order
+- keyboard scene navigation with Arrow Up / Arrow Down and Page Up / Page Down while the command center is focused
+- in-context Help panel explaining touch/click, keyboard, and mode behavior
+- `aria-live` scene announcements and stronger focus-visible states
+- responsive reduction of guidance density on narrow screens
+
+The comprehension layer follows a strict four-question rule:
+
+```text
+WHERE AM I?
+WHY DOES THIS MATTER?
+WHAT CAN I DO HERE?
+WHAT HAPPENS NEXT?
+```
+
+This keeps the cinematic UI legible as an operating environment instead of making the operator decode visual spectacle before acting.
 
 ## Cinematic media runtime
 
