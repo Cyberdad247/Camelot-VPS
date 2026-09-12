@@ -1,11 +1,13 @@
 import http from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { extname, join, normalize } from 'node:path';
+import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const PORT = Number(process.env.BIFROST_PORT || 4188);
 const HOST = process.env.BIFROST_HOST || '127.0.0.1';
+const SHADOWD_URL = String(process.env.CAMELOT_SHADOW_URL || 'http://127.0.0.1:4190').replace(/\/$/, '');
+const SHADOWD_TOKEN = String(process.env.CAMELOT_SHADOW_TOKEN || '');
 const ALLOWED_ORIGINS = new Set(
   String(process.env.BIFROST_ALLOWED_ORIGINS || 'http://127.0.0.1:3000,http://localhost:3000')
     .split(',')
@@ -96,7 +98,7 @@ async function probeRealm(realmId) {
       method: 'GET',
       headers: {
         Accept: realmId === 'worldmonitor' ? 'text/markdown,text/plain;q=0.9,*/*;q=0.5' : 'application/json,text/html;q=0.9,*/*;q=0.5',
-        'User-Agent': 'Camelot-Bifrost/1.0',
+        'User-Agent': 'Camelot-Bifrost/1.1',
       },
     }, 4500);
     return {
@@ -132,18 +134,13 @@ function validateCrossing(body) {
 
 async function worldMonitorMcpCall(method, params = {}) {
   const target = new URL('/mcp', REALMS.worldmonitor.baseUrl).toString();
-  const envelope = {
-    jsonrpc: '2.0',
-    id: `bifrost-${Date.now()}`,
-    method,
-    params,
-  };
+  const envelope = { jsonrpc: '2.0', id: `bifrost-${Date.now()}`, method, params };
   const response = await fetchWithTimeout(target, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json, text/event-stream',
-      'User-Agent': 'Camelot-Bifrost/1.0',
+      'User-Agent': 'Camelot-Bifrost/1.1',
     },
     body: JSON.stringify(envelope),
   }, 8000);
@@ -157,12 +154,8 @@ async function executeCrossing(crossing) {
   // Bifrost never acts as a generic open proxy. Every remote destination is
   // selected from REALMS above, and each adapter exposes only a narrow action.
   if (destination === 'worldmonitor' && transport === 'mcp') {
-    // This performs a safe MCP capability discovery. Tool execution is a
-    // separate future gate because it requires tool-specific schemas and auth.
     const result = await worldMonitorMcpCall('tools/list', {});
-    if (!result.ok) {
-      return { result: `MCP DISCOVERY FAILED (${result.status})`, detail: result.text };
-    }
+    if (!result.ok) return { result: `MCP DISCOVERY FAILED (${result.status})`, detail: result.text };
     return { result: 'MCP CAPABILITIES DISCOVERED', detail: result.text };
   }
 
@@ -197,17 +190,49 @@ async function executeCrossing(crossing) {
     };
   }
 
-  return {
-    result: 'ROUTE VALIDATED',
-    detail: 'Crossing contract validated locally. No remote mutation was performed.',
-  };
+  return { result: 'ROUTE VALIDATED', detail: 'Crossing contract validated locally. No remote mutation was performed.' };
+}
+
+async function shadowRequest(path, init = {}, requireAuth = true) {
+  if (requireAuth && !SHADOWD_TOKEN) {
+    return { ok: false, status: 503, body: { error: 'Shadow Subspace is not configured on this Bifrost gateway' } };
+  }
+  const response = await fetchWithTimeout(`${SHADOWD_URL}${path}`, {
+    ...init,
+    headers: {
+      Accept: 'application/json',
+      ...(requireAuth ? { Authorization: `Bearer ${SHADOWD_TOKEN}` } : {}),
+      ...(init.headers || {}),
+    },
+  }, 7000);
+  const text = await response.text();
+  let body;
+  try { body = text ? JSON.parse(text) : {}; }
+  catch { body = { detail: text.slice(0, 16000) }; }
+  return { ok: response.ok, status: response.status, body };
+}
+
+async function proxyShadow(req, res, path, { method = 'GET', body = null, requireAuth = true } = {}) {
+  try {
+    const result = await shadowRequest(path, {
+      method,
+      ...(body === null ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+    }, requireAuth);
+    return sendJson(req, res, result.status, result.body);
+  } catch (error) {
+    return sendJson(req, res, 502, { error: error instanceof Error ? error.message : 'Shadow Subspace unavailable' });
+  }
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 async function serveStatic(req, res, pathname) {
-  const requested = pathname === '/' ? '/index.html' : pathname;
-  const safePath = normalize(requested).replace(/^([.][.][/\\])+/, '');
-  const filePath = join(ROOT, safePath);
-  if (!filePath.startsWith(ROOT)) {
+  const requested = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
+  const filePath = resolve(ROOT, requested);
+  const rootPrefix = ROOT.endsWith(sep) ? ROOT : `${ROOT}${sep}`;
+  if (filePath !== ROOT && !filePath.startsWith(rootPrefix)) {
     res.writeHead(403);
     res.end('Forbidden');
     return;
@@ -246,6 +271,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && url.pathname === '/api/bifrost/config') {
     return sendJson(req, res, 200, {
       realms: Object.fromEntries(Object.entries(REALMS).map(([id, realm]) => [id, { launchUrl: realm.launchUrl }])),
+      shadow: { configured: Boolean(SHADOWD_TOKEN), boundary: 'loopback-authenticated', publicCredentialExposure: false },
       policy: 'allowlisted-fail-closed',
       allowedOrigins: [...ALLOWED_ORIGINS],
     });
@@ -269,6 +295,63 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // Shadow Subspace is intentionally exposed as a narrow governed adapter.
+  // The daemon bearer token never crosses this boundary into browser/Puter clients.
+  if (req.method === 'GET' && url.pathname === '/api/bifrost/shadow/health') {
+    return proxyShadow(req, res, '/health', { requireAuth: false });
+  }
+  if (req.method === 'GET' && url.pathname === '/api/bifrost/shadow/sessions') {
+    return proxyShadow(req, res, '/v1/shadow/sessions');
+  }
+  if (req.method === 'POST' && url.pathname === '/api/bifrost/shadow/sessions') {
+    try { return proxyShadow(req, res, '/v1/shadow/sessions', { method: 'POST', body: await readJson(req) }); }
+    catch (error) { return sendJson(req, res, 400, { error: error instanceof Error ? error.message : 'Invalid session request' }); }
+  }
+
+  const sessionMatch = url.pathname.match(/^\/api\/bifrost\/shadow\/sessions\/([^/]+)$/);
+  if (req.method === 'GET' && sessionMatch && isUuid(sessionMatch[1])) {
+    return proxyShadow(req, res, `/v1/shadow/sessions/${sessionMatch[1]}`);
+  }
+
+  const effectListMatch = url.pathname.match(/^\/api\/bifrost\/shadow\/sessions\/([^/]+)\/effects$/);
+  if (req.method === 'POST' && effectListMatch && isUuid(effectListMatch[1])) {
+    try { return proxyShadow(req, res, `/v1/shadow/sessions/${effectListMatch[1]}/effects`, { method: 'POST', body: await readJson(req) }); }
+    catch (error) { return sendJson(req, res, 400, { error: error instanceof Error ? error.message : 'Invalid effect request' }); }
+  }
+
+  const approvalMatch = url.pathname.match(/^\/api\/bifrost\/shadow\/sessions\/([^/]+)\/effects\/([^/]+)\/(approve|deny)$/);
+  if (req.method === 'POST' && approvalMatch && isUuid(approvalMatch[1]) && isUuid(approvalMatch[2])) {
+    try {
+      const [, sessionId, effectId, decision] = approvalMatch;
+      return proxyShadow(req, res, `/v1/shadow/sessions/${sessionId}/effects/${effectId}/${decision}`, { method: 'POST', body: await readJson(req) });
+    } catch (error) {
+      return sendJson(req, res, 400, { error: error instanceof Error ? error.message : 'Invalid HITL decision' });
+    }
+  }
+
+  const writeMatch = url.pathname.match(/^\/api\/bifrost\/shadow\/sessions\/([^/]+)\/files\/write$/);
+  if (req.method === 'POST' && writeMatch && isUuid(writeMatch[1])) {
+    try { return proxyShadow(req, res, `/v1/shadow/sessions/${writeMatch[1]}/files/write`, { method: 'POST', body: await readJson(req) }); }
+    catch (error) { return sendJson(req, res, 400, { error: error instanceof Error ? error.message : 'Invalid shadow write' }); }
+  }
+
+  const readMatch = url.pathname.match(/^\/api\/bifrost\/shadow\/sessions\/([^/]+)\/files\/read$/);
+  if (req.method === 'GET' && readMatch && isUuid(readMatch[1])) {
+    const path = String(url.searchParams.get('path') || '');
+    if (!path || path.length > 512) return sendJson(req, res, 400, { error: 'A bounded shadow path is required' });
+    return proxyShadow(req, res, `/v1/shadow/sessions/${readMatch[1]}/files/read?path=${encodeURIComponent(path)}`);
+  }
+
+  const receiptsMatch = url.pathname.match(/^\/api\/bifrost\/shadow\/sessions\/([^/]+)\/receipts$/);
+  if (req.method === 'GET' && receiptsMatch && isUuid(receiptsMatch[1])) {
+    return proxyShadow(req, res, `/v1/shadow/sessions/${receiptsMatch[1]}/receipts`);
+  }
+
+  const sealMatch = url.pathname.match(/^\/api\/bifrost\/shadow\/sessions\/([^/]+)\/seal$/);
+  if (req.method === 'POST' && sealMatch && isUuid(sealMatch[1])) {
+    return proxyShadow(req, res, `/v1/shadow/sessions/${sealMatch[1]}/seal`, { method: 'POST', body: {} });
+  }
+
   if (url.pathname.startsWith('/api/')) return sendJson(req, res, 404, { error: 'Unknown Bifrost endpoint' });
   return serveStatic(req, res, url.pathname);
 });
@@ -276,5 +359,6 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`[BIFROST] Hermes/Heimdall command center listening on http://${HOST}:${PORT}`);
   console.log('[BIFROST] Remote targets are allowlisted. No arbitrary proxy route is exposed.');
+  console.log(`[BIFROST] Shadow Subspace adapter: ${SHADOWD_TOKEN ? 'configured' : 'disabled (missing CAMELOT_SHADOW_TOKEN)'}`);
   console.log(`[BIFROST] Allowed UI origins: ${[...ALLOWED_ORIGINS].join(', ') || '(none)'}`);
 });
