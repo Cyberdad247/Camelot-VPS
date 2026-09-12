@@ -25,6 +25,17 @@ use tokio::{
 use tracing::{info, warn};
 use uuid::Uuid;
 
+const ALLOWED_CAPABILITIES: &[&str] = &[
+    "shadow.read",
+    "shadow.write",
+    "shadow.plan",
+    "bifrost.request",
+];
+
+const ALLOWED_EGRESS: &[&str] = &[
+    "bifrost://governed",
+];
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "UPPERCASE")]
 enum RiskRing {
@@ -147,6 +158,7 @@ struct AppState {
     shadow_root: Arc<PathBuf>,
     receipt_path: Arc<PathBuf>,
     api_token: Arc<String>,
+    allow_r6: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -211,6 +223,44 @@ fn bytes_to_hex(bytes: &[u8]) -> String {
     out
 }
 
+fn allowed_capabilities(requested: Option<Vec<String>>) -> Result<Vec<String>, ApiError> {
+    let requested = requested.unwrap_or_else(|| {
+        vec![
+            "shadow.read".into(),
+            "shadow.write".into(),
+            "shadow.plan".into(),
+        ]
+    });
+    if requested.len() > ALLOWED_CAPABILITIES.len() {
+        return Err(api_error(StatusCode::BAD_REQUEST, "Too many requested capabilities"));
+    }
+    for capability in &requested {
+        if !ALLOWED_CAPABILITIES.contains(&capability.as_str()) {
+            return Err(api_error(
+                StatusCode::FORBIDDEN,
+                format!("Capability is not in the Shadow allowlist: {capability}"),
+            ));
+        }
+    }
+    Ok(requested)
+}
+
+fn allowed_egress(requested: Option<Vec<String>>) -> Result<Vec<String>, ApiError> {
+    let requested = requested.unwrap_or_default();
+    if requested.len() > ALLOWED_EGRESS.len() {
+        return Err(api_error(StatusCode::BAD_REQUEST, "Too many requested egress routes"));
+    }
+    for route in &requested {
+        if !ALLOWED_EGRESS.contains(&route.as_str()) {
+            return Err(api_error(
+                StatusCode::FORBIDDEN,
+                format!("Egress route is not in the Shadow allowlist: {route}"),
+            ));
+        }
+    }
+    Ok(requested)
+}
+
 fn live_session(session: &ShadowSession) -> Result<(), ApiError> {
     if Utc::now() > session.expires_at {
         return Err(api_error(StatusCode::GONE, "Shadow session expired"));
@@ -229,7 +279,12 @@ fn safe_relative_path(input: &str) -> Result<PathBuf, ApiError> {
     for component in path.components() {
         match component {
             Component::Normal(_) => {}
-            _ => return Err(api_error(StatusCode::BAD_REQUEST, "Shadow path must be relative and cannot traverse")),
+            _ => {
+                return Err(api_error(
+                    StatusCode::BAD_REQUEST,
+                    "Shadow path must be relative and cannot traverse",
+                ))
+            }
         }
     }
     Ok(path.to_path_buf())
@@ -252,6 +307,14 @@ async fn require_token(
     Ok(next.run(req).await)
 }
 
+async fn load_receipt_head(path: &FsPath) -> Option<String> {
+    let raw = fs::read_to_string(path).await.ok()?;
+    raw.lines()
+        .rev()
+        .find_map(|line| serde_json::from_str::<ShadowReceipt>(line).ok())
+        .map(|receipt| receipt.receipt_hash)
+}
+
 async fn record_receipt(
     state: &AppState,
     session_id: Uuid,
@@ -266,6 +329,7 @@ async fn record_receipt(
     let mut head = state.receipt_head.lock().await;
     let timestamp = Utc::now();
     let receipt_id = Uuid::new_v4();
+    let parent_hash = head.clone();
     let canonical = json!({
         "receipt_id": receipt_id,
         "timestamp": timestamp,
@@ -276,7 +340,7 @@ async fn record_receipt(
         "decision": decision,
         "resource": resource,
         "payload_hash": payload_hash,
-        "parent_hash": *head,
+        "parent_hash": parent_hash,
     });
     let receipt_hash = hash_payload(&canonical.to_string());
     let signature = state.signer.sign(receipt_hash.as_bytes());
@@ -290,7 +354,7 @@ async fn record_receipt(
         decision: decision.to_owned(),
         resource: resource.to_owned(),
         payload_hash,
-        parent_hash: head.clone(),
+        parent_hash,
         receipt_hash: receipt_hash.clone(),
         signer_public_key: state.signer.public_key_hex(),
         signature: bytes_to_hex(&signature.to_bytes()),
@@ -328,6 +392,7 @@ async fn health(State(state): State<AppState>) -> Json<Value> {
         "sessions": sessions.len(),
         "policy": "loopback-authenticated-hitl",
         "publicInbound": false,
+        "r6Enabled": state.allow_r6,
         "signer": state.signer.public_key_hex(),
     }))
 }
@@ -356,7 +421,10 @@ async fn create_session(
     let mission = request.mission.trim();
     let knight_id = request.knight_id.trim();
     if mission.is_empty() || mission.len() > 2000 {
-        return Err(api_error(StatusCode::BAD_REQUEST, "Mission is required and must be under 2000 characters"));
+        return Err(api_error(
+            StatusCode::BAD_REQUEST,
+            "Mission is required and must be under 2000 characters",
+        ));
     }
     if knight_id.is_empty() || knight_id.len() > 96 {
         return Err(api_error(StatusCode::BAD_REQUEST, "Knight id is required"));
@@ -365,14 +433,21 @@ async fn create_session(
     let ttl_seconds = request.ttl_seconds.unwrap_or(1800).clamp(60, 86_400);
     let memory_mb = request.memory_mb.unwrap_or(512).clamp(64, 1536);
     let cpu_quota_percent = request.cpu_quota_percent.unwrap_or(25).clamp(5, 75);
-    let capabilities = request.capabilities.unwrap_or_else(|| vec![
-        "shadow.read".into(),
-        "shadow.write".into(),
-        "shadow.plan".into(),
-    ]);
-    let allowed_egress = request.allowed_egress.unwrap_or_default();
+    let capabilities = allowed_capabilities(request.capabilities)?;
+    let egress = allowed_egress(request.allowed_egress)?;
+    let risk_ceiling = request.risk_ceiling.unwrap_or(RiskRing::R5);
+    if risk_ceiling == RiskRing::R6 && !state.allow_r6 {
+        return Err(api_error(
+            StatusCode::FORBIDDEN,
+            "R6 sessions are disabled until sovereign authentication is configured",
+        ));
+    }
+
     let session_id = Uuid::new_v4();
-    let workspace_path = state.shadow_root.join(session_id.to_string()).join("workspace");
+    let workspace_path = state
+        .shadow_root
+        .join(session_id.to_string())
+        .join("workspace");
     fs::create_dir_all(&workspace_path)
         .await
         .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?;
@@ -384,14 +459,18 @@ async fn create_session(
         knight_id: knight_id.to_owned(),
         delegate_id: request.delegate_id,
         state: SessionState::Sandboxed,
-        risk_ceiling: request.risk_ceiling.unwrap_or(RiskRing::R5),
+        risk_ceiling,
         capabilities,
-        bounds: ResourceBounds { memory_mb, cpu_quota_percent, ttl_seconds },
+        bounds: ResourceBounds {
+            memory_mb,
+            cpu_quota_percent,
+            ttl_seconds,
+        },
         workspace: WorkspaceBoundary {
             mode: "copy-on-write-shadow".into(),
             root_uri: format!("shadow://{session_id}/workspace"),
             public_inbound: false,
-            allowed_egress,
+            allowed_egress: egress,
         },
         created_at,
         expires_at: created_at + Duration::seconds(ttl_seconds),
@@ -400,6 +479,12 @@ async fn create_session(
         last_receipt_hash: None,
     };
 
+    let receipt_payload = json!({
+        "mission": session.mission.clone(),
+        "bounds": session.bounds.clone(),
+        "capabilities": session.capabilities.clone(),
+        "allowed_egress": session.workspace.allowed_egress.clone(),
+    });
     let receipt = record_receipt(
         &state,
         session_id,
@@ -408,11 +493,16 @@ async fn create_session(
         RiskRing::R1,
         "ALLOW",
         &session.workspace.root_uri,
-        &json!({ "mission": session.mission, "bounds": session.bounds, "capabilities": session.capabilities }),
-    ).await?;
+        &receipt_payload,
+    )
+    .await?;
     session.receipt_count = 1;
     session.last_receipt_hash = Some(receipt.receipt_hash);
-    state.sessions.write().await.insert(session_id, session.clone());
+    state
+        .sessions
+        .write()
+        .await
+        .insert(session_id, session.clone());
     Ok((StatusCode::CREATED, Json(session)))
 }
 
@@ -426,26 +516,64 @@ async fn propose_effect(
         .get_mut(&session_id)
         .ok_or_else(|| api_error(StatusCode::NOT_FOUND, "Unknown shadow session"))?;
     live_session(session)?;
-    if request.risk > session.risk_ceiling {
-        return Err(api_error(StatusCode::FORBIDDEN, "Requested effect exceeds session risk ceiling"));
+
+    if request.risk == RiskRing::R6 && !state.allow_r6 {
+        return Err(api_error(
+            StatusCode::FORBIDDEN,
+            "R6 effects are fail-closed until sovereign authentication is configured",
+        ));
     }
-    let requested_capabilities = request.requested_capabilities.unwrap_or_default();
-    for capability in &requested_capabilities {
-        if !session.capabilities.contains(capability) {
-            return Err(api_error(StatusCode::FORBIDDEN, format!("Capability not leased to session: {capability}")));
-        }
+    if request.risk > session.risk_ceiling {
+        return Err(api_error(
+            StatusCode::FORBIDDEN,
+            "Requested effect exceeds session risk ceiling",
+        ));
+    }
+    if request.effect.trim().is_empty() || request.effect.len() > 128 {
+        return Err(api_error(
+            StatusCode::BAD_REQUEST,
+            "Effect type is required and must be under 128 characters",
+        ));
+    }
+    if request.target.trim().is_empty() || request.target.len() > 512 {
+        return Err(api_error(
+            StatusCode::BAD_REQUEST,
+            "Effect target is required and must be under 512 characters",
+        ));
     }
     if request.intent.trim().is_empty() || request.intent.len() > 2000 {
-        return Err(api_error(StatusCode::BAD_REQUEST, "Effect intent is required and must be under 2000 characters"));
+        return Err(api_error(
+            StatusCode::BAD_REQUEST,
+            "Effect intent is required and must be under 2000 characters",
+        ));
     }
 
-    let manifest_hash = hash_payload(&json!({
-        "intent": request.intent,
-        "effect": request.effect,
-        "target": request.target,
-        "risk": request.risk,
-        "capabilities": requested_capabilities,
-    }).to_string());
+    let requested_capabilities = request.requested_capabilities.unwrap_or_default();
+    for capability in &requested_capabilities {
+        if !ALLOWED_CAPABILITIES.contains(&capability.as_str()) {
+            return Err(api_error(
+                StatusCode::FORBIDDEN,
+                format!("Effect requested an unknown capability: {capability}"),
+            ));
+        }
+        if !session.capabilities.contains(capability) {
+            return Err(api_error(
+                StatusCode::FORBIDDEN,
+                format!("Capability not leased to session: {capability}"),
+            ));
+        }
+    }
+
+    let manifest_hash = hash_payload(
+        &json!({
+            "intent": request.intent.clone(),
+            "effect": request.effect.clone(),
+            "target": request.target.clone(),
+            "risk": request.risk,
+            "capabilities": requested_capabilities.clone(),
+        })
+        .to_string(),
+    );
     let requires_hitl = request.risk.requires_hitl();
     let effect = ShadowEffect {
         effect_id: Uuid::new_v4(),
@@ -454,13 +582,21 @@ async fn propose_effect(
         target: request.target.trim().to_owned(),
         risk: request.risk,
         requested_capabilities,
-        status: if requires_hitl { EffectStatus::PendingApproval } else { EffectStatus::Authorized },
+        status: if requires_hitl {
+            EffectStatus::PendingApproval
+        } else {
+            EffectStatus::Authorized
+        },
         requires_hitl,
         manifest_hash,
         created_at: Utc::now(),
         approval: None,
     };
-    session.state = if requires_hitl { SessionState::WaitingApproval } else { SessionState::Planning };
+    session.state = if requires_hitl {
+        SessionState::WaitingApproval
+    } else {
+        SessionState::Planning
+    };
     session.effects.push(effect.clone());
     let knight_id = session.knight_id.clone();
     let resource = effect.target.clone();
@@ -475,7 +611,8 @@ async fn propose_effect(
         if requires_hitl { "WAIT_HITL" } else { "ALLOW" },
         &resource,
         &serde_json::to_value(&effect).unwrap_or(Value::Null),
-    ).await?;
+    )
+    .await?;
     if let Some(session) = state.sessions.write().await.get_mut(&session_id) {
         session.receipt_count += 1;
         session.last_receipt_hash = Some(receipt.receipt_hash);
@@ -488,8 +625,11 @@ async fn approve_effect(
     Path((session_id, effect_id)): Path<(Uuid, Uuid)>,
     Json(request): Json<ApproveEffectRequest>,
 ) -> Result<Json<ShadowEffect>, ApiError> {
-    if request.operator.trim().is_empty() {
-        return Err(api_error(StatusCode::BAD_REQUEST, "Operator identity is required"));
+    if request.operator.trim().is_empty() || request.operator.len() > 160 {
+        return Err(api_error(
+            StatusCode::BAD_REQUEST,
+            "Operator identity is required and must be bounded",
+        ));
     }
     let scope = request.scope.unwrap_or_else(|| "once".into());
     let mut sessions = state.sessions.write().await;
@@ -498,24 +638,43 @@ async fn approve_effect(
         .ok_or_else(|| api_error(StatusCode::NOT_FOUND, "Unknown shadow session"))?;
     live_session(session)?;
     let knight_id = session.knight_id.clone();
-    let effect = session.effects.iter_mut().find(|effect| effect.effect_id == effect_id)
-        .ok_or_else(|| api_error(StatusCode::NOT_FOUND, "Unknown shadow effect"))?;
-    if effect.status != EffectStatus::PendingApproval {
-        return Err(api_error(StatusCode::CONFLICT, "Effect is not awaiting approval"));
-    }
-    if effect.risk == RiskRing::R6 && scope != "sovereign" {
-        return Err(api_error(StatusCode::FORBIDDEN, "R6 effects require sovereign approval scope"));
-    }
-    effect.status = EffectStatus::Authorized;
-    effect.approval = Some(ApprovalRecord {
-        operator: request.operator.trim().to_owned(),
-        scope: scope.clone(),
-        note: request.note,
-        approved_at: Utc::now(),
-    });
+
+    let (output, resource) = {
+        let effect = session
+            .effects
+            .iter_mut()
+            .find(|effect| effect.effect_id == effect_id)
+            .ok_or_else(|| api_error(StatusCode::NOT_FOUND, "Unknown shadow effect"))?;
+        if effect.status != EffectStatus::PendingApproval {
+            return Err(api_error(
+                StatusCode::CONFLICT,
+                "Effect is not awaiting approval",
+            ));
+        }
+        if effect.risk == RiskRing::R6 {
+            if !state.allow_r6 {
+                return Err(api_error(
+                    StatusCode::FORBIDDEN,
+                    "R6 is disabled by server policy",
+                ));
+            }
+            if scope != "sovereign" {
+                return Err(api_error(
+                    StatusCode::FORBIDDEN,
+                    "R6 effects require sovereign approval scope",
+                ));
+            }
+        }
+        effect.status = EffectStatus::Authorized;
+        effect.approval = Some(ApprovalRecord {
+            operator: request.operator.trim().to_owned(),
+            scope: scope.clone(),
+            note: request.note,
+            approved_at: Utc::now(),
+        });
+        (effect.clone(), effect.target.clone())
+    };
     session.state = SessionState::Planning;
-    let output = effect.clone();
-    let resource = effect.target.clone();
     drop(sessions);
 
     let receipt = record_receipt(
@@ -527,7 +686,8 @@ async fn approve_effect(
         "HITL_ALLOW",
         &resource,
         &serde_json::to_value(&output).unwrap_or(Value::Null),
-    ).await?;
+    )
+    .await?;
     if let Some(session) = state.sessions.write().await.get_mut(&session_id) {
         session.receipt_count += 1;
         session.last_receipt_hash = Some(receipt.receipt_hash);
@@ -540,8 +700,11 @@ async fn deny_effect(
     Path((session_id, effect_id)): Path<(Uuid, Uuid)>,
     Json(request): Json<DenyEffectRequest>,
 ) -> Result<Json<ShadowEffect>, ApiError> {
-    if request.operator.trim().is_empty() {
-        return Err(api_error(StatusCode::BAD_REQUEST, "Operator identity is required"));
+    if request.operator.trim().is_empty() || request.operator.len() > 160 {
+        return Err(api_error(
+            StatusCode::BAD_REQUEST,
+            "Operator identity is required and must be bounded",
+        ));
     }
     let mut sessions = state.sessions.write().await;
     let session = sessions
@@ -549,18 +712,29 @@ async fn deny_effect(
         .ok_or_else(|| api_error(StatusCode::NOT_FOUND, "Unknown shadow session"))?;
     live_session(session)?;
     let knight_id = session.knight_id.clone();
-    let effect = session.effects.iter_mut().find(|effect| effect.effect_id == effect_id)
-        .ok_or_else(|| api_error(StatusCode::NOT_FOUND, "Unknown shadow effect"))?;
-    effect.status = EffectStatus::Denied;
-    effect.approval = Some(ApprovalRecord {
-        operator: request.operator.trim().to_owned(),
-        scope: "deny".into(),
-        note: request.note,
-        approved_at: Utc::now(),
-    });
+
+    let (output, resource) = {
+        let effect = session
+            .effects
+            .iter_mut()
+            .find(|effect| effect.effect_id == effect_id)
+            .ok_or_else(|| api_error(StatusCode::NOT_FOUND, "Unknown shadow effect"))?;
+        if effect.status != EffectStatus::PendingApproval {
+            return Err(api_error(
+                StatusCode::CONFLICT,
+                "Only effects awaiting HITL may be denied",
+            ));
+        }
+        effect.status = EffectStatus::Denied;
+        effect.approval = Some(ApprovalRecord {
+            operator: request.operator.trim().to_owned(),
+            scope: "deny".into(),
+            note: request.note,
+            approved_at: Utc::now(),
+        });
+        (effect.clone(), effect.target.clone())
+    };
     session.state = SessionState::Planning;
-    let output = effect.clone();
-    let resource = effect.target.clone();
     drop(sessions);
 
     let receipt = record_receipt(
@@ -572,7 +746,8 @@ async fn deny_effect(
         "HITL_DENY",
         &resource,
         &serde_json::to_value(&output).unwrap_or(Value::Null),
-    ).await?;
+    )
+    .await?;
     if let Some(session) = state.sessions.write().await.get_mut(&session_id) {
         session.receipt_count += 1;
         session.last_receipt_hash = Some(receipt.receipt_hash);
@@ -586,7 +761,10 @@ async fn write_shadow_file(
     Json(request): Json<WriteFileRequest>,
 ) -> Result<Json<Value>, ApiError> {
     if request.content.len() > 256 * 1024 {
-        return Err(api_error(StatusCode::PAYLOAD_TOO_LARGE, "Shadow write exceeds 256KB limit"));
+        return Err(api_error(
+            StatusCode::PAYLOAD_TOO_LARGE,
+            "Shadow write exceeds 256KB limit",
+        ));
     }
     let relative = safe_relative_path(&request.path)?;
     let sessions = state.sessions.read().await;
@@ -594,18 +772,31 @@ async fn write_shadow_file(
         .get(&session_id)
         .ok_or_else(|| api_error(StatusCode::NOT_FOUND, "Unknown shadow session"))?;
     live_session(session)?;
-    if !session.capabilities.iter().any(|capability| capability == "shadow.write") {
-        return Err(api_error(StatusCode::FORBIDDEN, "shadow.write capability not leased"));
+    if !session
+        .capabilities
+        .iter()
+        .any(|capability| capability == "shadow.write")
+    {
+        return Err(api_error(
+            StatusCode::FORBIDDEN,
+            "shadow.write capability not leased",
+        ));
     }
     let knight_id = session.knight_id.clone();
     drop(sessions);
 
-    let path = state.shadow_root.join(session_id.to_string()).join("workspace").join(&relative);
+    let path = state
+        .shadow_root
+        .join(session_id.to_string())
+        .join("workspace")
+        .join(&relative);
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).await
+        fs::create_dir_all(parent)
+            .await
             .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?;
     }
-    fs::write(&path, request.content.as_bytes()).await
+    fs::write(&path, request.content.as_bytes())
+        .await
         .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?;
     let receipt = record_receipt(
         &state,
@@ -616,12 +807,17 @@ async fn write_shadow_file(
         "ALLOW",
         &format!("shadow://{session_id}/workspace/{}", relative.display()),
         &json!({ "path": relative, "bytes": request.content.len() }),
-    ).await?;
+    )
+    .await?;
     if let Some(session) = state.sessions.write().await.get_mut(&session_id) {
         session.receipt_count += 1;
         session.last_receipt_hash = Some(receipt.receipt_hash.clone());
     }
-    Ok(Json(json!({ "status": "written", "receipt": receipt, "path": relative })))
+    Ok(Json(json!({
+        "status": "written",
+        "receipt": receipt,
+        "path": relative
+    })))
 }
 
 async fn read_shadow_file(
@@ -635,18 +831,38 @@ async fn read_shadow_file(
         .get(&session_id)
         .ok_or_else(|| api_error(StatusCode::NOT_FOUND, "Unknown shadow session"))?;
     live_session(session)?;
-    if !session.capabilities.iter().any(|capability| capability == "shadow.read") {
-        return Err(api_error(StatusCode::FORBIDDEN, "shadow.read capability not leased"));
+    if !session
+        .capabilities
+        .iter()
+        .any(|capability| capability == "shadow.read")
+    {
+        return Err(api_error(
+            StatusCode::FORBIDDEN,
+            "shadow.read capability not leased",
+        ));
     }
     drop(sessions);
-    let path = state.shadow_root.join(session_id.to_string()).join("workspace").join(&relative);
-    let metadata = fs::metadata(&path).await
+
+    let path = state
+        .shadow_root
+        .join(session_id.to_string())
+        .join("workspace")
+        .join(&relative);
+    let metadata = fs::metadata(&path)
+        .await
         .map_err(|_| api_error(StatusCode::NOT_FOUND, "Shadow file not found"))?;
     if metadata.len() > 256 * 1024 {
-        return Err(api_error(StatusCode::PAYLOAD_TOO_LARGE, "Shadow read exceeds 256KB limit"));
+        return Err(api_error(
+            StatusCode::PAYLOAD_TOO_LARGE,
+            "Shadow read exceeds 256KB limit",
+        ));
     }
-    let content = fs::read_to_string(&path).await
-        .map_err(|error| api_error(StatusCode::BAD_REQUEST, format!("Shadow file is not readable text: {error}")))?;
+    let content = fs::read_to_string(&path).await.map_err(|error| {
+        api_error(
+            StatusCode::BAD_REQUEST,
+            format!("Shadow file is not readable text: {error}"),
+        )
+    })?;
     Ok(Json(json!({ "path": relative, "content": content })))
 }
 
@@ -657,7 +873,12 @@ async fn list_receipts(
     let raw = match fs::read_to_string(state.receipt_path.as_ref()).await {
         Ok(raw) => raw,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
-        Err(error) => return Err(api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string())),
+        Err(error) => {
+            return Err(api_error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                error.to_string(),
+            ))
+        }
     };
     let receipts = raw
         .lines()
@@ -690,7 +911,9 @@ async fn seal_session(
         "SEALED",
         &format!("shadow://{session_id}"),
         &json!({ "ephemeralWorkspace": true }),
-    ).await?;
+    )
+    .await?;
+
     let workspace = state.shadow_root.join(session_id.to_string());
     if let Err(error) = fs::remove_dir_all(&workspace).await {
         if error.kind() != std::io::ErrorKind::NotFound {
@@ -702,7 +925,12 @@ async fn seal_session(
         session.receipt_count += 1;
         session.last_receipt_hash = Some(receipt.receipt_hash.clone());
     }
-    Ok(Json(json!({ "status": "sealed", "sessionId": session_id, "workspaceRemoved": true, "receipt": receipt })))
+    Ok(Json(json!({
+        "status": "sealed",
+        "sessionId": session_id,
+        "workspaceRemoved": true,
+        "receipt": receipt
+    })))
 }
 
 #[tokio::main]
@@ -716,6 +944,10 @@ async fn main() {
         .unwrap_or(4190);
     let api_token = env::var("CAMELOT_SHADOW_TOKEN")
         .expect("CAMELOT_SHADOW_TOKEN must be set; shadowd refuses unauthenticated startup");
+    let allow_r6 = env::var("CAMELOT_SHADOW_ALLOW_R6")
+        .map(|value| value == "1")
+        .unwrap_or(false);
+
     if api_token.len() < 24 {
         panic!("CAMELOT_SHADOW_TOKEN must contain at least 24 characters");
     }
@@ -723,30 +955,61 @@ async fn main() {
         panic!("camelot-shadowd is intentionally loopback-only; use Bifrost for governed access");
     }
 
-    let shadow_root = PathBuf::from(env::var("CAMELOT_SHADOW_ROOT").unwrap_or_else(|_| "/var/lib/camelot/shadow".into()));
+    let shadow_root = PathBuf::from(
+        env::var("CAMELOT_SHADOW_ROOT")
+            .unwrap_or_else(|_| "/var/lib/camelot/shadow".into()),
+    );
     let receipt_path = shadow_root.join("ledger").join("receipts.jsonl");
-    fs::create_dir_all(&shadow_root).await.expect("create shadow root");
+    fs::create_dir_all(&shadow_root)
+        .await
+        .expect("create shadow root");
+    let existing_head = load_receipt_head(&receipt_path).await;
 
     let state = AppState {
         sessions: Arc::new(RwLock::new(HashMap::new())),
         signer: Arc::new(KeyPair::generate()),
-        receipt_head: Arc::new(Mutex::new(None)),
+        receipt_head: Arc::new(Mutex::new(existing_head)),
         shadow_root: Arc::new(shadow_root),
         receipt_path: Arc::new(receipt_path),
         api_token: Arc::new(api_token),
+        allow_r6,
     };
 
     let protected = Router::new()
         .route("/v1/shadow/sessions", get(list_sessions).post(create_session))
         .route("/v1/shadow/sessions/:session_id", get(get_session))
-        .route("/v1/shadow/sessions/:session_id/effects", post(propose_effect))
-        .route("/v1/shadow/sessions/:session_id/effects/:effect_id/approve", post(approve_effect))
-        .route("/v1/shadow/sessions/:session_id/effects/:effect_id/deny", post(deny_effect))
-        .route("/v1/shadow/sessions/:session_id/files/write", post(write_shadow_file))
-        .route("/v1/shadow/sessions/:session_id/files/read", get(read_shadow_file))
-        .route("/v1/shadow/sessions/:session_id/receipts", get(list_receipts))
-        .route("/v1/shadow/sessions/:session_id/seal", post(seal_session))
-        .route_layer(middleware::from_fn_with_state(state.clone(), require_token));
+        .route(
+            "/v1/shadow/sessions/:session_id/effects",
+            post(propose_effect),
+        )
+        .route(
+            "/v1/shadow/sessions/:session_id/effects/:effect_id/approve",
+            post(approve_effect),
+        )
+        .route(
+            "/v1/shadow/sessions/:session_id/effects/:effect_id/deny",
+            post(deny_effect),
+        )
+        .route(
+            "/v1/shadow/sessions/:session_id/files/write",
+            post(write_shadow_file),
+        )
+        .route(
+            "/v1/shadow/sessions/:session_id/files/read",
+            get(read_shadow_file),
+        )
+        .route(
+            "/v1/shadow/sessions/:session_id/receipts",
+            get(list_receipts),
+        )
+        .route(
+            "/v1/shadow/sessions/:session_id/seal",
+            post(seal_session),
+        )
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            require_token,
+        ));
 
     let app = Router::new()
         .route("/health", get(health))
@@ -756,6 +1019,14 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind(format!("{host}:{port}"))
         .await
         .expect("bind shadowd");
-    info!(host, port, signer = %state.signer.public_key_hex(), "camelot-shadowd online");
-    axum::serve(listener, app).await.expect("shadowd server failed");
+    info!(
+        host,
+        port,
+        r6_enabled = allow_r6,
+        signer = %state.signer.public_key_hex(),
+        "camelot-shadowd online"
+    );
+    axum::serve(listener, app)
+        .await
+        .expect("shadowd server failed");
 }
