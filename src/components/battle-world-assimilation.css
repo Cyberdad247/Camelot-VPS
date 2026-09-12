@@ -1,0 +1,129 @@
+/* Camelot Continuous World Director assimilation layer.
+   Live Battle Mode controls remain React-owned; this layer only directs space/time. */
+
+#battle-mode-scroll-command-center[data-world-director="active"] {
+  --world-x: 0vw;
+  --world-y: 0vh;
+  --world-scale: 1;
+  --world-rx: 0deg;
+  --world-ry: 0deg;
+  --world-brightness: .82;
+  --world-saturation: 1.05;
+  --world-blur: 0px;
+  --world-accent: #67e8f9;
+}
+
+#battle-mode-scroll-command-center[data-world-director="active"] .battle-stage {
+  perspective: 1400px;
+  transform-style: preserve-3d;
+}
+
+#battle-mode-scroll-command-center[data-world-director="active"] .battle-stage-tree {
+  transform-origin: 50% 48%;
+  transform:
+    translate3d(var(--world-x), var(--world-y), 0)
+    rotateX(var(--world-rx))
+    rotateY(var(--world-ry))
+    scale(var(--world-scale));
+  filter:
+    brightness(var(--world-brightness))
+    saturate(var(--world-saturation))
+    blur(var(--world-blur));
+  transition: filter 180ms linear;
+  will-change: transform, filter;
+}
+
+#battle-mode-scroll-command-center[data-world-director="active"] .battle-stage-aura {
+  background:
+    radial-gradient(circle at 50% 44%, color-mix(in srgb, var(--world-accent) 19%, transparent), transparent 35%),
+    radial-gradient(circle at 50% 55%, rgba(46, 8, 84, .2), transparent 62%);
+  transition: background 420ms ease;
+}
+
+#battle-mode-scroll-command-center[data-world-director="active"] .battle-scroll-progress i {
+  background: linear-gradient(90deg, #34d399, var(--world-accent), #d4af37);
+}
+
+#battle-mode-scroll-command-center[data-world-director="active"] .battle-scroll-rail button.active {
+  border-color: color-mix(in srgb, var(--world-accent) 62%, transparent);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--world-accent) 18%, transparent);
+}
+
+#battle-mode-scroll-command-center[data-world-director="active"] [data-world-scene] {
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
+}
+
+#battle-mode-scroll-command-center[data-world-director="active"] {
+  scroll-snap-type: y proximity;
+}
+
+/* Scene transition grammar: each subsystem gets a different spatial emphasis. */
+#battle-mode-scroll-command-center[data-world-scene="threats"] .battle-stage-beams { opacity: 1; }
+#battle-mode-scroll-command-center[data-world-scene="threats"] .battle-stage-shield { opacity: .36; }
+#battle-mode-scroll-command-center[data-world-scene="telemetry"] .battle-stage-beams { opacity: .58; }
+#battle-mode-scroll-command-center[data-world-scene="defense"] .battle-stage-shield {
+  opacity: 1;
+  transform: scale(1.08);
+  box-shadow: 0 0 110px rgba(52, 211, 153, .22), inset 0 0 80px rgba(103, 232, 249, .12);
+}
+#battle-mode-scroll-command-center[data-world-scene="brains"] .ring-two,
+#battle-mode-scroll-command-center[data-world-scene="brains"] .ring-three {
+  opacity: 1;
+  transform: scale(1.2);
+}
+#battle-mode-scroll-command-center[data-world-scene="ouroboros"] .stage-ouro {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.15);
+  border-color: rgba(212, 175, 55, .68);
+  box-shadow: 0 0 30px rgba(212, 175, 55, .18);
+}
+#battle-mode-scroll-command-center[data-world-scene="vfs"] .stage-vfs {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.12);
+  border-color: rgba(45, 212, 191, .68);
+  box-shadow: 0 0 30px rgba(45, 212, 191, .16);
+}
+#battle-mode-scroll-command-center[data-world-scene="command"] .battle-stage-beams,
+#battle-mode-scroll-command-center[data-world-scene="command"] .battle-stage-ring,
+#battle-mode-scroll-command-center[data-world-scene="command"] .battle-stage-label {
+  opacity: .18;
+}
+
+/* High tier gets the full visual orchestra. */
+#battle-mode-scroll-command-center[data-world-quality="high"] .battle-stage-aura,
+#battle-mode-scroll-command-center[data-world-quality="high"] .battle-stage-beams,
+#battle-mode-scroll-command-center[data-world-quality="high"] .battle-stage-ring {
+  transition-duration: 180ms;
+}
+
+/* Medium keeps depth but trims visual churn. */
+#battle-mode-scroll-command-center[data-world-quality="medium"] .battle-stage-beams i:nth-child(n+7) {
+  display: none;
+}
+
+/* Scarcity tier favors interactivity over decoration. */
+#battle-mode-scroll-command-center[data-world-quality="scarcity"] .battle-stage-beams,
+#battle-mode-scroll-command-center[data-world-quality="scarcity"] .battle-stage-ring.ring-three {
+  display: none;
+}
+#battle-mode-scroll-command-center[data-world-quality="scarcity"] .battle-stage-aura {
+  filter: none;
+}
+#battle-mode-scroll-command-center[data-world-quality="scarcity"] .battle-stage-tree {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #battle-mode-scroll-command-center[data-world-director="active"] {
+    scroll-behavior: auto !important;
+    scroll-snap-type: none;
+  }
+  #battle-mode-scroll-command-center[data-world-director="active"] .battle-stage-tree,
+  #battle-mode-scroll-command-center[data-world-director="active"] .battle-stage-aura,
+  #battle-mode-scroll-command-center[data-world-director="active"] .battle-stage-ring,
+  #battle-mode-scroll-command-center[data-world-director="active"] .battle-stage-beams {
+    animation: none !important;
+    transition: none !important;
+  }
+}
