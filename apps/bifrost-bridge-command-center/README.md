@@ -1,30 +1,27 @@
 # Bifrost Bridge Command Center
 
-Visible operator UI for **Sir Hermes** and **Sir Heimdall**. Sir Helios remains development-only and is not rendered here.
+Visible operator experience for **Sir Hermes** and **Sir Heimdall**. Sir Helios remains development-only and is not rendered here.
+
+## Primary experience: scrolling UI
+
+Bifrost is now designed as a **continuous scrolling journey inside the Camelot World Tree**, not a modal, dashboard tab, or single control panel.
+
+The World Tree sequence continues through seven Bifrost chapters:
+
+1. **Bifrost Threshold** — entry into the bridge layer.
+2. **Sir Hermes** — route discovery, realm probes, and transport selection.
+3. **Sir Heimdall** — interactive five-gate fail-closed authorization.
+4. **Multivoice Router** — voice/persona realm transition.
+5. **God's Eye View** — spatial-intelligence realm transition.
+6. **WorldMonitor** — global-intelligence / MCP realm transition.
+7. **Crossing Chamber** — final governed route authorization and explicit handoff.
+
+Each chapter occupies most of the viewport, participates in scroll tracking, and exposes a persistent desktop chapter navigator. The interface uses depth, orbital motion, sticky context, large typography, and staged realm transitions so scrolling represents movement through Bifrost rather than a sequence of dashboard cards.
 
 ## Roles
 
 - **Sir Hermes** owns routing, dispatch, transport selection, realm handoff, and crossing intent.
 - **Sir Heimdall** owns the five crossing gates: identity, integrity, intent, payload, and access. The bridge fails closed when any gate is blocked or when the bridge is sealed.
-
-## World Tree integration
-
-Bifrost is now grafted into Camelot's existing World Tree experience without creating a new global dashboard tab.
-
-`src/components/BifrostWorldTreePortal.tsx` mounts contextually into the existing `#stratum-throne-room` element using React Portal. While the World Tree scroller is active, a compact BIFROST beacon can move the operator directly to the Throne Room portal.
-
-The operator journey is:
-
-```text
-World Tree
-  -> Throne Room
-    -> Bifrost Portal
-      -> Sir Hermes Routing Forge
-        -> Sir Heimdall Gatehouse
-          -> governed realm crossing
-```
-
-The standalone app in this directory remains the deeper operator surface and local gateway.
 
 ## Integrated realms
 
@@ -34,32 +31,19 @@ The sovereign origin and command plane.
 ### Multivoice-router
 Repository: `https://github.com/Cyberdad247/Multivoice-router`
 
-The current Multivoice server already exposes:
-- `GET /api/health`
-- `POST /api/bridge/query`
-- `GET /api/bridge/status/:ip`
-- `GET /api/tailscale/devices`
-- persona/RAG/voice APIs
-
-The Bifrost gateway deliberately does **not** expose Multivoice's generic bridge proxy to the browser. It health-checks the configured Multivoice deployment and hands the operator into that surface for explicit voice/persona actions.
+The current Multivoice server already exposes health, bridge, Tailscale, persona/RAG, and voice APIs. Bifrost does not expose its generic bridge proxy directly to the browser. It probes the configured deployment and preserves explicit operator control for voice/persona mutations.
 
 ### God's Eye View
 Repository: `https://github.com/Cyberdad247/gods-eye-view`
 
-Treated as the spatial-intelligence realm. It remains a separately deployed renderer with its own 3D globe, live tracked entities, voice controls, and shareable view state. Bifrost probes it and performs an explicit UI handoff instead of copying or embedding its renderer.
+Treated as the spatial-intelligence realm. It remains a separately deployed renderer with its own 3D globe, live tracked entities, voice controls, and shareable view state. Bifrost performs an explicit handoff instead of copying or embedding its renderer.
 
 ### WorldMonitor
 Repository: `https://github.com/koala73/worldmonitor`
 
-Uses the documented MCP transport at:
+Uses the documented MCP transport at `https://worldmonitor.app/mcp`. The current adapter performs a safe `tools/list` capability discovery. Generic tool execution remains disabled until per-tool authorization and schemas are implemented.
 
-`https://worldmonitor.app/mcp`
-
-The current implementation performs a safe `tools/list` capability discovery when an MCP crossing is requested. Tool execution is intentionally not generic because each tool has its own schema and may require authorization.
-
-## Run
-
-Start the Bifrost gateway and deep console:
+## Gateway
 
 ```bash
 cd apps/bifrost-bridge-command-center
@@ -67,37 +51,25 @@ npm run check
 npm run dev
 ```
 
-Open:
+The gateway listens on `http://127.0.0.1:4188` by default.
 
-`http://127.0.0.1:4188`
-
-Then run the root Camelot app normally on port 3000. Its Throne Room portal defaults to the Bifrost gateway at port 4188.
-
-Optional gateway configuration:
-
-```bash
-BIFROST_PORT=4188
-BIFROST_HOST=127.0.0.1
-BIFROST_ALLOWED_ORIGINS=http://127.0.0.1:3000,http://localhost:3000
-MULTIVOICE_BASE_URL=https://obsidian-spire-hud.vercel.app
-GODS_EYE_BASE_URL=https://maptheworld.ai
-WORLDMONITOR_BASE_URL=https://worldmonitor.app
-```
-
-Optional root UI configuration:
+For the root Camelot React UI:
 
 ```bash
 VITE_BIFROST_URL=http://127.0.0.1:4188
 ```
 
-`VITE_BIFROST_URL` is public browser configuration. Never put credentials in it.
+Allowed local origins are configured with:
+
+```bash
+BIFROST_ALLOWED_ORIGINS=http://127.0.0.1:3000,http://localhost:3000
+```
 
 ## Security model
 
 The gateway is an allowlisted adapter, **not an open proxy**.
 
 - Remote targets are defined server-side.
-- Browser origins are explicitly allowlisted; there is no wildcard CORS policy.
 - The browser cannot submit arbitrary hosts or URLs.
 - Request bodies are capped.
 - Secrets are never stored in the UI.
@@ -105,6 +77,6 @@ The gateway is an allowlisted adapter, **not an open proxy**.
 - UI handoffs require an explicit operator action.
 - WorldMonitor integration uses its public developer surface rather than copying source into Camelot.
 
-## Current implementation boundary
+## Architectural invariant
 
-The Throne Room portal can probe realms and request governed crossings through the local Bifrost gateway. WorldMonitor MCP support remains capability-discovery only. Multivoice mutation and God's Eye View spatial actions remain explicit handoffs into their authoritative interfaces until scoped action contracts are added.
+**Helios develops Camelot. Hermes routes Bifrost. Heimdall guards Bifrost.**
