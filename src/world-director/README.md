@@ -57,6 +57,8 @@ The runtime interpolates camera state during the final portion of one scene into
 - reduced-motion poster-only fallback
 - scarcity-tier poster-only behavior
 - connector crossfade during the final 28% of a scene
+- runtime seam-contract validation before video is allowed
+- safe fallback to posters when a video file fails to load
 
 Enable rendered media only after assets have been generated and verified:
 
@@ -65,6 +67,8 @@ VITE_BATTLE_CINEMATIC_MEDIA="1"
 ```
 
 When unset or `0`, Camelot uses the same World Director, camera timeline and live interfaces with poster/CSS motion only.
+
+**Current repository state:** the media runtime, asset contract, drop-zone, seam validation, mobile paths and fallbacks are implemented. The final generated MP4 scene dives and connectors are not yet committed, so the environment switch should remain `0` until those assets exist.
 
 ## Expected cinematic asset paths
 
@@ -106,7 +110,9 @@ source scene ACTUAL last frame
 destination scene ACTUAL first frame
 ```
 
-The IDs in `cinematicManifest.ts` are the handoff contract. Do not approximate seams from prompts or regenerate "similar" frames. The actual source/destination frames are authoritative.
+The start/end frame IDs in `cinematicManifest.ts` are executable validation data, not comments. `validateBattleCinematicSeams()` rejects any declared connector whose seam IDs do not exactly match the neighboring scene frame IDs.
+
+Do not approximate seams from prompts or regenerate "similar" frames. The actual source/destination frames are authoritative.
 
 ## Performance tiers
 
