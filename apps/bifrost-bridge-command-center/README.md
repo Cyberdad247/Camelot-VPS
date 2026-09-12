@@ -7,6 +7,25 @@ Visible operator UI for **Sir Hermes** and **Sir Heimdall**. Sir Helios remains 
 - **Sir Hermes** owns routing, dispatch, transport selection, realm handoff, and crossing intent.
 - **Sir Heimdall** owns the five crossing gates: identity, integrity, intent, payload, and access. The bridge fails closed when any gate is blocked or when the bridge is sealed.
 
+## World Tree integration
+
+Bifrost is now grafted into Camelot's existing World Tree experience without creating a new global dashboard tab.
+
+`src/components/BifrostWorldTreePortal.tsx` mounts contextually into the existing `#stratum-throne-room` element using React Portal. While the World Tree scroller is active, a compact BIFROST beacon can move the operator directly to the Throne Room portal.
+
+The operator journey is:
+
+```text
+World Tree
+  -> Throne Room
+    -> Bifrost Portal
+      -> Sir Hermes Routing Forge
+        -> Sir Heimdall Gatehouse
+          -> governed realm crossing
+```
+
+The standalone app in this directory remains the deeper operator surface and local gateway.
+
 ## Integrated realms
 
 ### Camelot-VPS
@@ -40,6 +59,8 @@ The current implementation performs a safe `tools/list` capability discovery whe
 
 ## Run
 
+Start the Bifrost gateway and deep console:
+
 ```bash
 cd apps/bifrost-bridge-command-center
 npm run check
@@ -50,28 +71,40 @@ Open:
 
 `http://127.0.0.1:4188`
 
-Optional configuration:
+Then run the root Camelot app normally on port 3000. Its Throne Room portal defaults to the Bifrost gateway at port 4188.
+
+Optional gateway configuration:
 
 ```bash
 BIFROST_PORT=4188
 BIFROST_HOST=127.0.0.1
+BIFROST_ALLOWED_ORIGINS=http://127.0.0.1:3000,http://localhost:3000
 MULTIVOICE_BASE_URL=https://obsidian-spire-hud.vercel.app
 GODS_EYE_BASE_URL=https://maptheworld.ai
 WORLDMONITOR_BASE_URL=https://worldmonitor.app
 ```
+
+Optional root UI configuration:
+
+```bash
+VITE_BIFROST_URL=http://127.0.0.1:4188
+```
+
+`VITE_BIFROST_URL` is public browser configuration. Never put credentials in it.
 
 ## Security model
 
 The gateway is an allowlisted adapter, **not an open proxy**.
 
 - Remote targets are defined server-side.
+- Browser origins are explicitly allowlisted; there is no wildcard CORS policy.
 - The browser cannot submit arbitrary hosts or URLs.
 - Request bodies are capped.
 - Secrets are never stored in the UI.
 - Remote mutation is not performed by a status probe.
-- UI handoffs require an explicit operator confirmation.
+- UI handoffs require an explicit operator action.
 - WorldMonitor integration uses its public developer surface rather than copying source into Camelot.
 
 ## Current implementation boundary
 
-This is a working command-center app and orchestration gateway, but it is not yet mounted as a tab inside the root Camelot React shell. Keeping it isolated makes the bridge testable before it is grafted into the primary World Tree UI.
+The Throne Room portal can probe realms and request governed crossings through the local Bifrost gateway. WorldMonitor MCP support remains capability-discovery only. Multivoice mutation and God's Eye View spatial actions remain explicit handoffs into their authoritative interfaces until scoped action contracts are added.
