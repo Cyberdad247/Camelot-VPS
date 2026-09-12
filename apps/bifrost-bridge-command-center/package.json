@@ -1,0 +1,14 @@
+{
+  "name": "camelot-bifrost-bridge-command-center",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "check": "node --check server.mjs && node --check bifrost.js"
+  },
+  "engines": {
+    "node": ">=20.11"
+  }
+}
