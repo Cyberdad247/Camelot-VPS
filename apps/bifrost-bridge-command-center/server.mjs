@@ -6,6 +6,12 @@ import { fileURLToPath } from 'node:url';
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const PORT = Number(process.env.BIFROST_PORT || 4188);
 const HOST = process.env.BIFROST_HOST || '127.0.0.1';
+const ALLOWED_ORIGINS = new Set(
+  String(process.env.BIFROST_ALLOWED_ORIGINS || 'http://127.0.0.1:3000,http://localhost:3000')
+    .split(',')
+    .map(value => value.trim())
+    .filter(Boolean)
+);
 
 const REALMS = {
   multivoice: {
@@ -36,12 +42,25 @@ const MIME = {
   '.jpeg': 'image/jpeg',
 };
 
-function sendJson(res, status, payload) {
+function corsHeaders(req) {
+  const origin = req.headers.origin;
+  if (!origin || !ALLOWED_ORIGINS.has(origin)) return {};
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type,Accept',
+    'Access-Control-Max-Age': '600',
+    Vary: 'Origin',
+  };
+}
+
+function sendJson(req, res, status, payload) {
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'no-referrer',
+    ...corsHeaders(req),
   });
   res.end(JSON.stringify(payload));
 }
@@ -133,7 +152,7 @@ async function worldMonitorMcpCall(method, params = {}) {
 }
 
 async function executeCrossing(crossing) {
-  const { source, destination, transport, intent, payload } = crossing;
+  const { destination, transport, intent, payload } = crossing;
 
   // Bifrost never acts as a generic open proxy. Every remote destination is
   // selected from REALMS above, and each adapter exposes only a narrow action.
@@ -203,10 +222,11 @@ async function serveStatic(req, res, pathname) {
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
       'Content-Security-Policy': "default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'",
+      ...corsHeaders(req),
     });
     res.end(body);
   } catch {
-    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', ...corsHeaders(req) });
     res.end('Not found');
   }
 }
@@ -214,36 +234,47 @@ async function serveStatic(req, res, pathname) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', `http://${req.headers.host || `${HOST}:${PORT}`}`);
 
+  if (req.method === 'OPTIONS' && url.pathname.startsWith('/api/bifrost/')) {
+    const headers = corsHeaders(req);
+    if (!Object.keys(headers).length && req.headers.origin) {
+      return sendJson(req, res, 403, { error: 'Origin not allowed by Bifrost' });
+    }
+    res.writeHead(204, headers);
+    return res.end();
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/bifrost/config') {
-    return sendJson(res, 200, {
+    return sendJson(req, res, 200, {
       realms: Object.fromEntries(Object.entries(REALMS).map(([id, realm]) => [id, { launchUrl: realm.launchUrl }])),
       policy: 'allowlisted-fail-closed',
+      allowedOrigins: [...ALLOWED_ORIGINS],
     });
   }
 
   const probeMatch = url.pathname.match(/^\/api\/bifrost\/probe\/(multivoice|godseye|worldmonitor)$/);
   if (req.method === 'GET' && probeMatch) {
     const result = await probeRealm(probeMatch[1]);
-    return sendJson(res, 200, result);
+    return sendJson(req, res, 200, result);
   }
 
   if (req.method === 'POST' && url.pathname === '/api/bifrost/crossing') {
     try {
       const body = await readJson(req);
       const crossing = validateCrossing(body);
-      if (crossing.error) return sendJson(res, 400, crossing);
+      if (crossing.error) return sendJson(req, res, 400, crossing);
       const result = await executeCrossing(crossing);
-      return sendJson(res, 200, result);
+      return sendJson(req, res, 200, result);
     } catch (error) {
-      return sendJson(res, 500, { error: error instanceof Error ? error.message : 'Crossing failed' });
+      return sendJson(req, res, 500, { error: error instanceof Error ? error.message : 'Crossing failed' });
     }
   }
 
-  if (url.pathname.startsWith('/api/')) return sendJson(res, 404, { error: 'Unknown Bifrost endpoint' });
+  if (url.pathname.startsWith('/api/')) return sendJson(req, res, 404, { error: 'Unknown Bifrost endpoint' });
   return serveStatic(req, res, url.pathname);
 });
 
 server.listen(PORT, HOST, () => {
   console.log(`[BIFROST] Hermes/Heimdall command center listening on http://${HOST}:${PORT}`);
   console.log('[BIFROST] Remote targets are allowlisted. No arbitrary proxy route is exposed.');
+  console.log(`[BIFROST] Allowed UI origins: ${[...ALLOWED_ORIGINS].join(', ') || '(none)'}`);
 });
