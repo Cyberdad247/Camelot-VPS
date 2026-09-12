@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { BattleChapterId } from '../world-director/battleWorld';
-import { BATTLE_CINEMATIC_CONNECTORS, BATTLE_MEDIA_BY_ID } from '../world-director/cinematicManifest';
+import {
+  BATTLE_CINEMATIC_CONNECTORS,
+  BATTLE_MEDIA_BY_ID,
+  validateBattleCinematicSeams,
+} from '../world-director/cinematicManifest';
 import './battle-cinematic-layer.css';
 
 interface BattleCinematicLayerProps {
@@ -27,6 +31,7 @@ export const BattleCinematicLayer: React.FC<BattleCinematicLayerProps> = ({
   const sceneVideoRef = useRef<HTMLVideoElement>(null);
   const connectorVideoRef = useRef<HTMLVideoElement>(null);
   const mediaEnabled = import.meta.env.VITE_BATTLE_CINEMATIC_MEDIA === '1';
+  const seamFailures = useMemo(() => validateBattleCinematicSeams(), []);
 
   const sceneMedia = BATTLE_MEDIA_BY_ID[activeId];
   const connector = useMemo(
@@ -40,6 +45,13 @@ export const BattleCinematicLayer: React.FC<BattleCinematicLayerProps> = ({
     const stageNode = root.querySelector<HTMLElement>('.battle-stage');
     setStage(stageNode);
   }, [rootId]);
+
+  useEffect(() => {
+    if (!mediaEnabled || seamFailures.length === 0) return;
+    console.error('[CAMELOT:CINEMATIC] Frame seam contract invalid. Falling back to posters.', seamFailures);
+  }, [mediaEnabled, seamFailures]);
+
+  const videoAllowed = mediaEnabled && seamFailures.length === 0;
 
   useEffect(() => {
     const root = document.getElementById(rootId);
@@ -64,11 +76,11 @@ export const BattleCinematicLayer: React.FC<BattleCinematicLayerProps> = ({
       root.style.setProperty('--cinematic-progress', progress.toFixed(4));
       root.style.setProperty('--cinematic-connector-mix', clamp((progress - 0.72) / 0.28).toFixed(4));
 
-      if (!mediaEnabled || reduced.matches) return;
+      if (!videoAllowed || reduced.matches) return;
 
       const mobile = coarse.matches || window.innerWidth <= 860;
       const sceneVideo = sceneVideoRef.current;
-      if (sceneVideo?.duration && !sceneVideo.seeking) {
+      if (sceneVideo?.duration && !sceneVideo.seeking && sceneVideo.dataset.failed !== 'true') {
         const t = clamp(progress, 0, 0.999) * sceneVideo.duration;
         const epsilon = mobile ? 0.03 : 0.012;
         if (Math.abs(sceneVideo.currentTime - t) > epsilon) {
@@ -78,7 +90,7 @@ export const BattleCinematicLayer: React.FC<BattleCinematicLayerProps> = ({
 
       const connectorVideo = connectorVideoRef.current;
       const connectorProgress = clamp((progress - 0.72) / 0.28);
-      if (connectorVideo?.duration && connectorProgress > 0 && !connectorVideo.seeking) {
+      if (connectorVideo?.duration && connectorProgress > 0 && !connectorVideo.seeking && connectorVideo.dataset.failed !== 'true') {
         const t = clamp(connectorProgress, 0, 0.999) * connectorVideo.duration;
         const epsilon = mobile ? 0.03 : 0.012;
         if (Math.abs(connectorVideo.currentTime - t) > epsilon) {
@@ -94,10 +106,9 @@ export const BattleCinematicLayer: React.FC<BattleCinematicLayerProps> = ({
 
     const prime = () => {
       [sceneVideoRef.current, connectorVideoRef.current].forEach(video => {
-        if (!video) return;
+        if (!video || video.dataset.failed === 'true') return;
         try {
-          const play = video.play();
-          if (play) play.then(() => video.pause()).catch(() => undefined);
+          video.play().then(() => video.pause()).catch(() => undefined);
         } catch { /* gesture/media policy fallback */ }
       });
     };
@@ -115,7 +126,7 @@ export const BattleCinematicLayer: React.FC<BattleCinematicLayerProps> = ({
       window.removeEventListener('orientationchange', scheduleRead);
       window.removeEventListener('pointerdown', prime);
     };
-  }, [connector, mediaEnabled, rootId]);
+  }, [connector, rootId, videoAllowed]);
 
   if (!stage || !sceneMedia) return null;
 
@@ -126,6 +137,10 @@ export const BattleCinematicLayer: React.FC<BattleCinematicLayerProps> = ({
     ? (mobile ? (connector.clipMobile ?? connector.clip) : connector.clip)
     : undefined;
 
+  const markFailed = (event: React.SyntheticEvent<HTMLVideoElement>) => {
+    event.currentTarget.dataset.failed = 'true';
+  };
+
   return createPortal(
     <div className="battle-cinematic-layer" data-cinematic-scene={activeId} aria-hidden="true">
       <div
@@ -133,7 +148,7 @@ export const BattleCinematicLayer: React.FC<BattleCinematicLayerProps> = ({
         style={{ backgroundImage: `url(${mobile && sceneMedia.posterMobile ? sceneMedia.posterMobile : sceneMedia.poster})` }}
       />
 
-      {mediaEnabled && sceneClip && (
+      {videoAllowed && sceneClip && (
         <video
           key={`scene-${activeId}-${sceneClip}`}
           ref={sceneVideoRef}
@@ -143,10 +158,11 @@ export const BattleCinematicLayer: React.FC<BattleCinematicLayerProps> = ({
           playsInline
           preload="metadata"
           tabIndex={-1}
+          onError={markFailed}
         />
       )}
 
-      {mediaEnabled && connectorClip && activeId !== nextId && (
+      {videoAllowed && connectorClip && activeId !== nextId && (
         <video
           key={`connector-${activeId}-${nextId}-${connectorClip}`}
           ref={connectorVideoRef}
@@ -156,6 +172,7 @@ export const BattleCinematicLayer: React.FC<BattleCinematicLayerProps> = ({
           playsInline
           preload="metadata"
           tabIndex={-1}
+          onError={markFailed}
         />
       )}
 
