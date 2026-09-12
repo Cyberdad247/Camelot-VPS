@@ -10,6 +10,8 @@ For every connector, the connector's first frame must be the actual final frame 
 
 Never regenerate an approximate seam frame from a prompt.
 
+The scene and connector frame IDs are declared in `src/world-director/cinematicManifest.ts`. The runtime checks the same manifest contract before permitting cinematic video. Invalid seam declarations force poster fallback.
+
 ## Encoding target
 
 Recommended baseline:
@@ -20,4 +22,4 @@ Recommended baseline:
 - desktop: 1080p-class, tight GOP suitable for seeking
 - mobile: 720p-class, tighter GOP than desktop
 
-The runtime will remain poster-driven when rendered media is disabled, when reduced motion is requested, or when the device is in the scarcity quality tier.
+The runtime remains poster-driven when rendered media is disabled, when reduced motion is requested, or when the device is in the scarcity quality tier.
