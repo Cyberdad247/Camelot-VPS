@@ -70,6 +70,8 @@ When unset or `0`, Camelot uses the same World Director, camera timeline and liv
 
 **Current repository state:** the media runtime, asset contract, drop-zone, seam validation, mobile paths and fallbacks are implemented. The final generated MP4 scene dives and connectors are not yet committed, so the environment switch should remain `0` until those assets exist.
 
+The complete desktop + native mobile chain is **34 MP4 assets**: 9 scene dives + 8 connectors for desktop, mirrored by 9 scene dives + 8 connectors for mobile.
+
 ## Expected cinematic asset paths
 
 ```text
