@@ -8,7 +8,11 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "helios": "node scripts/helios.mjs",
+    "helios:plan": "node scripts/helios.mjs plan",
+    "helios:forge": "node scripts/helios.mjs forge",
+    "helios:verify": "node scripts/helios.mjs verify"
   },
   "dependencies": {
     "3d-force-graph": "^1.80.0",
