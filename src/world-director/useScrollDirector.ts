@@ -1,4 +1,5 @@
-import { RefObject, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { CSSProperties, RefObject } from 'react';
 import type { BattleChapterId, BattleWorldScene, WorldCameraPose } from './battleWorld';
 
 export type WorldQualityTier = 'high' | 'medium' | 'scarcity';
@@ -55,7 +56,7 @@ export function useScrollDirector(
   scenes: readonly BattleWorldScene[],
 ): WorldDirectorSnapshot & {
   scrollToScene: (id: BattleChapterId) => void;
-  sceneStyle: (id: BattleChapterId) => React.CSSProperties;
+  sceneStyle: (id: BattleChapterId) => CSSProperties;
 } {
   const fallback = scenes[0];
   const [snapshot, setSnapshot] = useState<WorldDirectorSnapshot>({
@@ -154,13 +155,13 @@ export function useScrollDirector(
     root.scrollTo({ top: element.offsetTop, behavior: snapshot.reducedMotion ? 'auto' : 'smooth' });
   }, [rootRef, sceneMap, snapshot.reducedMotion]);
 
-  const sceneStyle = useCallback((id: BattleChapterId): React.CSSProperties => {
+  const sceneStyle = useCallback((id: BattleChapterId): CSSProperties => {
     const scene = sceneMap.get(id)?.scene ?? fallback;
     return {
       minHeight: `${Math.max(1, scene.scrollWeight) * 100}svh`,
       ['--scene-accent' as string]: scene.accent,
       ['--scene-linger' as string]: scene.linger,
-    } as React.CSSProperties;
+    } as CSSProperties;
   }, [fallback, sceneMap]);
 
   return { ...snapshot, scrollToScene, sceneStyle };
