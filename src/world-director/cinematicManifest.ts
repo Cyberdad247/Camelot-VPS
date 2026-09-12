@@ -79,3 +79,11 @@ export function validateBattleCinematicSeams(): string[] {
   }
   return failures;
 }
+
+export const BATTLE_CINEMATIC_EXPECTED_ASSET_COUNT = {
+  desktopScenes: BATTLE_CINEMATIC_SCENES.length,
+  desktopConnectors: BATTLE_CINEMATIC_CONNECTORS.length,
+  mobileScenes: BATTLE_CINEMATIC_SCENES.length,
+  mobileConnectors: BATTLE_CINEMATIC_CONNECTORS.length,
+  total: (BATTLE_CINEMATIC_SCENES.length + BATTLE_CINEMATIC_CONNECTORS.length) * 2,
+} as const;
