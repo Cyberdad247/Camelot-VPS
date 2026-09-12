@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>Bifrost Bridge Command Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./bifrost.css" />
+  </head>
+  <body>
+    <div class="aurora aurora-a"></div>
+    <div class="aurora aurora-b"></div>
+
+    <main class="shell" aria-label="Bifrost Bridge Command Center">
+      <header class="topbar glass">
+        <div class="brand-lockup">
+          <div class="sigil" aria-hidden="true">ᛒ</div>
+          <div>
+            <p class="eyebrow">CAMELOT-OS // SOVEREIGN NETWORK FABRIC</p>
+            <h1>Bifrost Bridge Command Center</h1>
+          </div>
+        </div>
+        <div class="top-status">
+          <span class="status-dot"></span>
+          <span id="bridgeModeLabel">OPERATOR CONTROLLED</span>
+          <button id="refreshAll" class="ghost-button" type="button">Probe Realms</button>
+        </div>
+      </header>
+
+      <section class="command-grid">
+        <article class="persona-card hermes-card glass">
+          <div class="persona-heading">
+            <div class="persona-icon">☿</div>
+            <div>
+              <p class="eyebrow">ROUTING & DISPATCH</p>
+              <h2>Sir Hermes</h2>
+              <p>Builds the path, transforms the message, and hands work to the correct realm.</p>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div><span>Routes</span><strong id="routeCount">03</strong></div>
+            <div><span>Queued</span><strong id="queueCount">00</strong></div>
+            <div><span>Transport</span><strong id="transportMode">AUTO</strong></div>
+          </div>
+          <button id="focusHermes" class="primary-button cyan" type="button">Open Routing Forge</button>
+        </article>
+
+        <article class="persona-card heimdall-card glass">
+          <div class="persona-heading">
+            <div class="persona-icon">ᚼ</div>
+            <div>
+              <p class="eyebrow">TRUST & ACCESS</p>
+              <h2>Sir Heimdall</h2>
+              <p>Guards identity, integrity, intent, payload, access, and every crossing receipt.</p>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div><span>Gates</span><strong id="gateCount">05/05</strong></div>
+            <div><span>Policy</span><strong>ZERO TRUST</strong></div>
+            <div><span>Receipts</span><strong id="receiptCount">0042</strong></div>
+          </div>
+          <button id="focusHeimdall" class="primary-button gold" type="button">Open Gatehouse</button>
+        </article>
+      </section>
+
+      <section class="bridge-stage glass" aria-labelledby="bridge-title">
+        <div class="stage-header">
+          <div>
+            <p class="eyebrow">LIVE TOPOLOGY // STATUS IS PROBED, NOT ASSUMED</p>
+            <h2 id="bridge-title">Bifrost Service Fabric</h2>
+          </div>
+          <div class="legend">
+            <span><i class="legend-dot online"></i> reachable</span>
+            <span><i class="legend-dot unknown"></i> unprobed</span>
+            <span><i class="legend-dot degraded"></i> degraded</span>
+          </div>
+        </div>
+
+        <div class="topology" id="topology">
+          <article class="realm-node realm-camelot active" data-realm="camelot">
+            <div class="node-status online"></div>
+            <span class="node-kicker">SOVEREIGN ORIGIN</span>
+            <strong>Camelot-VPS</strong>
+            <small>World Tree / command plane</small>
+          </article>
+
+          <div class="bridge-lane bridge-lane-a"><span></span></div>
+          <div class="bridge-core" aria-label="Bifrost trust gate">
+            <div class="ring ring-one"></div>
+            <div class="ring ring-two"></div>
+            <div class="bridge-core-copy">
+              <span>BIFROST</span>
+              <strong>GATE</strong>
+              <small>Hermes ⇄ Heimdall</small>
+            </div>
+          </div>
+          <div class="bridge-lane bridge-lane-b"><span></span></div>
+
+          <div class="realm-stack">
+            <article class="realm-node" data-realm="multivoice">
+              <div class="node-status unknown" id="status-multivoice"></div>
+              <span class="node-kicker">VOICE / PERSONA ROUTER</span>
+              <strong>Multivoice-router</strong>
+              <small>/api/bridge/query + Tailscale</small>
+            </article>
+            <article class="realm-node" data-realm="godseye">
+              <div class="node-status unknown" id="status-godseye"></div>
+              <span class="node-kicker">SPATIAL INTELLIGENCE</span>
+              <strong>God's Eye View</strong>
+              <small>3D globe / live tracked world</small>
+            </article>
+            <article class="realm-node" data-realm="worldmonitor">
+              <div class="node-status unknown" id="status-worldmonitor"></div>
+              <span class="node-kicker">GLOBAL INTELLIGENCE</span>
+              <strong>WorldMonitor</strong>
+              <small>MCP / OpenAPI / OSINT</small>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace-grid">
+        <article class="forge glass" id="routingForge">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">SIR HERMES</p>
+              <h2>Routing Forge</h2>
+            </div>
+            <span class="pill">EXPLICIT EXECUTION</span>
+          </div>
+
+          <form id="routeForm" class="route-form">
+            <label>
+              Source realm
+              <select id="routeSource">
+                <option value="camelot">Camelot-VPS</option>
+                <option value="multivoice">Multivoice-router</option>
+                <option value="godseye">God's Eye View</option>
+                <option value="worldmonitor">WorldMonitor</option>
+              </select>
+            </label>
+            <label>
+              Destination realm
+              <select id="routeDestination">
+                <option value="worldmonitor">WorldMonitor</option>
+                <option value="multivoice">Multivoice-router</option>
+                <option value="godseye">God's Eye View</option>
+                <option value="camelot">Camelot-VPS</option>
+              </select>
+            </label>
+            <label>
+              Transport
+              <select id="routeTransport">
+                <option value="auto">Auto-select</option>
+                <option value="mcp">MCP</option>
+                <option value="bridge">Multivoice Bridge Proxy</option>
+                <option value="tailscale">Tailscale</option>
+                <option value="handoff">UI / deep-link handoff</option>
+              </select>
+            </label>
+            <label class="span-2">
+              Intent
+              <input id="routeIntent" value="Fetch situational context and hand it to the active Camelot voice persona." />
+            </label>
+            <label class="span-2">
+              Payload / operator note
+              <textarea id="routePayload" rows="4" placeholder="Describe the crossing. Secrets are never stored here."></textarea>
+            </label>
+            <div class="route-actions span-2">
+              <button id="previewRoute" type="button" class="ghost-button">Preview Path</button>
+              <button type="submit" class="primary-button cyan">Request Crossing</button>
+            </div>
+          </form>
+
+          <div class="route-preview" id="routePreview" aria-live="polite">
+            <span>CAMELOT-VPS</span><b>→</b><span>HEIMDALL GATES</span><b>→</b><span>WORLDMONITOR</span>
+          </div>
+        </article>
+
+        <article class="gatehouse glass" id="gatehouse">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">SIR HEIMDALL</p>
+              <h2>Gatehouse</h2>
+            </div>
+            <span class="pill gold-pill">FAIL CLOSED</span>
+          </div>
+
+          <div class="gate-list" id="gateList">
+            <button class="gate-row pass" data-gate="identity" type="button"><span>01</span><div><strong>Identity</strong><small>Who is requesting the crossing?</small></div><b>PASS</b></button>
+            <button class="gate-row pass" data-gate="integrity" type="button"><span>02</span><div><strong>Integrity</strong><small>Is the route and payload unmodified?</small></div><b>PASS</b></button>
+            <button class="gate-row pass" data-gate="intent" type="button"><span>03</span><div><strong>Intent</strong><small>Is the requested action allowed?</small></div><b>PASS</b></button>
+            <button class="gate-row pass" data-gate="payload" type="button"><span>04</span><div><strong>Payload</strong><small>Does the message contain prohibited material?</small></div><b>PASS</b></button>
+            <button class="gate-row pass" data-gate="access" type="button"><span>05</span><div><strong>Access</strong><small>Can the destination be reached with current authority?</small></div><b>PASS</b></button>
+          </div>
+
+          <div class="gate-controls">
+            <button id="sealBridge" class="danger-button" type="button">Seal Bifrost</button>
+            <button id="restoreBridge" class="ghost-button" type="button">Restore Gates</button>
+          </div>
+        </article>
+      </section>
+
+      <section class="realm-detail glass" aria-labelledby="realm-detail-title">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">SELECTED REALM</p>
+            <h2 id="realm-detail-title">Integration Inspector</h2>
+          </div>
+          <a id="repoLink" href="https://github.com/Cyberdad247/Multivoice-router" target="_blank" rel="noreferrer" class="ghost-button link-button">Open Repository</a>
+        </div>
+
+        <div class="inspector-grid">
+          <div>
+            <span class="label">Realm</span>
+            <strong id="realmName">Multivoice-router</strong>
+          </div>
+          <div>
+            <span class="label">Role</span>
+            <strong id="realmRole">Voice + persona routing</strong>
+          </div>
+          <div>
+            <span class="label">Canonical transport</span>
+            <strong id="realmTransport">Bridge Proxy / Tailscale</strong>
+          </div>
+          <div>
+            <span class="label">Probe status</span>
+            <strong id="realmStatus">UNPROBED</strong>
+          </div>
+        </div>
+
+        <div class="endpoint-strip">
+          <code id="realmEndpoint">/api/bridge/query</code>
+          <button id="launchRealm" class="primary-button gold" type="button">Launch Surface</button>
+        </div>
+      </section>
+
+      <section class="ledger glass">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">BIFROST RECEIPTS</p>
+            <h2>Crossing Ledger</h2>
+          </div>
+          <button id="clearLedger" class="ghost-button" type="button">Clear Local View</button>
+        </div>
+        <div id="ledgerRows" class="ledger-rows" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <script type="module" src="./bifrost.js"></script>
+  </body>
+</html>
