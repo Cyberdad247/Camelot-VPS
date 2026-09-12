@@ -1,0 +1,121 @@
+/* Cinematic media layer for the Camelot Continuous World Director.
+   This sits behind live React controls and upgrades poster-driven spatial motion to
+   exact-frame scrubbed scene/connector video when rendered assets are available. */
+
+#battle-mode-scroll-command-center .battle-stage {
+  isolation: isolate;
+}
+
+#battle-mode-scroll-command-center .battle-cinematic-layer {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: #020406;
+}
+
+#battle-mode-scroll-command-center .battle-cinematic-poster,
+#battle-mode-scroll-command-center .battle-cinematic-video {
+  position: absolute;
+  inset: -5%;
+  width: 110%;
+  height: 110%;
+  object-fit: cover;
+  object-position: 50% 44%;
+  will-change: transform, opacity, filter;
+}
+
+#battle-mode-scroll-command-center .battle-cinematic-poster {
+  background-position: 50% 44%;
+  background-size: cover;
+  transform:
+    translate3d(calc(var(--world-x, 0vw) * .35), calc(var(--world-y, 0vh) * .35), 0)
+    scale(calc(1.03 + (var(--scene-progress, 0) * .05)));
+  filter:
+    brightness(calc(var(--world-brightness, .82) * .82))
+    saturate(var(--world-saturation, 1.05));
+  opacity: .58;
+}
+
+#battle-mode-scroll-command-center .battle-cinematic-video {
+  transform: scale(1.015);
+  filter:
+    brightness(calc(var(--world-brightness, .82) * .88))
+    saturate(var(--world-saturation, 1.05));
+}
+
+#battle-mode-scroll-command-center .battle-cinematic-video--scene {
+  z-index: 2;
+  opacity: calc(1 - (var(--cinematic-connector-mix, 0) * .94));
+}
+
+#battle-mode-scroll-command-center .battle-cinematic-video--connector {
+  z-index: 3;
+  opacity: var(--cinematic-connector-mix, 0);
+}
+
+#battle-mode-scroll-command-center .battle-cinematic-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background:
+    linear-gradient(90deg, rgba(2,4,6,.84), transparent 20%, transparent 80%, rgba(2,4,6,.84)),
+    linear-gradient(180deg, rgba(2,4,6,.45), transparent 22%, transparent 72%, rgba(2,4,6,.78)),
+    radial-gradient(circle at 50% 46%, transparent 24%, rgba(0,0,0,.35) 76%, rgba(0,0,0,.72) 100%);
+}
+
+#battle-mode-scroll-command-center .battle-cinematic-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  opacity: .05;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.13) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(103,232,249,.07) 0 1px, transparent 1px 5px);
+  mix-blend-mode: screen;
+}
+
+/* Scene-specific cinematic grading. The live command UI stays readable above it. */
+#battle-mode-scroll-command-center[data-world-scene="threats"] .battle-cinematic-layer {
+  filter: hue-rotate(-8deg) saturate(1.22);
+}
+#battle-mode-scroll-command-center[data-world-scene="defense"] .battle-cinematic-layer {
+  filter: hue-rotate(18deg) saturate(1.12) brightness(1.04);
+}
+#battle-mode-scroll-command-center[data-world-scene="brains"] .battle-cinematic-layer {
+  filter: hue-rotate(38deg) saturate(1.18);
+}
+#battle-mode-scroll-command-center[data-world-scene="ouroboros"] .battle-cinematic-layer {
+  filter: sepia(.12) saturate(1.28) brightness(1.04);
+}
+#battle-mode-scroll-command-center[data-world-scene="vfs"] .battle-cinematic-layer {
+  filter: hue-rotate(8deg) saturate(1.2) brightness(.92);
+}
+#battle-mode-scroll-command-center[data-world-scene="command"] .battle-cinematic-layer {
+  filter: saturate(.82) brightness(.62);
+}
+
+#battle-mode-scroll-command-center[data-world-quality="medium"] .battle-cinematic-grain,
+#battle-mode-scroll-command-center[data-world-quality="scarcity"] .battle-cinematic-grain {
+  display: none;
+}
+
+#battle-mode-scroll-command-center[data-world-quality="scarcity"] .battle-cinematic-video {
+  display: none;
+}
+
+#battle-mode-scroll-command-center[data-world-quality="scarcity"] .battle-cinematic-poster {
+  transform: none;
+  opacity: .42;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #battle-mode-scroll-command-center .battle-cinematic-video {
+    display: none !important;
+  }
+  #battle-mode-scroll-command-center .battle-cinematic-poster {
+    transform: none !important;
+    transition: none !important;
+  }
+}
