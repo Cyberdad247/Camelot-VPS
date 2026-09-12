@@ -1,0 +1,45 @@
+[Unit]
+Description=Camelot Shadow Subspace Native Knight CPU
+After=network.target sentinel.service receipt-service.service
+Wants=sentinel.service receipt-service.service
+
+[Service]
+Type=simple
+Slice=camelot-workers.slice
+ExecStart=/opt/camelot/bin/camelot-shadowd
+WorkingDirectory=/opt/camelot
+Environment=RUST_LOG=info
+Environment=CAMELOT_SHADOW_HOST=127.0.0.1
+Environment=CAMELOT_SHADOW_PORT=4190
+Environment=CAMELOT_SHADOW_ROOT=/var/lib/camelot/shadow
+EnvironmentFile=-/etc/camelot/shadowd.env
+Restart=on-failure
+RestartSec=3
+UMask=0077
+
+# Scarcity protocol: shadow execution must never crowd out the Crown.
+MemoryHigh=640M
+MemoryMax=768M
+CPUQuota=50%
+TasksMax=128
+LimitNOFILE=4096
+
+# Native service hardening. Puter never receives host authority.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/camelot/shadow
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target
