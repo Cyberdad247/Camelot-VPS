@@ -25,6 +25,16 @@ impl KeyPair {
     pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), ed25519_dalek::SignatureError> {
         self.verifying_key.verify(message, signature)
     }
+
+    pub fn public_key_hex(&self) -> String {
+        let bytes = self.verifying_key.to_bytes();
+        let mut output = String::with_capacity(bytes.len() * 2);
+        for byte in bytes {
+            use std::fmt::Write as _;
+            let _ = write!(&mut output, "{byte:02x}");
+        }
+        output
+    }
 }
 
 pub fn hash_payload(payload: &str) -> String {
