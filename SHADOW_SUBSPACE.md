@@ -45,7 +45,9 @@ Puter Shadow Castle :4100
 | R3 | approved external reads / reversible preparation | policy-bounded + receipt |
 | R4 | external write / communication | mandatory HITL |
 | R5 | production mutation / credential-bearing effect | mandatory HITL |
-| R6 | irreversible or security-critical effect | sovereign HITL scope |
+| R6 | irreversible or security-critical effect | **fail-closed by default** |
+
+R6 is not enabled merely because a browser or CLI says the operator is sovereign. `camelot-shadowd` refuses R6 sessions/effects unless the server-side `CAMELOT_SHADOW_ALLOW_R6=1` switch is deliberately enabled. Keep it disabled until Camelot has a server-authenticated sovereign-identity path. Even when enabled, an R6 approval must use `sovereign` scope.
 
 `camelot-shadowd` currently authorizes effect manifests after policy/HITL evaluation but deliberately does **not** expose a generic arbitrary command executor. Specific future effect adapters should be implemented one-by-one behind capability schemas.
 
@@ -67,6 +69,7 @@ Run locally:
 
 ```bash
 CAMELOT_SHADOW_TOKEN="$CAMELOT_SHADOW_TOKEN" \
+CAMELOT_SHADOW_ALLOW_R6=0 \
   cargo run -p camelot-shadowd
 ```
 
@@ -97,6 +100,25 @@ Exposed governed routes:
 - `POST /api/bifrost/shadow/sessions/:session/seal`
 
 There is no generic `proxy?url=` or arbitrary native route forwarding.
+
+## Capability and egress guardrails
+
+The daemon, not the browser, owns the allowlists. The current native capability ceiling is:
+
+```text
+shadow.read
+shadow.write
+shadow.plan
+bifrost.request
+```
+
+The only current network egress label accepted by the native daemon is:
+
+```text
+bifrost://governed
+```
+
+A client cannot invent a new capability or egress destination by adding a string to its session request.
 
 ## Shadow VFS
 
@@ -131,7 +153,7 @@ Each receipt includes:
 - ephemeral daemon public signing key
 - Ed25519 signature
 
-The daemon currently generates its signing key at process start. Production hardening should move the signing key to a persisted protected credential or hardware-backed signer so public-key continuity survives restarts.
+The daemon reloads the previous receipt hash at startup so new entries continue the append-only hash chain. It currently generates a fresh signing key at process start, however. Production hardening should move that signing key to a persisted protected credential or hardware-backed signer so signer continuity also survives restarts.
 
 ## Puter Shadow Castle
 
@@ -161,12 +183,15 @@ npm run camelot -- shadow receipts <session>
 npm run camelot -- shadow seal <session>
 ```
 
+R6 commands intentionally fail while `CAMELOT_SHADOW_ALLOW_R6=0`.
+
 ## Production hardening still required
 
 - run `cargo check --workspace` and the frontend TypeScript build in CI
 - persist or hardware-bind the receipt signing key
 - connect Sentinel-issued capability leases instead of the current session-local capability list
 - add Heimdall identity/integrity/intent/payload/access evidence to every R4-R6 approval receipt
+- replace browser-declared operator identity with a server-authenticated Camelot operator identity
 - integrate canonical VFS snapshot/promote APIs for true source copy-on-write semantics
 - add specific effect executors rather than a generic shell
 - bind Puter user identity to Camelot operator identity instead of the current authenticated-user fallback
