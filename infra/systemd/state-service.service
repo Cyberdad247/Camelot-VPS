@@ -18,6 +18,7 @@ EnvironmentFile=-/etc/camelot/state-service.env
 Restart=on-failure
 RestartSec=3
 UMask=0077
+StateDirectory=camelot/state
 MemoryHigh=160M
 MemoryMax=224M
 CPUQuota=30%
