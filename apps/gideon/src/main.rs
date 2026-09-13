@@ -268,9 +268,12 @@ async fn handle_verify(
         signer_public_key: state.signer.public_key_hex(),
         signature: String::new(),
     };
-    response
-        .sign_with(&state.signer)
-        .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": error }))))?;
+    response.sign_with(&state.signer).map_err(|error| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": error })),
+        )
+    })?;
     Ok((StatusCode::OK, Json(response)))
 }
 
