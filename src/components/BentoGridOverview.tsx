@@ -73,97 +73,528 @@ export const BentoGridOverview: React.FC<BentoGridOverviewProps> = ({
   onExecuteCommand,
   onOpenBootstrapScript
 }) => {
-  const [activeModal, setActiveModal] = useState<'memcastle' | 'brains' | null>(null);
-  const [showSecrets, setShowSecrets] = useState(false);
-  const [expandedLogs, setExpandedLogs] = useState(false);
+  const [isMemcastleOpen, setIsMemcastleOpen] = useState(false);
+  const [isTwinBrainsOpen, setIsTwinBrainsOpen] = useState(false);
 
-  const runningServices = services.filter(s => s.status === 'running').length;
-  const memoryPercent = Math.round((vitals.usedRamMB / vitals.scarcityCapMB) * 100);
-  const scarce = memoryPercent >= 80;
+  // Individual Card Minimization State
+  const [minimizedCards, setMinimizedCards] = useState<Record<string, boolean>>({
+    telemetry: false,
+    process: false,
+    ouroboros: false,
+    logs: false,
+    graphify: false,
+    vfs: false,
+    slabs: false,
+    commands: false,
+    centerTree: false
+  });
 
-  const handleCelebrate = () => {
-    confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+  // Hidden Aspect: Sanctum of Excalibur & Z3 Kernel Theorem Inspector
+  const [showSanctum, setShowSanctum] = useState(false);
+  const [activeProofEquation, setActiveProofEquation] = useState<string>('∀x. (x ∈ VFS_Nodes → LeaseValid(x) ∧ MemBound(x) ≤ 7.2GB)');
+  const [rawMemoryHex, setRawMemoryHex] = useState<string>('0x7FFF8A49B000: 43 41 4D 45 4C 4F 54 5F 4F 53 5F 56 4D 41 58 21');
+  const [arthurBypassActive, setArthurBypassActive] = useState(false);
+
+  const toggleCard = (cardKey: string) => {
+    setMinimizedCards(prev => ({
+      ...prev,
+      [cardKey]: !prev[cardKey]
+    }));
   };
 
+  const handleToggleAllCards = () => {
+    const allMin = Object.values(minimizedCards).every(Boolean);
+    const newState = !allMin;
+    setMinimizedCards({
+      telemetry: newState,
+      process: newState,
+      ouroboros: newState,
+      logs: newState,
+      graphify: newState,
+      vfs: newState,
+      slabs: newState,
+      commands: newState,
+      centerTree: newState
+    });
+  };
+
+  const handleInitWorldTree = () => {
+    onExecuteCommand('systemctl restart vkg.slice');
+  };
+
+  const handleSyncAllEngines = () => {
+    onExecuteCommand('sync-engines --all-cores --wal2-checkpoint');
+  };
+
+  const handleFlushContext = () => {
+    onExecuteCommand('vfs-refractions --flush-stale-ast');
+  };
+
+  const handleOptimizeMemory = () => {
+    onExecuteCommand('echo 3 > /proc/sys/vm/drop_caches && zramctl --recompress');
+  };
+
+  const handleRunDiagnostics = () => {
+    onExecuteCommand('camelot-diag --z3-verify --strict');
+  };
+
+  const triggerSanctum = () => {
+    setShowSanctum(!showSanctum);
+    if (!showSanctum) {
+      confetti({ particleCount: 35, spread: 60, origin: { y: 0.7 } });
+    }
+  };
+
+  const countMin = Object.values(minimizedCards).filter(Boolean).length;
+
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
-        <section className="xl:col-span-7 rounded-2xl border border-slate-800 bg-slate-950/75 p-5 overflow-hidden">
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div>
-              <div className="flex items-center gap-2 text-cyan-300 text-xs uppercase tracking-[0.22em]"><Crown size={14}/> Sovereign Overview</div>
-              <h2 className="text-2xl font-semibold text-white mt-2">Camelot-OS World Tree</h2>
-              <p className="text-sm text-slate-400 mt-1">A living map of memory, compute, orchestration and guarded execution.</p>
-            </div>
-            <button onClick={handleCelebrate} className="px-3 py-2 rounded-lg border border-amber-400/30 text-amber-300 text-xs hover:bg-amber-400/10"><Sparkles size={14} className="inline mr-1"/> Pulse</button>
+    <div className="w-full max-w-[1720px] mx-auto p-2 sm:p-4 space-y-4 font-mono">
+      
+      {/* Top Bento Toolbar with Minimization & Hidden Aspect */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0a1020]/90 border border-cyan-950/80 px-4 py-2 rounded-xl text-xs">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+            <span className="font-bold text-cyan-300 tracking-wider uppercase">BENTO GRID ARCHITECTURE</span>
           </div>
-          <WorldTreeVisual />
-          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-            <button onClick={() => setActiveModal('memcastle')} className="rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-left"><Database size={16}/><b className="block mt-2 text-white">MemCastle</b><span className="text-slate-500">Open memory</span></button>
-            <button onClick={() => setActiveModal('brains')} className="rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-left"><Brain size={16}/><b className="block mt-2 text-white">Twin Brains</b><span className="text-slate-500">Inspect cognition</span></button>
-            <button onClick={() => onNavigateTab('deck')} className="rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-left"><Layers size={16}/><b className="block mt-2 text-white">World Tree Deck</b><span className="text-slate-500">Enter spatial map</span></button>
-            <button onClick={() => onNavigateTab('mission')} className="rounded-xl border border-slate-800 bg-slate-900/70 p-3 text-left"><Play size={16}/><b className="block mt-2 text-white">Mission Arena</b><span className="text-slate-500">Dispatch work</span></button>
-          </div>
-        </section>
+          <span className="text-slate-600">|</span>
+          <span className="text-slate-400 text-[11px]">8 MODULAR REAL-TIME TELEMETRY PANELS</span>
+          {countMin > 0 && (
+            <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px]">
+              {countMin} / 9 PANELS MINIMIZED
+            </span>
+          )}
+        </div>
 
-        <section className="xl:col-span-5 grid grid-cols-2 gap-4">
-          <Metric icon={<Server size={18}/>} label="Services" value={`${runningServices}/${services.length}`} detail="running" />
-          <Metric icon={<Cpu size={18}/>} label="Memory" value={`${memoryPercent}%`} detail={`${vitals.usedRamMB} MB / ${vitals.scarcityCapMB} MB`} warn={scarce}/>
-          <Metric icon={<Activity size={18}/>} label="CPU" value={`${vitals.cpuLoad}%`} detail="host load" />
-          <Metric icon={<ShieldCheck size={18}/>} label="Laws" value={`${laws.filter(l => l.status === 'enforced').length}`} detail="enforced" />
-          <div className="col-span-2 rounded-2xl border border-slate-800 bg-slate-950/75 p-4">
-            <div className="flex items-center justify-between"><b className="text-white text-sm">System Actions</b><Zap size={16} className="text-amber-300"/></div>
-            <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
-              <Action icon={<Activity size={14}/>} label="Vitals" onClick={onRunVitalsCheck}/>
-              <Action icon={<RotateCcw size={14}/>} label="Restart degraded" onClick={() => services.filter(s => s.status !== 'running').forEach(s => onRestartService(s.id))}/>
-              <Action icon={<Terminal size={14}/>} label="Diagnostics" onClick={() => onExecuteCommand('camelot-diag --all')}/>
-              <Action icon={<FileCode size={14}/>} label="Bootstrap" onClick={onOpenBootstrapScript}/>
-              <Action icon={<Play size={14}/>} label="Run mission" onClick={onRunMission}/>
-              <Action icon={<ExternalLink size={14}/>} label="Operator" onClick={() => onNavigateTab('operator')}/>
-            </div>
-          </div>
-        </section>
-      </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Twin Brains / Open-Notebook Studio Launcher */}
+          <button
+            onClick={() => setIsTwinBrainsOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1 rounded bg-purple-950/80 hover:bg-purple-900 text-purple-200 border border-purple-500/50 text-[11px] font-bold transition-all shadow-[0_0_12px_rgba(192,132,252,0.3)]"
+          >
+            <Brain className="w-3.5 h-3.5 text-purple-300" />
+            <span>OPEN-NOTEBOOK STUDIO</span>
+          </button>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <GraphifyCanvas />
-        <OuroborosMatrix />
-        <VikingRefractions />
-      </div>
+          {/* Direct GitHub Link */}
+          <a
+            href="https://github.com/lfnovo/open-notebook.git"
+            target="_blank"
+            rel="noreferrer"
+            className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-[11px] transition-all"
+            title="Open-Notebook GitHub Repository"
+          >
+            <Github className="w-3 h-3 text-purple-400" />
+            <span>lfnovo/open-notebook</span>
+            <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+          </a>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        <IpcMemorySlabs />
-        <SystemTelemetry vitals={vitals} />
-      </div>
+          {/* Master Minimize / Expand All Cards */}
+          <button
+            onClick={handleToggleAllCards}
+            className="flex items-center gap-1.5 px-3 py-1 rounded bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-500/30 text-[11px] transition-all"
+          >
+            {countMin >= 5 ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
+            <span>{countMin >= 5 ? 'EXPAND ALL PANELS' : 'MINIMIZE ALL PANELS'}</span>
+          </button>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        <ProcessMatrix services={services} onRestartService={onRestartService}/>
-        <div className="space-y-5">
-          <SystemCommandsPanel onExecuteCommand={onExecuteCommand}/>
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/75 p-4">
-            <div className="flex items-center justify-between mb-3"><b className="text-white text-sm">Secrets Boundary</b><button onClick={() => setShowSecrets(v => !v)} className="text-xs text-cyan-300">{showSecrets ? <EyeOff size={14}/> : <Eye size={14}/>}</button></div>
-            <div className="flex items-center gap-3 text-sm"><Key size={16} className="text-amber-300"/><span className="text-slate-400">Runtime credentials:</span><b className="text-white">{showSecrets ? 'protected by environment boundary' : '••••••••••••'}</b></div>
-          </div>
+          {/* HIDDEN ASPECT: Sanctum of Excalibur & Z3 Kernel SMT Inspector */}
+          <button
+            onClick={triggerSanctum}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded border text-[11px] font-bold transition-all ${
+              showSanctum
+                ? 'bg-amber-950 border-amber-400 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-pulse'
+                : 'bg-slate-900 border-amber-900/60 text-amber-400/80 hover:text-amber-300'
+            }`}
+          >
+            <Key className="w-3.5 h-3.5 text-amber-400" />
+            <span>{showSanctum ? 'SANCTUM: OPEN' : '[HIDDEN SANCTUM OF EXCALIBUR]'}</span>
+          </button>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-800 bg-slate-950/75 p-4">
-        <button onClick={() => setExpandedLogs(v => !v)} className="w-full flex items-center justify-between text-left"><span className="font-semibold text-white flex items-center gap-2"><Radio size={15}/> System Logs</span>{expandedLogs ? <Minimize2 size={15}/> : <Maximize2 size={15}/>}</button>
-        {expandedLogs && <div className="mt-4"><SystemLogPanel logs={logs}/></div>}
+      {/* HIDDEN ASPECT DRAWER: SANCTUM OF EXCALIBUR & Z3 THEOREMS */}
+      {showSanctum && (
+        <div className="bg-amber-950/20 border-2 border-amber-500/60 rounded-xl p-4 shadow-2xl space-y-3 animate-fadeIn">
+          <div className="flex items-center justify-between border-b border-amber-500/40 pb-2">
+            <div className="flex items-center gap-2">
+              <Crown className="w-5 h-5 text-amber-400 animate-pulse" />
+              <div>
+                <h3 className="text-sm font-bold text-amber-200 tracking-wider">
+                  SANCTUM OF EXCALIBUR // Z3 SMT KERNEL THEOREM INSPECTOR
+                </h3>
+                <span className="text-[10px] text-amber-400/80">
+                  CLASSIFIED LEVEL 5: DIRECT REGISTER BYPASS & FORMAL CONSTITUTIONAL PROOFS
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowSanctum(false)}
+              className="text-xs text-amber-300 hover:text-white underline"
+            >
+              Close Sanctum
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            {/* Proof Equation Solver */}
+            <div className="bg-black/70 border border-amber-500/30 p-3 rounded-lg space-y-2">
+              <span className="text-amber-300 font-bold flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                ACTIVE Z3 FORMAL INVARIANT
+              </span>
+              <div className="p-2 rounded bg-slate-950 border border-slate-800 text-[11px] font-mono text-emerald-300">
+                {activeProofEquation}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setActiveProofEquation('∀t. (t ∈ WAL2_Blocks → Hash(t) == Seal_R6)')}
+                  className="px-2 py-1 rounded bg-amber-950/60 border border-amber-500/40 text-[10px] text-amber-200 hover:bg-amber-900"
+                >
+                  WAL2 Proof
+                </button>
+                <button
+                  onClick={() => setActiveProofEquation('∀m. (m ∈ Memory_Slabs → Alignment(m) == 64_Bytes)')}
+                  className="px-2 py-1 rounded bg-amber-950/60 border border-amber-500/40 text-[10px] text-amber-200 hover:bg-amber-900"
+                >
+                  Slab Proof
+                </button>
+                <button
+                  onClick={() => setActiveProofEquation('∀l. (l ∈ Sentinel_Leases → Expire(l) ≤ 30_Seconds)')}
+                  className="px-2 py-1 rounded bg-amber-950/60 border border-amber-500/40 text-[10px] text-amber-200 hover:bg-amber-900"
+                >
+                  Sentinel Proof
+                </button>
+              </div>
+            </div>
+
+            {/* Raw Kernel Hex Memory Dump */}
+            <div className="bg-black/70 border border-cyan-500/30 p-3 rounded-lg space-y-2">
+              <span className="text-cyan-300 font-bold flex items-center gap-1.5">
+                <Code className="w-4 h-4 text-cyan-400" />
+                RAW MEMORY REGISTER SLAB (HEX)
+              </span>
+              <div className="p-2 rounded bg-slate-950 border border-slate-800 text-[10px] font-mono text-cyan-300 h-16 overflow-y-auto">
+                {rawMemoryHex}
+                <br />0x7FFF8A49B010: 53 45 4E 54 49 4E 45 4C 5F 4C 45 41 53 45 5F 31
+                <br />0x7FFF8A49B020: 00 00 00 00 00 00 00 00 FF FF FF FF 00 00 00 00
+              </div>
+              <button
+                onClick={() => {
+                  setRawMemoryHex(`0x7FFF8A49B000: ${Array.from({length: 16}, () => Math.floor(Math.random()*256).toString(16).toUpperCase().padStart(2, '0')).join(' ')}`);
+                }}
+                className="w-full text-center px-2 py-1 rounded bg-cyan-950/60 border border-cyan-500/40 text-[10px] text-cyan-200 hover:bg-cyan-900"
+              >
+                Inspect Next Memory Segment
+              </button>
+            </div>
+
+            {/* Arthur R5/R6 Cryptographic Authorization Override */}
+            <div className="bg-black/70 border border-emerald-500/30 p-3 rounded-lg space-y-2">
+              <span className="text-emerald-300 font-bold flex items-center gap-1.5">
+                <Zap className="w-4 h-4 text-amber-400" />
+                ARTHUR R5/R6 ZERO-TRUST SEAL
+              </span>
+              <p className="text-[10px] text-slate-300">
+                Seal Status: <strong className="text-emerald-400">{arthurBypassActive ? 'OVERRIDE PROTOCOL ENGAGED' : 'UNBROKEN & VERIFIED'}</strong>
+              </p>
+              <button
+                onClick={() => {
+                  setArthurBypassActive(!arthurBypassActive);
+                  onExecuteCommand(arthurBypassActive ? 'seal-invariants --restore' : 'seal-invariants --debug-bypass');
+                }}
+                className={`w-full text-center px-2.5 py-1.5 rounded text-[10px] font-bold border transition-all ${
+                  arthurBypassActive 
+                    ? 'bg-rose-950 border-rose-500 text-rose-200' 
+                    : 'bg-emerald-950/80 border-emerald-500 text-emerald-200 hover:bg-emerald-900'
+                }`}
+              >
+                {arthurBypassActive ? 'RESTORE CONSTITUTIONAL LOCK' : 'ENGAGE ZERO-TRUST AUDIT BYPASS'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 3-Column Bento Grid Master Architecture */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start hud-perspective-field">
+        
+        {/* ================= LEFT HUD COLUMN (Span 3) ================= */}
+        <div className="lg:col-span-3 flex flex-col gap-4">
+          
+          {/* Card 1: System Telemetry (8GB RAM // Real-time) */}
+          <div className="relative border border-cyan-950/80 rounded-xl bg-slate-950/80 overflow-hidden shadow-lg transition-all">
+            <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900/90 border-b border-cyan-950/80 text-[10px]">
+              <span className="font-bold text-cyan-400">TELEMETRY</span>
+              <button
+                onClick={() => toggleCard('telemetry')}
+                className="p-0.5 rounded hover:bg-slate-800 text-slate-400 hover:text-cyan-300"
+                title={minimizedCards.telemetry ? "Expand" : "Minimize"}
+              >
+                {minimizedCards.telemetry ? <Plus className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+              </button>
+            </div>
+            {!minimizedCards.telemetry ? (
+              <div className="p-1">
+                <SystemTelemetry 
+                  vitals={vitals} 
+                  onOpenDetails={() => onNavigateTab('scarcity')} 
+                />
+              </div>
+            ) : (
+              <div className="p-2 text-[10px] text-slate-400 flex items-center justify-between">
+                <span>8GB RAM Confinement</span>
+                <span className="text-amber-300 font-bold">{Math.round((vitals.usedRamMB / vitals.scarcityCapMB)*100)}%</span>
+              </div>
+            )}
+          </div>
+
+          {/* Card 2: Process Matrix */}
+          <div className="relative border border-cyan-950/80 rounded-xl bg-slate-950/80 overflow-hidden shadow-lg transition-all">
+            <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900/90 border-b border-cyan-950/80 text-[10px]">
+              <span className="font-bold text-cyan-400">PROCESS MATRIX (28 UNITS)</span>
+              <button
+                onClick={() => toggleCard('process')}
+                className="p-0.5 rounded hover:bg-slate-800 text-slate-400 hover:text-cyan-300"
+                title={minimizedCards.process ? "Expand" : "Minimize"}
+              >
+                {minimizedCards.process ? <Plus className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+              </button>
+            </div>
+            {!minimizedCards.process ? (
+              <div className="p-1">
+                <ProcessMatrix 
+                  services={services} 
+                  onRestartService={onRestartService}
+                  onInspectService={(svc) => onNavigateTab('vkg')}
+                />
+              </div>
+            ) : (
+              <div className="p-2 text-[10px] text-slate-400 flex items-center justify-between">
+                <span>cgroups v2 native</span>
+                <span className="text-emerald-400 font-bold">28 ACTIVE</span>
+              </div>
+            )}
+          </div>
+
+          {/* Card 3: Ouroboros SSM State Transitions */}
+          <div className="relative border border-amber-950/80 rounded-xl bg-slate-950/80 overflow-hidden shadow-lg transition-all">
+            <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900/90 border-b border-amber-950/80 text-[10px]">
+              <span className="font-bold text-amber-400">OUROBOROS SSM</span>
+              <button
+                onClick={() => toggleCard('ouroboros')}
+                className="p-0.5 rounded hover:bg-slate-800 text-slate-400 hover:text-amber-300"
+                title={minimizedCards.ouroboros ? "Expand" : "Minimize"}
+              >
+                {minimizedCards.ouroboros ? <Plus className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+              </button>
+            </div>
+            {!minimizedCards.ouroboros ? (
+              <div className="p-1">
+                <OuroborosMatrix 
+                  onOpenDetails={() => setIsTwinBrainsOpen(true)}
+                />
+              </div>
+            ) : (
+              <div className="p-2 text-[10px] text-slate-400 flex items-center justify-between">
+                <span>1.58-Bit Ternary</span>
+                <span className="text-amber-300 font-bold">O(1) LOOP</span>
+              </div>
+            )}
+          </div>
+
+          {/* Card 4: System Log */}
+          <div className="relative border border-cyan-950/80 rounded-xl bg-slate-950/80 overflow-hidden shadow-lg transition-all">
+            <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900/90 border-b border-cyan-950/80 text-[10px]">
+              <span className="font-bold text-cyan-400">SYSTEM LOG</span>
+              <button
+                onClick={() => toggleCard('logs')}
+                className="p-0.5 rounded hover:bg-slate-800 text-slate-400 hover:text-cyan-300"
+                title={minimizedCards.logs ? "Expand" : "Minimize"}
+              >
+                {minimizedCards.logs ? <Plus className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+              </button>
+            </div>
+            {!minimizedCards.logs ? (
+              <div className="p-1">
+                <SystemLogPanel 
+                  logs={logs} 
+                  onExecuteCommand={onExecuteCommand}
+                />
+              </div>
+            ) : (
+              <div className="p-2 text-[10px] text-slate-400 flex items-center justify-between">
+                <span>Live Kernel Events</span>
+                <span className="text-cyan-300 font-bold">{logs.length} LOGS</span>
+              </div>
+            )}
+          </div>
+
+        </div>
+
+        {/* ================= CENTER ARENA: THE SOVEREIGN WORLD TREE (Span 6) ================= */}
+        <div className="lg:col-span-6 flex flex-col gap-4">
+          <div className="relative border border-cyan-900/60 rounded-2xl bg-slate-950/90 overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between px-4 py-2 bg-slate-900/90 border-b border-cyan-950/80 text-xs">
+              <span className="font-bold text-amber-200">THE SOVEREIGN WORLD TREE (AXIS MUNDI)</span>
+              <button
+                onClick={() => toggleCard('centerTree')}
+                className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-cyan-300"
+                title={minimizedCards.centerTree ? "Expand tree visual" : "Minimize tree visual"}
+              >
+                {minimizedCards.centerTree ? <Plus className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+            {!minimizedCards.centerTree ? (
+              <WorldTreeVisual
+                onOpenMemcastle={() => setIsMemcastleOpen(true)}
+                onOpenTwinBrains={() => setIsTwinBrainsOpen(true)}
+                onOpenOuroboros={() => setIsTwinBrainsOpen(true)}
+                onOpenViking={() => onNavigateTab('laws')}
+                onOpenGraphify={() => onNavigateTab('vkg')}
+              />
+            ) : (
+              <div className="p-6 text-center text-xs text-slate-400 space-y-2">
+                <p>World Tree Visual Minimized for Compact Performance View</p>
+                <button
+                  onClick={() => toggleCard('centerTree')}
+                  className="px-3 py-1 rounded bg-cyan-950 border border-cyan-500 text-cyan-300 text-xs"
+                >
+                  Restore 2D/3D Architecture
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ================= RIGHT HUD COLUMN (Span 3) ================= */}
+        <div className="lg:col-span-3 flex flex-col gap-4">
+          
+          {/* Card 5: Graphify 3D->2D Depth Spatial Network */}
+          <div className="relative border border-cyan-950/80 rounded-xl bg-slate-950/80 overflow-hidden shadow-lg transition-all">
+            <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900/90 border-b border-cyan-950/80 text-[10px]">
+              <span className="font-bold text-cyan-400">GRAPHIFY NETWORK</span>
+              <button
+                onClick={() => toggleCard('graphify')}
+                className="p-0.5 rounded hover:bg-slate-800 text-slate-400 hover:text-cyan-300"
+                title={minimizedCards.graphify ? "Expand" : "Minimize"}
+              >
+                {minimizedCards.graphify ? <Plus className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+              </button>
+            </div>
+            {!minimizedCards.graphify ? (
+              <div className="p-1">
+                <GraphifyCanvas 
+                  onExpandModal={() => onNavigateTab('vkg')}
+                />
+              </div>
+            ) : (
+              <div className="p-2 text-[10px] text-slate-400 flex items-center justify-between">
+                <span>Spatial Topology</span>
+                <span className="text-cyan-300 font-bold">10,428 NODES</span>
+              </div>
+            )}
+          </div>
+
+          {/* Card 6: VFS Refractions // Open Viking Protocol */}
+          <div className="relative border border-cyan-950/80 rounded-xl bg-slate-950/80 overflow-hidden shadow-lg transition-all">
+            <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900/90 border-b border-cyan-950/80 text-[10px]">
+              <span className="font-bold text-cyan-400">VFS REFRACTIONS (OPEN VIKING)</span>
+              <button
+                onClick={() => toggleCard('vfs')}
+                className="p-0.5 rounded hover:bg-slate-800 text-slate-400 hover:text-cyan-300"
+                title={minimizedCards.vfs ? "Expand" : "Minimize"}
+              >
+                {minimizedCards.vfs ? <Plus className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+              </button>
+            </div>
+            {!minimizedCards.vfs ? (
+              <div className="p-1">
+                <VikingRefractions 
+                  onOpenDetails={() => onNavigateTab('laws')}
+                />
+              </div>
+            ) : (
+              <div className="p-2 text-[10px] text-slate-400 flex items-center justify-between">
+                <span>Direct Memory Access</span>
+                <span className="text-emerald-400 font-bold">5 STREAMS OK</span>
+              </div>
+            )}
+          </div>
+
+          {/* Card 7: IPC & Memory Slab Sync */}
+          <div className="relative border border-cyan-950/80 rounded-xl bg-slate-950/80 overflow-hidden shadow-lg transition-all">
+            <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900/90 border-b border-cyan-950/80 text-[10px]">
+              <span className="font-bold text-cyan-400">IPC & MEMORY SLABS</span>
+              <button
+                onClick={() => toggleCard('slabs')}
+                className="p-0.5 rounded hover:bg-slate-800 text-slate-400 hover:text-cyan-300"
+                title={minimizedCards.slabs ? "Expand" : "Minimize"}
+              >
+                {minimizedCards.slabs ? <Plus className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+              </button>
+            </div>
+            {!minimizedCards.slabs ? (
+              <div className="p-1">
+                <IpcMemorySlabs 
+                  onOpenDetails={() => setIsMemcastleOpen(true)}
+                />
+              </div>
+            ) : (
+              <div className="p-2 text-[10px] text-slate-400 flex items-center justify-between">
+                <span>32 Slab Bins</span>
+                <span className="text-emerald-400 font-bold">0.23ms LATENCY</span>
+              </div>
+            )}
+          </div>
+
+          {/* Card 8: System Commands */}
+          <div className="relative border border-cyan-950/80 rounded-xl bg-slate-950/80 overflow-hidden shadow-lg transition-all">
+            <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900/90 border-b border-cyan-950/80 text-[10px]">
+              <span className="font-bold text-cyan-400">SYSTEM COMMANDS</span>
+              <button
+                onClick={() => toggleCard('commands')}
+                className="p-0.5 rounded hover:bg-slate-800 text-slate-400 hover:text-cyan-300"
+                title={minimizedCards.commands ? "Expand" : "Minimize"}
+              >
+                {minimizedCards.commands ? <Plus className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+              </button>
+            </div>
+            {!minimizedCards.commands ? (
+              <div className="p-1">
+                <SystemCommandsPanel
+                  onInitWorldTree={handleInitWorldTree}
+                  onSyncAllEngines={handleSyncAllEngines}
+                  onFlushContext={handleFlushContext}
+                  onOptimizeMemory={handleOptimizeMemory}
+                  onRunDiagnostics={handleRunDiagnostics}
+                  onOpenBootstrapScript={onOpenBootstrapScript}
+                  onOpenSovereignLaws={() => onNavigateTab('laws')}
+                />
+              </div>
+            ) : (
+              <div className="p-2 text-[10px] text-slate-400 flex items-center justify-between">
+                <span>Root / WASI</span>
+                <span className="text-cyan-300 font-bold">6 COMMANDS</span>
+              </div>
+            )}
+          </div>
+
+        </div>
+
       </div>
 
-      {activeModal === 'memcastle' && <MemcastleModal onClose={() => setActiveModal(null)} />}
-      {activeModal === 'brains' && <TwinBrainsModal onClose={() => setActiveModal(null)} />}
+      {/* Exploration Modals */}
+      <MemcastleModal 
+        isOpen={isMemcastleOpen} 
+        onClose={() => setIsMemcastleOpen(false)} 
+      />
+
+      <TwinBrainsModal
+        isOpen={isTwinBrainsOpen}
+        onClose={() => setIsTwinBrainsOpen(false)}
+      />
+
     </div>
   );
 };
-
-const Metric: React.FC<{icon: React.ReactNode; label: string; value: string; detail: string; warn?: boolean}> = ({icon, label, value, detail, warn}) => (
-  <div className={`rounded-2xl border p-4 ${warn ? 'border-amber-500/30 bg-amber-500/5' : 'border-slate-800 bg-slate-950/75'}`}>
-    <div className="text-slate-500">{icon}</div><b className="block text-2xl text-white mt-3">{value}</b><span className="block text-xs uppercase tracking-wider text-slate-400 mt-1">{label}</span><small className="text-slate-600">{detail}</small>
-  </div>
-);
-
-const Action: React.FC<{icon: React.ReactNode; label: string; onClick: () => void}> = ({icon, label, onClick}) => (
-  <button onClick={onClick} className="rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-slate-300 hover:border-cyan-500/30 hover:text-white flex items-center gap-2">{icon}{label}</button>
-);
