@@ -14,6 +14,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use camelot_epoch::EpochSource;
 use futures_util::Stream;
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -24,7 +25,7 @@ use tracing::warn;
 #[derive(Clone)]
 pub struct ApiState {
     pub store: StateStore,
-    pub authority_epoch: u64,
+    pub epoch_source: Arc<EpochSource>,
     pub events: broadcast::Sender<WorkspaceEvent>,
     pub receipt_base_url: Arc<String>,
     pub client: reqwest::Client,
@@ -48,6 +49,15 @@ fn error(status: StatusCode, message: impl Into<String>) -> ApiError {
     (status, Json(json!({ "error": message.into() })))
 }
 
+fn current_epoch(state: &ApiState) -> Result<u64, ApiError> {
+    state.epoch_source.current_epoch().map_err(|message| {
+        error(
+            StatusCode::SERVICE_UNAVAILABLE,
+            format!("authority epoch unavailable: {message}"),
+        )
+    })
+}
+
 pub fn router(state: ApiState) -> Router {
     Router::new()
         .route("/health", get(health_ready))
@@ -69,6 +79,10 @@ async fn health_live() -> Json<Value> {
 }
 
 async fn health_ready(State(state): State<Arc<ApiState>>) -> (StatusCode, Json<Value>) {
+    let authority_epoch = match current_epoch(&state) {
+        Ok(epoch) => epoch,
+        Err((status, body)) => return (status, body),
+    };
     if state.store.ready().await {
         (
             StatusCode::OK,
@@ -76,7 +90,8 @@ async fn health_ready(State(state): State<Arc<ApiState>>) -> (StatusCode, Json<V
                 "status": "ready",
                 "service": "camelot-state-service",
                 "schema": EVENT_SCHEMA,
-                "authorityEpoch": state.authority_epoch,
+                "authorityEpoch": authority_epoch,
+                "dynamicEpoch": state.epoch_source.is_dynamic(),
                 "receiptLedger": state.receipt_base_url.as_str(),
                 "projectionRule": "RECEIPTED requires a matching receipt/2 ledger record"
             })),
@@ -95,6 +110,7 @@ async fn health_ready(State(state): State<Arc<ApiState>>) -> (StatusCode, Json<V
 async fn verify_receipted_transition(
     state: &ApiState,
     request: &AppendEventRequest,
+    authority_epoch: u64,
 ) -> Result<(), ApiError> {
     if request.event_type != "task.state.changed" {
         return Ok(());
@@ -145,7 +161,7 @@ async fn verify_receipted_transition(
         || receipt.workspace_id != request.workspace_id
         || receipt.mission_id != request.mission_id
         || receipt.task_id != change.task_id
-        || receipt.authority_epoch != state.authority_epoch
+        || receipt.authority_epoch != authority_epoch
     {
         return Err(error(
             StatusCode::CONFLICT,
@@ -179,11 +195,12 @@ async fn append_event(
         ));
     }
 
-    verify_receipted_transition(&state, &request).await?;
+    let authority_epoch = current_epoch(&state)?;
+    verify_receipted_transition(&state, &request, authority_epoch).await?;
 
     let event = state
         .store
-        .append(request, state.authority_epoch)
+        .append(request, authority_epoch)
         .await
         .map_err(|message| error(StatusCode::CONFLICT, message))?;
     let _ = state.events.send(event.clone());
@@ -219,9 +236,10 @@ async fn get_snapshot(
     if !bounded(&workspace_id) || !bounded(&query.tenant_id) {
         return Err(error(StatusCode::BAD_REQUEST, "invalid workspace scope"));
     }
+    let authority_epoch = current_epoch(&state)?;
     state
         .store
-        .snapshot(query.tenant_id, workspace_id, state.authority_epoch)
+        .snapshot(query.tenant_id, workspace_id, authority_epoch)
         .await
         .map(Json)
         .map_err(|message| error(StatusCode::INTERNAL_SERVER_ERROR, message))
