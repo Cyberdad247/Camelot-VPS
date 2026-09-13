@@ -4,7 +4,9 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use camelot_crypto::{hash_payload, verify_detached_hex, KeyPair};
+#[cfg(test)]
+use camelot_crypto::verify_detached_hex;
+use camelot_crypto::{hash_payload, KeyPair};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -180,7 +182,12 @@ fn evaluate(request: &VerifyRequest, current_epoch: u64) -> Result<(VerdictKind,
             format!("executor exited with code {}", request.executor_exit_code),
         ));
     }
-    if request.vfs_attestation_id.as_deref().unwrap_or_default().is_empty() {
+    if request
+        .vfs_attestation_id
+        .as_deref()
+        .unwrap_or_default()
+        .is_empty()
+    {
         return Ok((
             VerdictKind::Inconclusive,
             "no VFS preflight attestation was supplied".into(),
@@ -198,7 +205,10 @@ fn evaluate(request: &VerifyRequest, current_epoch: u64) -> Result<(VerdictKind,
         }
         if let Some(hash) = check.evidence_hash.as_deref() {
             if !valid_sha256(hash) {
-                return Err(format!("check {} carries an invalid evidence hash", check.name));
+                return Err(format!(
+                    "check {} carries an invalid evidence hash",
+                    check.name
+                ));
             }
         }
         if check.required && !check.passed {
@@ -232,8 +242,12 @@ async fn handle_verify(
 ) -> Result<(StatusCode, Json<GideonVerdict>), (StatusCode, Json<Value>)> {
     let (verdict, reason) = evaluate(&request, state.authority_epoch)
         .map_err(|error| (StatusCode::BAD_REQUEST, Json(json!({ "error": error }))))?;
-    let evidence_json = serde_json::to_string(&request.checks)
-        .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": error.to_string() }))))?;
+    let evidence_json = serde_json::to_string(&request.checks).map_err(|error| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": error.to_string() })),
+        )
+    })?;
     let mut response = GideonVerdict {
         schema_version: VERDICT_SCHEMA.into(),
         verdict_id: Uuid::new_v4(),
@@ -285,7 +299,9 @@ async fn main() {
         .with_state(state.clone());
 
     let host = env::var("CAMELOT_GIDEON_HOST").unwrap_or_else(|_| "127.0.0.1".into());
-    let parsed_host: IpAddr = host.parse().expect("CAMELOT_GIDEON_HOST must be an IP address");
+    let parsed_host: IpAddr = host
+        .parse()
+        .expect("CAMELOT_GIDEON_HOST must be an IP address");
     if !parsed_host.is_loopback() {
         panic!("Gideon must remain loopback-only behind Camelot controls");
     }
@@ -301,7 +317,9 @@ async fn main() {
         signer_public_key = %state.signer.public_key_hex(),
         "Gideon evidence verification gate online; formal proof disabled"
     );
-    axum::serve(listener, app).await.expect("Gideon server failed");
+    axum::serve(listener, app)
+        .await
+        .expect("Gideon server failed");
 }
 
 #[cfg(test)]
