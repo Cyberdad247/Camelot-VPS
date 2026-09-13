@@ -7,6 +7,7 @@ edition = "2021"
 axum = "0.7"
 async-stream = "0.3"
 camelot-crypto = { path = "../../crates/camelot-crypto" }
+camelot-epoch = { path = "../../crates/camelot-epoch" }
 chrono = { version = "0.4.34", features = ["serde"] }
 futures-util = "0.3"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
