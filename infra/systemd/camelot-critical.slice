@@ -1,8 +1,9 @@
 # /etc/systemd/system/camelot-critical.slice
+# Cybertronia core-authority envelope from the v2 living baseline.
 [Slice]
 CPUAccounting=yes
 MemoryAccounting=yes
-MemoryHigh=896M
-MemoryMax=1152M
+MemoryHigh=1152M
+MemoryMax=1280M
 TasksMax=512
 OOMPolicy=stop
