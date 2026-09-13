@@ -1,9 +1,9 @@
-.PHONY: build-all install clean check-hub build-bifrost build-operator build-receipts build-sentinel build-vfs build-scheduler build-worldtree
+.PHONY: build-all install clean check-hub build-bifrost build-operator build-receipts build-sentinel build-vfs build-state build-scheduler build-worldtree
 
 PREFIX ?= /opt/camelot
 BIN_DIR = $(PREFIX)/bin
 
-build-all: build-bifrost build-operator build-receipts build-sentinel build-vfs build-scheduler build-worldtree
+build-all: build-bifrost build-operator build-receipts build-sentinel build-vfs build-state build-scheduler build-worldtree
 
 build-bifrost:
 	@echo "=> Building Bifrost (Go)..."
@@ -18,7 +18,7 @@ check-hub:
 	@echo "=> Running Bifrost vet..."
 	cd apps/bifrost-hub && go vet ./...
 	@echo "=> Validating Hub JSON contracts and crystal..."
-	jq empty contracts/bifrost-envelope.schema.json contracts/workspace-event.schema.json crystal/vps-hub-integration-crystal.json
+	jq empty contracts/bifrost-envelope.schema.json contracts/workspace-event.schema.json contracts/task-snapshot.schema.json crystal/vps-hub-integration-crystal.json
 	@echo "=> VPS Hub contract gate passed."
 
 build-operator:
@@ -51,6 +51,12 @@ build-vfs:
 	mkdir -p bin
 	cp target/release/vfs-guardian bin/
 
+build-state:
+	@echo "=> Building Authoritative Workspace State Service (Rust)..."
+	cargo build --release --manifest-path apps/state-service/Cargo.toml
+	mkdir -p bin
+	cp target/release/state-service bin/
+
 install: build-all
 	@echo "=> Installing binaries to $(BIN_DIR)"
 	mkdir -p $(BIN_DIR)
@@ -59,6 +65,7 @@ install: build-all
 	cp bin/receipt-service $(BIN_DIR)/
 	cp bin/sentinel $(BIN_DIR)/
 	cp bin/vfs-guardian $(BIN_DIR)/
+	cp bin/state-service $(BIN_DIR)/
 	cp bin/task-scheduler $(BIN_DIR)/
 	cp bin/world-tree-api $(BIN_DIR)/
 	@echo "=> Installing Static Assets..."
