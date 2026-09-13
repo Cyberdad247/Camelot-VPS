@@ -12,6 +12,10 @@ Environment=RUST_LOG=info
 Environment=CAMELOT_SHADOW_HOST=127.0.0.1
 Environment=CAMELOT_SHADOW_PORT=4190
 Environment=CAMELOT_SHADOW_ROOT=/var/lib/camelot/shadow
+Environment=CAMELOT_SHADOW_DB=/var/lib/camelot/shadow/shadow.db
+Environment=CAMELOT_SHADOW_RECEIPT_MIRROR=/var/lib/camelot/shadow/ledger/receipts.jsonl
+Environment=CAMELOT_SHADOW_SIGNING_KEY=/var/lib/camelot/shadow/keys/receipt-ed25519.key
+Environment=CAMELOT_SHADOW_ALLOW_R6=0
 EnvironmentFile=-/etc/camelot/shadowd.env
 Restart=on-failure
 RestartSec=3
@@ -27,19 +31,31 @@ LimitNOFILE=4096
 # Native service hardening. Puter never receives host authority.
 NoNewPrivileges=true
 PrivateTmp=true
+PrivateDevices=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/lib/camelot/shadow
+ProtectHostname=true
+ProtectClock=true
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectKernelLogs=true
 ProtectControlGroups=true
+ProtectProc=invisible
+ProcSubset=pid
 RestrictSUIDSGID=true
 LockPersonality=true
 RestrictRealtime=true
+MemoryDenyWriteExecute=true
 SystemCallArchitectures=native
 CapabilityBoundingSet=
 AmbientCapabilities=
+ReadWritePaths=/var/lib/camelot/shadow
+
+# The Shadow CPU can only speak to local Camelot services such as Bifrost and
+# Sentinel. Public WAN/LAN egress is denied below the application layer.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost
 
 [Install]
 WantedBy=multi-user.target
