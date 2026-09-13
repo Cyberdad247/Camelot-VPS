@@ -1,0 +1,93 @@
+schema_version: camelot-governance/2
+baseline:
+  document_id: CAMELOT-OS-SADD-LLDD-vMAX-20260912
+  version: 2.0.0
+  status: LIVING_BASELINE
+  authority: SOVEREIGN_TRUTH
+  scope: CAMELOT_OS_VPS_HUB
+
+axiom:
+  - DOCUMENTATION_IS_THE_SYSTEM
+  - MODEL_SELECTS
+  - CAMELOT_RESOLVES
+  - CAMELOT_AUTHORIZES
+  - CAMELOT_RENDERS
+
+truth_precedence:
+  - L0_governance
+  - signed_policy_bundle
+  - L2_contracts_and_state_machines
+  - L3_guardrails
+  - L1_requirements_and_NFRs
+  - L4_operations
+  - L5_proposals_and_evidence
+  - implementation_code
+  - model_assumptions
+
+non_negotiable_principles:
+  - model_output_is_proposal_not_authority
+  - sentinel_is_sole_policy_lease_and_revocation_authority
+  - tenant_context_is_resolved_server_side
+  - consequential_effects_require_manifest_policy_lease_verification_and_receipt
+  - bifrost_transports_and_authenticates_but_does_not_grant_authority
+  - cartridges_and_pills_cannot_replace_core_authority
+  - watchtower_observes_but_does_not_execute
+  - offline_mode_preserves_drafts_but_cannot_create_new_effect_authority
+  - learning_creates_versioned_candidates_and_cannot_self_promote
+  - native_hot_path_only
+
+hot_path:
+  prohibited_runtime_dependencies:
+    - docker
+    - docker_compose
+    - kubernetes
+    - python_authority_service
+    - nodejs_api_server
+    - direct_browser_to_database
+  allowed_runtime_classes:
+    control: rust_native
+    transport: go_native
+    trusted_pill: wasmtime_wasi
+    untrusted_chamber: firecracker
+    experience: browser_pwa
+
+authority_chain:
+  proposal: anya
+  policy_and_leases: sentinel
+  human_approval: excalibur
+  independent_verification: gideon
+  final_resolution: arthur
+  immutable_evidence: ledger
+
+risk_tiers:
+  L0: session_scoped_allow
+  L1: policy_and_budget_allow
+  L2: capability_lease_required
+  L3: policy_evaluation_and_possible_approval
+  L4: explicit_human_approval_required
+  L5: strong_step_up_multi_party_or_default_deny
+
+hub_node:
+  name: Cybertronia
+  profile: primary_vps_8gb
+  role: control_plane_evidence_data_coordination
+  authority: active_policy_and_lease_issuer
+
+network_posture:
+  default: deny
+  internet_to_vps:
+    - explicit_https_ingress
+    - authenticated_overlay
+  edge_to_vps:
+    - authenticated_bifrost_session
+  edge_to_edge: deny
+  browser_to_database: deny
+  cartridge_to_database: deny
+  worker_to_internet: named_destination_plus_lease_only
+
+change_control:
+  on_documentation_code_conflict:
+    action: STOP_AND_EMIT_DOCUMENTATION_MISMATCH
+    correction: HUMAN_REVIEW_REQUIRED
+  self_promotion: forbidden
+  silent_policy_mutation: forbidden
