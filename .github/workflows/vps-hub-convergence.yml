@@ -10,6 +10,7 @@ on:
       - 'apps/sentinel/**'
       - 'apps/vfs-guardian/**'
       - 'apps/state-service/**'
+      - 'apps/node-agent/**'
       - 'crates/camelot-crypto/**'
       - 'crates/camelot-lease/**'
       - 'crates/camelot-vfs/**'
@@ -17,7 +18,9 @@ on:
       - 'infra/systemd/sentinel.service'
       - 'infra/systemd/vfs-guardian.service'
       - 'infra/systemd/state-service.service'
+      - 'infra/systemd/node-agent.service'
       - 'infra/systemd/camelot-critical.slice'
+      - 'infra/systemd/camelot-workers.slice'
       - '.env.example'
       - 'Cargo.toml'
       - 'CAMELOT_ARCHITECTURE_OVERVIEW.md'
@@ -50,22 +53,22 @@ jobs:
         run: make build-bifrost
 
   authority-runtime:
-    name: Authority and Workspace Runtime
+    name: Authority, VFS, State and Executor Runtime
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
       - name: Format authority packages
-        run: cargo fmt --package camelot-crypto --package camelot-lease --package camelot-vfs --package sentinel --package vfs-guardian --package state-service -- --check
+        run: cargo fmt --package camelot-crypto --package camelot-lease --package camelot-vfs --package sentinel --package vfs-guardian --package state-service --package node-agent -- --check
       - name: Check authority packages
-        run: cargo check -p camelot-crypto -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian -p state-service
+        run: cargo check -p camelot-crypto -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian -p state-service -p node-agent
       - name: Test authority packages
-        run: cargo test -p camelot-crypto -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian -p state-service
+        run: cargo test -p camelot-crypto -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian -p state-service -p node-agent
       - name: Clippy authority packages
-        run: cargo clippy -p camelot-crypto -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian -p state-service --all-targets -- -D warnings
+        run: cargo clippy -p camelot-crypto -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian -p state-service -p node-agent --all-targets -- -D warnings
 
   experience-contract:
     name: Experience Plane Build
