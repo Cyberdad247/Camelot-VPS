@@ -12,6 +12,7 @@ on:
       - 'src/components/shadow-subspace.css'
       - 'scripts/camelot-cli.mjs'
       - 'infra/systemd/shadowd.service'
+      - 'infra/systemd/sentinel.service'
       - 'Cargo.toml'
       - '.github/workflows/shadow-production-gate.yml'
   push:
@@ -27,7 +28,7 @@ concurrency:
 
 jobs:
   rust-shadow:
-    name: Rust Shadow CPU
+    name: Rust Shadow Authority
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -36,13 +37,13 @@ jobs:
         with:
           components: rustfmt, clippy
       - name: Format production packages
-        run: cargo fmt --package camelot-shadowd --package camelot-crypto -- --check
-      - name: Check
-        run: cargo check -p camelot-shadowd
-      - name: Test Shadow and crypto
-        run: cargo test -p camelot-shadowd -p camelot-crypto
+        run: cargo fmt --package camelot-shadowd --package camelot-crypto --package camelot-lease --package sentinel -- --check
+      - name: Check authority packages
+        run: cargo check -p camelot-shadowd -p sentinel -p camelot-lease
+      - name: Test authority packages
+        run: cargo test -p camelot-shadowd -p camelot-crypto -p camelot-lease -p sentinel
       - name: Clippy
-        run: cargo clippy -p camelot-shadowd --all-targets -- -D warnings
+        run: cargo clippy -p camelot-shadowd -p sentinel -p camelot-lease --all-targets -- -D warnings
 
   browser-contracts:
     name: Browser and CLI contracts
