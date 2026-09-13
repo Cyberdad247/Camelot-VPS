@@ -55,6 +55,64 @@ pub struct AuthorityEpochCertificate {
 }
 
 impl AuthorityEpochCertificate {
+    pub fn bootstrap(
+        epoch: u64,
+        active_brain: BrainId,
+        receipt_head_sequence: u64,
+        state_digest: String,
+        reason: String,
+        signer: &KeyPair,
+    ) -> Result<Self, String> {
+        let mut value = Self {
+            schema_version: EPOCH_SCHEMA.into(),
+            certificate_id: Uuid::new_v4(),
+            epoch,
+            active_brain,
+            previous_brain: None,
+            promotion_mode: PromotionMode::Bootstrap,
+            promoted_at: Utc::now(),
+            reason,
+            receipt_head_sequence,
+            state_digest,
+            signer_public_key: signer.public_key_hex(),
+            signature: String::new(),
+        };
+        value.validate_shape()?;
+        value.sign_with(signer)?;
+        Ok(value)
+    }
+
+    pub fn promoted(
+        previous: &Self,
+        target_brain: BrainId,
+        mode: PromotionMode,
+        receipt_head_sequence: u64,
+        state_digest: String,
+        reason: String,
+        signer: &KeyPair,
+    ) -> Result<Self, String> {
+        if target_brain == previous.active_brain {
+            return Err("target brain is already active".into());
+        }
+        let mut value = Self {
+            schema_version: EPOCH_SCHEMA.into(),
+            certificate_id: Uuid::new_v4(),
+            epoch: previous.epoch.checked_add(1).ok_or("authority epoch overflow")?,
+            active_brain: target_brain,
+            previous_brain: Some(previous.active_brain),
+            promotion_mode: mode,
+            promoted_at: Utc::now(),
+            reason,
+            receipt_head_sequence,
+            state_digest,
+            signer_public_key: signer.public_key_hex(),
+            signature: String::new(),
+        };
+        value.validate_shape()?;
+        value.sign_with(signer)?;
+        Ok(value)
+    }
+
     pub fn signing_payload(&self) -> Result<Vec<u8>, String> {
         let mut unsigned = self.clone();
         unsigned.signature.clear();
@@ -118,4 +176,41 @@ pub fn valid_sha256(value: &str) -> bool {
         return false;
     };
     hex.len() == 64 && hex.bytes().all(|value| value.is_ascii_hexdigit())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn digest(ch: char) -> String {
+        format!("sha256:{}", ch.to_string().repeat(64))
+    }
+
+    #[test]
+    fn promotion_increments_epoch_and_rotates_brain() {
+        let signer = KeyPair::generate();
+        let first = AuthorityEpochCertificate::bootstrap(
+            7,
+            BrainId::OpenNotebook,
+            41,
+            digest('a'),
+            "bootstrap".into(),
+            &signer,
+        )
+        .unwrap();
+        let next = AuthorityEpochCertificate::promoted(
+            &first,
+            BrainId::Notebooklm,
+            PromotionMode::Planned,
+            41,
+            digest('a'),
+            "planned handoff".into(),
+            &signer,
+        )
+        .unwrap();
+        assert_eq!(next.epoch, 8);
+        assert_eq!(next.previous_brain, Some(BrainId::OpenNotebook));
+        assert_eq!(next.active_brain, BrainId::Notebooklm);
+        next.verify_with_pinned_key(&signer.public_key_hex()).unwrap();
+    }
 }
