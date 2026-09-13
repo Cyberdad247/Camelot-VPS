@@ -14,6 +14,8 @@ pub struct VfsAttestation {
     pub epoch: u64,
     pub resource_uri: String,
     pub operation_hash: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_hash: Option<String>,
     pub timestamp: DateTime<Utc>,
     pub signer_public_key: String,
     pub vfs_signature: String,
@@ -26,6 +28,7 @@ impl VfsAttestation {
         epoch: u64,
         resource_uri: String,
         operation_hash: String,
+        content_hash: Option<String>,
         signer_public_key: String,
     ) -> Self {
         Self {
@@ -36,6 +39,7 @@ impl VfsAttestation {
             epoch,
             resource_uri,
             operation_hash,
+            content_hash,
             timestamp: Utc::now(),
             signer_public_key,
             vfs_signature: String::new(),
@@ -106,16 +110,19 @@ mod tests {
     #[test]
     fn vfs_attestation_signature_round_trip() {
         let signer = KeyPair::generate();
+        let content_hash = format!("sha256:{}", "a".repeat(64));
         let mut attestation = VfsAttestation::new_unsigned(
             Uuid::new_v4(),
             Uuid::new_v4(),
             7,
-            "vfs://workspace/worktree/src/main.rs".into(),
+            "vfs://workspace/worktree/module.wasm".into(),
             "sha256:operation".into(),
+            Some(content_hash.clone()),
             signer.public_key_hex(),
         );
         attestation.sign_with(&signer).expect("sign attestation");
         attestation.verify_signature().expect("verify attestation");
+        assert_eq!(attestation.content_hash.as_deref(), Some(content_hash.as_str()));
     }
 
     #[test]
