@@ -1,0 +1,68 @@
+{
+  "schema_version": "camelot-vkg-integration/2",
+  "crystal_id": "VPS_HUB_INTEGRATION_CRYSTAL_20260912",
+  "scope": "CAMELOT_OS_VPS_HUB",
+  "authority": {
+    "binding_baseline": "CAMELOT-OS-SADD-LLDD-vMAX-20260912",
+    "version": "2.0.0",
+    "rule": "integration inventory never overrides governance, policy, contracts, guardrails, or release gates"
+  },
+  "hub": {
+    "node": "Cybertronia",
+    "profile": "primary-vps-8gb",
+    "authority": "active-policy-and-lease-issuer"
+  },
+  "integrations": {
+    "QtScrcpy": {
+      "repository": "https://github.com/Cyberdad247/QtScrcpy",
+      "source_role": "Android display mirroring and UI input control",
+      "hub_disposition": "device-action-cartridge",
+      "authority": "none",
+      "requires": ["device-identity", "tenant-scope", "device-action-lease", "exact-manifest", "explicit-confirmation", "current-authority-epoch"]
+    },
+    "t3code": {
+      "repository": "https://github.com/Cyberdad247/t3code",
+      "source_role": "full-stack compiler and IDE scaffolding",
+      "hub_disposition": "compiler-cartridge",
+      "authority": "none",
+      "workspace": "lease-scoped-worktree"
+    },
+    "jcode": {
+      "repository": "https://github.com/Cyberdad247/jcode",
+      "source_role": "AST parsing and code analysis/execution",
+      "hub_disposition": "ast-analysis-cartridge",
+      "authority": "none",
+      "runtime": "Wasmtime when admitted as trusted Pill; Firecracker for untrusted evaluation"
+    },
+    "skillscript": {
+      "repository": "https://github.com/Cyberdad247/skillscript",
+      "source_role": "executable skill definitions and skill scripting",
+      "hub_disposition": "signed-versioned-skill-candidate",
+      "authority": "none",
+      "may_self_promote": false,
+      "may_mutate_binding_truth": false
+    },
+    "fonoster": {
+      "repository": "https://github.com/Cyberdad247/fonoster",
+      "source_role": "programmable telephony and voice routing",
+      "hub_disposition": "communications-cartridge",
+      "authority": "none",
+      "requires": ["consent-policy", "suppression-policy", "exact-manifest", "approval-when-required", "provider-verification", "receipt"]
+    },
+    "Multivoice-router": {
+      "repository": "https://github.com/Cyberdad247/Multivoice-router",
+      "hub_disposition": "governed-bifrost-handoff",
+      "authority": "none"
+    },
+    "Graphiti": {
+      "hub_disposition": "optional-adapter-or-migration-source",
+      "p0_authority_memory": false,
+      "binding_p0_replacement": "SQLite-VSS"
+    }
+  },
+  "execution_constraints": {
+    "ram": "8GB physical / 7.2GB operational cap",
+    "production_hot_path": ["Rust native control", "Go native transport", "Wasmtime/WASI trusted Pills", "Firecracker untrusted chamber"],
+    "prohibited": ["Docker runtime", "Kubernetes runtime", "Node.js API authority hot path", "Python authority hot path", "direct browser-to-database"]
+  }
+}
