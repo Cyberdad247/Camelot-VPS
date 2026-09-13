@@ -117,7 +117,9 @@ impl EpochStore {
             .fetch_one(&self.pool)
             .await
             .map_err(|error| error.to_string())?;
-        let raw: String = row.try_get("certificate_json").map_err(|error| error.to_string())?;
+        let raw: String = row
+            .try_get("certificate_json")
+            .map_err(|error| error.to_string())?;
         let certificate: AuthorityEpochCertificate =
             serde_json::from_str(&raw).map_err(|error| error.to_string())?;
         certificate.verify_with_pinned_key(&self.signer.public_key_hex())?;
@@ -172,7 +174,10 @@ impl EpochStore {
         Utc::now() - heartbeat.observed_at <= self.max_heartbeat_age
     }
 
-    pub async fn promote(&self, request: PromotionRequest) -> Result<AuthorityEpochCertificate, String> {
+    pub async fn promote(
+        &self,
+        request: PromotionRequest,
+    ) -> Result<AuthorityEpochCertificate, String> {
         let current = self.current().await?;
         if request.expected_epoch != current.epoch {
             return Err("promotion expected epoch is stale".into());
@@ -201,7 +206,11 @@ impl EpochStore {
             .iter()
             .find(|heartbeat| heartbeat.brain_id == current.active_brain);
         let source_fresh = source
-            .map(|heartbeat| heartbeat.ready && self.heartbeat_is_fresh(heartbeat))
+            .map(|heartbeat| {
+                heartbeat.ready
+                    && heartbeat.observed_epoch == current.epoch
+                    && self.heartbeat_is_fresh(heartbeat)
+            })
             .unwrap_or(false);
         let mode = if source_fresh {
             let source = source.expect("source heartbeat checked");
@@ -214,7 +223,9 @@ impl EpochStore {
             PromotionMode::Planned
         } else {
             if !request.allow_stale_source {
-                return Err("active brain is stale; explicit failover permission is required".into());
+                return Err(
+                    "active brain is stale; explicit failover permission is required".into(),
+                );
             }
             if target.receipt_head_sequence < current.receipt_head_sequence {
                 return Err("failover target is behind the last promoted receipt floor".into());
@@ -232,7 +243,7 @@ impl EpochStore {
         )?;
         let json = serde_json::to_string(&next).map_err(|error| error.to_string())?;
         let mut transaction = self.pool.begin().await.map_err(|error| error.to_string())?;
-        sqlx::query(
+        let update = sqlx::query(
             "UPDATE epoch_state SET epoch=?1, active_brain=?2, certificate_json=?3
              WHERE singleton=1 AND epoch=?4 AND active_brain=?5",
         )
@@ -244,6 +255,13 @@ impl EpochStore {
         .execute(&mut *transaction)
         .await
         .map_err(|error| error.to_string())?;
+        if update.rows_affected() != 1 {
+            transaction
+                .rollback()
+                .await
+                .map_err(|error| error.to_string())?;
+            return Err("authority changed concurrently; promotion aborted".into());
+        }
         sqlx::query(
             "INSERT INTO promotions(from_epoch, to_epoch, from_brain, to_brain, mode, reason, promoted_at, certificate_json)
              VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
@@ -259,20 +277,34 @@ impl EpochStore {
         .execute(&mut *transaction)
         .await
         .map_err(|error| error.to_string())?;
-        transaction.commit().await.map_err(|error| error.to_string())?;
+        transaction
+            .commit()
+            .await
+            .map_err(|error| error.to_string())?;
         Ok(next)
     }
 }
 
 fn row_to_heartbeat(row: sqlx::sqlite::SqliteRow) -> Result<BrainHeartbeat, String> {
     let brain: String = row.try_get("brain_id").map_err(|error| error.to_string())?;
-    let observed_at: String = row.try_get("observed_at").map_err(|error| error.to_string())?;
+    let observed_at: String = row
+        .try_get("observed_at")
+        .map_err(|error| error.to_string())?;
     Ok(BrainHeartbeat {
         brain_id: BrainId::parse(&brain)?,
-        observed_epoch: row.try_get::<i64, _>("observed_epoch").map_err(|error| error.to_string())? as u64,
-        ready: row.try_get::<i64, _>("ready").map_err(|error| error.to_string())? != 0,
-        receipt_head_sequence: row.try_get::<i64, _>("receipt_head_sequence").map_err(|error| error.to_string())? as u64,
-        state_digest: row.try_get("state_digest").map_err(|error| error.to_string())?,
+        observed_epoch: row
+            .try_get::<i64, _>("observed_epoch")
+            .map_err(|error| error.to_string())? as u64,
+        ready: row
+            .try_get::<i64, _>("ready")
+            .map_err(|error| error.to_string())?
+            != 0,
+        receipt_head_sequence: row
+            .try_get::<i64, _>("receipt_head_sequence")
+            .map_err(|error| error.to_string())? as u64,
+        state_digest: row
+            .try_get("state_digest")
+            .map_err(|error| error.to_string())?,
         observed_at: chrono::DateTime::parse_from_rfc3339(&observed_at)
             .map_err(|error| error.to_string())?
             .with_timezone(&Utc),
