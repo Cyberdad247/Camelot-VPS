@@ -107,12 +107,8 @@ impl LedgerStore {
             .try_get("head_hash")
             .map_err(|error| format!("decode ledger head: {error}"))?;
 
-        let mut receipt = Receipt::new_unsigned(
-            draft,
-            sequence as u64,
-            parent,
-            self.signer.public_key_hex(),
-        );
+        let mut receipt =
+            Receipt::new_unsigned(draft, sequence as u64, parent, self.signer.public_key_hex());
         receipt.sign_with(&self.signer)?;
         receipt.verify_integrity()?;
         let encoded = serde_json::to_string(&receipt)
