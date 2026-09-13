@@ -105,7 +105,7 @@ fn decode_hex_64(value: &str) -> Result<[u8; 64], String> {
 
 fn decode_hex(value: &str) -> Result<Vec<u8>, String> {
     let value = value.trim();
-    if value.len() % 2 != 0 {
+    if !value.len().is_multiple_of(2) {
         return Err("hex value must have an even number of characters".into());
     }
     let mut output = Vec::with_capacity(value.len() / 2);
