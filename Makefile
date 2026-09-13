@@ -1,4 +1,4 @@
-.PHONY: build-all install clean
+.PHONY: build-all install clean check-hub build-bifrost build-operator build-receipts build-sentinel build-vfs build-scheduler build-worldtree
 
 PREFIX ?= /opt/camelot
 BIN_DIR = $(PREFIX)/bin
@@ -7,7 +7,19 @@ build-all: build-bifrost build-operator build-receipts build-sentinel build-vfs 
 
 build-bifrost:
 	@echo "=> Building Bifrost (Go)..."
-	cd apps/bifrost-hub && go build -ldflags="-s -w" -o ../../bin/bifrost main.go
+	mkdir -p bin
+	cd apps/bifrost-hub && go build -ldflags="-s -w" -o ../../bin/bifrost .
+
+check-hub:
+	@echo "=> Checking native Bifrost formatting..."
+	@test -z "$$(cd apps/bifrost-hub && gofmt -l .)" || (echo "Bifrost Go files require gofmt" && cd apps/bifrost-hub && gofmt -d . && exit 1)
+	@echo "=> Running Bifrost unit tests..."
+	cd apps/bifrost-hub && go test ./...
+	@echo "=> Running Bifrost vet..."
+	cd apps/bifrost-hub && go vet ./...
+	@echo "=> Validating Hub JSON contracts and crystal..."
+	jq empty contracts/bifrost-envelope.schema.json contracts/workspace-event.schema.json crystal/vps-hub-integration-crystal.json
+	@echo "=> VPS Hub contract gate passed."
 
 build-operator:
 	@echo "=> Building Operator Console (Go)..."
