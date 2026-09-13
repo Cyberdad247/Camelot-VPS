@@ -1,7 +1,7 @@
 use crate::{
     model::{
-        bounded, valid_classification, valid_visibility, AppendEventRequest, WorkspaceEvent,
-        WorkspaceQuery, EVENT_SCHEMA,
+        bounded, valid_classification, valid_visibility, AppendEventRequest, TaskState,
+        TaskStatePayload, WorkspaceEvent, WorkspaceQuery, EVENT_SCHEMA,
     },
     store::StateStore,
 };
@@ -15,6 +15,7 @@ use axum::{
     Json, Router,
 };
 use futures_util::Stream;
+use serde::Deserialize;
 use serde_json::{json, Value};
 use std::{convert::Infallible, sync::Arc, time::Duration};
 use tokio::sync::broadcast;
@@ -25,6 +26,20 @@ pub struct ApiState {
     pub store: StateStore,
     pub authority_epoch: u64,
     pub events: broadcast::Sender<WorkspaceEvent>,
+    pub receipt_base_url: Arc<String>,
+    pub client: reqwest::Client,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ReceiptProjection {
+    schema_version: String,
+    receipt_id: String,
+    tenant_id: String,
+    workspace_id: String,
+    mission_id: String,
+    task_id: String,
+    authority_epoch: u64,
 }
 
 type ApiError = (StatusCode, Json<Value>);
@@ -62,7 +77,8 @@ async fn health_ready(State(state): State<Arc<ApiState>>) -> (StatusCode, Json<V
                 "service": "camelot-state-service",
                 "schema": EVENT_SCHEMA,
                 "authorityEpoch": state.authority_epoch,
-                "projectionRule": "RECEIPTED requires receipt-backed provenance"
+                "receiptLedger": state.receipt_base_url.as_str(),
+                "projectionRule": "RECEIPTED requires a matching receipt/2 ledger record"
             })),
         )
     } else {
@@ -74,6 +90,69 @@ async fn health_ready(State(state): State<Arc<ApiState>>) -> (StatusCode, Json<V
             })),
         )
     }
+}
+
+async fn verify_receipted_transition(
+    state: &ApiState,
+    request: &AppendEventRequest,
+) -> Result<(), ApiError> {
+    if request.event_type != "task.state.changed" {
+        return Ok(());
+    }
+    let change: TaskStatePayload = serde_json::from_value(request.payload.clone())
+        .map_err(|err| error(StatusCode::BAD_REQUEST, format!("invalid task state payload: {err}")))?;
+    if change.state != TaskState::Receipted {
+        return Ok(());
+    }
+    let receipt_id = request
+        .provenance
+        .receipt_id
+        .as_deref()
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| error(StatusCode::CONFLICT, "RECEIPTED requires provenance.receiptId"))?;
+    let target = format!(
+        "{}/receipts/{}",
+        state.receipt_base_url.trim_end_matches('/'),
+        receipt_id
+    );
+    let response = state.client.get(target).send().await.map_err(|err| {
+        error(
+            StatusCode::SERVICE_UNAVAILABLE,
+            format!("receipt ledger unavailable: {err}"),
+        )
+    })?;
+    if response.status() == reqwest::StatusCode::NOT_FOUND {
+        return Err(error(
+            StatusCode::CONFLICT,
+            "referenced receipt does not exist in the ledger",
+        ));
+    }
+    if !response.status().is_success() {
+        return Err(error(
+            StatusCode::SERVICE_UNAVAILABLE,
+            format!("receipt ledger returned {}", response.status()),
+        ));
+    }
+    let receipt: ReceiptProjection = response.json().await.map_err(|err| {
+        error(
+            StatusCode::BAD_GATEWAY,
+            format!("receipt ledger returned invalid JSON: {err}"),
+        )
+    })?;
+    if receipt.schema_version != "receipt/2"
+        || receipt.receipt_id != receipt_id
+        || receipt.tenant_id != request.tenant_id
+        || receipt.workspace_id != request.workspace_id
+        || receipt.mission_id != request.mission_id
+        || receipt.task_id != change.task_id
+        || receipt.authority_epoch != state.authority_epoch
+    {
+        return Err(error(
+            StatusCode::CONFLICT,
+            "receipt scope does not match this task transition",
+        ));
+    }
+    Ok(())
 }
 
 async fn append_event(
@@ -99,6 +178,8 @@ async fn append_event(
             "invalid classification or visibility",
         ));
     }
+
+    verify_receipted_transition(&state, &request).await?;
 
     let event = state
         .store
