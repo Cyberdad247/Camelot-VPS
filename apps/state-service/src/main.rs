@@ -1,15 +1,57 @@
-use axum::{routing::get, Json, Router};
-use serde_json::json;
+mod api;
+mod model;
+mod store;
+
+use api::ApiState;
+use std::{env, net::IpAddr};
+use store::StateStore;
+use tokio::sync::broadcast;
+use tracing::info;
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
-    let app = Router::new().route(
-        "/health/live",
-        get(|| async { Json(json!({"status":"ok","service":"camelot-state-service"})) }),
-    );
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3012")
+
+    let authority_epoch = env::var("CAMELOT_AUTHORITY_EPOCH")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(1);
+    if authority_epoch == 0 {
+        panic!("CAMELOT_AUTHORITY_EPOCH must be greater than zero");
+    }
+
+    let database_url = env::var("CAMELOT_STATE_DATABASE_URL")
+        .unwrap_or_else(|_| "sqlite:///var/lib/camelot/state/runtime.sqlite3".into());
+    let store = StateStore::open(&database_url)
+        .await
+        .expect("initialize authoritative state database");
+    let (events, _) = broadcast::channel(1024);
+    let app = api::router(ApiState {
+        store,
+        authority_epoch,
+        events,
+    });
+
+    let host = env::var("CAMELOT_STATE_HOST").unwrap_or_else(|_| "127.0.0.1".into());
+    let parsed_host: IpAddr = host
+        .parse()
+        .expect("CAMELOT_STATE_HOST must be an IP address");
+    if !parsed_host.is_loopback() {
+        panic!("Camelot State Service must remain loopback-only behind the projection gateway");
+    }
+    let port = env::var("CAMELOT_STATE_PORT")
+        .ok()
+        .and_then(|value| value.parse::<u16>().ok())
+        .unwrap_or(3012);
+
+    let listener = tokio::net::TcpListener::bind((parsed_host, port))
         .await
         .expect("bind state service");
-    axum::serve(listener, app).await.expect("state service failed");
+    info!(
+        authority_epoch,
+        "Camelot authoritative workspace state service online"
+    );
+    axum::serve(listener, app)
+        .await
+        .expect("state service failed");
 }
