@@ -31,6 +31,7 @@ const ALLOWED_CAPABILITIES: &[&str] = &[
     "vfs:write",
     "vfs:delete",
     "vfs:quarantine",
+    "execute:wasm",
 ];
 
 #[derive(Clone)]
@@ -119,12 +120,14 @@ async fn require_token(
 fn resource_allowed_for_session(resource: &str, session_id: Uuid) -> bool {
     let shadow_workspace = format!("shadow://{session_id}/workspace");
     let vfs_workspace = format!("vfs://{session_id}");
+    let executor = format!("executor://node-agent/{session_id}");
     resource == shadow_workspace
         || resource == format!("{shadow_workspace}/**")
         || resource.starts_with(&format!("{shadow_workspace}/"))
         || resource == vfs_workspace
         || resource == format!("{vfs_workspace}/**")
         || resource.starts_with(&format!("{vfs_workspace}/"))
+        || resource == executor
         || resource == "bifrost://governed"
 }
 
@@ -348,7 +351,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bounds_shadow_and_vfs_resources_to_the_session() {
+    fn bounds_shadow_vfs_and_executor_resources_to_the_session() {
         let session = Uuid::new_v4();
         assert!(resource_allowed_for_session(
             &format!("shadow://{session}/workspace/**"),
@@ -358,12 +361,20 @@ mod tests {
             &format!("vfs://{session}/**"),
             session
         ));
+        assert!(resource_allowed_for_session(
+            &format!("executor://node-agent/{session}"),
+            session
+        ));
         assert!(!resource_allowed_for_session(
             "shadow://someone-else/workspace/**",
             session
         ));
         assert!(!resource_allowed_for_session(
             "vfs://someone-else/**",
+            session
+        ));
+        assert!(!resource_allowed_for_session(
+            "executor://node-agent/someone-else",
             session
         ));
     }
