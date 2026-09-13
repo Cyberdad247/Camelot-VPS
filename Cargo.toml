@@ -1,9 +1,11 @@
 [workspace]
 members = [
     "crates/camelot-crypto",
+    "crates/camelot-epoch",
     "crates/camelot-receipts",
     "crates/camelot-lease",
     "crates/camelot-vfs",
+    "apps/epoch-fencer",
     "apps/receipt-service",
     "apps/sentinel",
     "apps/vfs-guardian",
