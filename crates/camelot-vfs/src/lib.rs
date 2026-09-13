@@ -123,9 +123,6 @@ mod tests {
         assert_eq!(FileOperationType::Read.capability(), "vfs:read");
         assert_eq!(FileOperationType::Write.capability(), "vfs:write");
         assert_eq!(FileOperationType::Delete.capability(), "vfs:delete");
-        assert_eq!(
-            FileOperationType::Quarantine.capability(),
-            "vfs:quarantine"
-        );
+        assert_eq!(FileOperationType::Quarantine.capability(), "vfs:quarantine");
     }
 }
