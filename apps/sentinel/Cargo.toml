@@ -1,6 +1,6 @@
 [package]
 name = "sentinel"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [dependencies]
@@ -10,5 +10,7 @@ axum = "0.7"
 tokio = { version = "1.36", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+chrono = { version = "0.4.34", features = ["serde"] }
+uuid = { version = "1.7", features = ["v4", "serde"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"

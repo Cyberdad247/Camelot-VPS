@@ -13,6 +13,7 @@ const COUNCIL: ThroneKnight[] = [
   { id:'sir_pragmata', name:'Sir Pragmata', title:'The Executor', engine:'Termux ARM64 / Bare-Metal Actuator', sge:'99.5%', vram:'180 MB', quote:'Abstract models without bare-metal execution are mere ghosts.', directives:['Actuate','Bind','Deploy','Monitor'], color:'#84CC16', icon:'⚙️' },
   { id:'sir_harmonia', name:'Sir Harmonia', title:'The Alignment', engine:'Constitutional Invariant Verifier', sge:'99.6%', vram:'210 MB', quote:'Safety and power are not rivals, but twin pillars of the realm.', directives:['Align','Balance','Sanitize','Validate'], color:'#6366F1', icon:'⚖️' },
   { id:'sir_nexus', name:'Sir Nexus', title:'The Connector', engine:'VFS Data Bus & Memory Slab Ring', sge:'99.8%', vram:'300 MB', quote:'Latency is friction; zero-copy slabs are frictionless eternity.', directives:['Bridge','Route','Buffer','Synchronize'], color:'#14B8A6', icon:'🌐' },
+  { id:'sir_umbra', name:'Sir Umbra', title:'The Shadow CPU', engine:'Puter Shadow Castle / camelot-shadowd', sge:'HITL', vram:'512 MB cap', quote:'The shadow may work beyond the torchlight, but every consequential step remains visible to the Crown.', directives:['Summon','Isolate','Draft','Request Approval'], color:'#8B5CF6', icon:'◐' },
 ];
 
 export const ThroneRoomVoicePortal: React.FC = () => {
@@ -49,12 +50,20 @@ export const ThroneRoomVoicePortal: React.FC = () => {
   const send = (text = message) => {
     const clean = text.trim();
     if (!clean) return;
-    setResponse(
-      `⚜ HEIMDALL: Intent accepted for ${selected.name}.\n` +
-      `${selected.name}: “${selected.quote}”\n` +
-      `Received: “${clean}”\n` +
-      `Routing note: conversational UI is active; remote synthesized Knight reasoning remains behind the governed Multivoice/Bifrost boundary.`
-    );
+    if (selected.id === 'sir_umbra') {
+      setResponse(
+        `◐ UMBRA: Shadow mission intent received.\n` +
+        `Mission: “${clean}”\n` +
+        `A bounded Shadow Subspace workspace will open through Bifrost. R4–R6 effects remain frozen until human approval.`
+      );
+    } else {
+      setResponse(
+        `⚜ HEIMDALL: Intent accepted for ${selected.name}.\n` +
+        `${selected.name}: “${selected.quote}”\n` +
+        `Received: “${clean}”\n` +
+        `Routing note: conversational UI is active; remote synthesized Knight reasoning remains behind the governed Multivoice/Bifrost boundary.`
+      );
+    }
     setMessage('');
     window.dispatchEvent(new CustomEvent('camelot:throne-message', { detail: { knightId: selected.id, message: clean } }));
   };

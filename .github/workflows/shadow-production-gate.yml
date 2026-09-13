@@ -1,0 +1,64 @@
+name: Shadow Production Gate
+
+on:
+  pull_request:
+    paths:
+      - 'apps/shadowd/**'
+      - 'crates/camelot-crypto/**'
+      - 'crates/camelot-lease/**'
+      - 'apps/sentinel/**'
+      - 'apps/bifrost-bridge-command-center/**'
+      - 'src/components/ShadowSubspacePortal.tsx'
+      - 'src/components/shadow-subspace.css'
+      - 'scripts/camelot-cli.mjs'
+      - 'infra/systemd/shadowd.service'
+      - 'infra/systemd/sentinel.service'
+      - 'Cargo.toml'
+      - '.github/workflows/shadow-production-gate.yml'
+  push:
+    branches:
+      - 'feature/shadow-subspace-puter-final'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shadow-production-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust-shadow:
+    name: Rust Shadow Authority
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Normalize production packages
+        run: cargo fmt --package camelot-shadowd --package camelot-crypto --package camelot-lease --package sentinel
+      - name: Check authority packages
+        run: cargo check -p camelot-shadowd -p sentinel -p camelot-lease
+      - name: Test authority packages
+        run: cargo test -p camelot-shadowd -p camelot-crypto -p camelot-lease -p sentinel
+      - name: Clippy
+        run: cargo clippy -p camelot-shadowd -p sentinel -p camelot-lease --all-targets -- -D warnings
+
+  browser-contracts:
+    name: Browser and CLI contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: CLI syntax
+        run: npm run camelot:check
+      - name: TypeScript
+        run: npm run lint
+      - name: Build
+        run: npm run build

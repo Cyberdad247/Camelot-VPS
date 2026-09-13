@@ -1,18 +1,48 @@
 [Unit]
-Description=Camelot Sentinel Policy Engine
+Description=Camelot Sentinel Signed Capability Authority
 After=network.target
-Wants=network-online.target
 
 [Service]
 Type=simple
-# Sentinel is a critical authority gate; bind to critical slice
 Slice=camelot-critical.slice
 ExecStart=/opt/camelot/bin/sentinel
 WorkingDirectory=/opt/camelot
-Restart=always
-RestartSec=3
-LimitNOFILE=65536
 Environment=RUST_LOG=info
+Environment=CAMELOT_SENTINEL_SIGNING_KEY=/var/lib/camelot/sentinel/lease-ed25519.key
+EnvironmentFile=-/etc/camelot/sentinel.env
+Restart=on-failure
+RestartSec=3
+UMask=0077
+LimitNOFILE=8192
+MemoryHigh=128M
+MemoryMax=192M
+CPUQuota=25%
+TasksMax=64
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectHostname=true
+ProtectClock=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectProc=invisible
+ProcSubset=pid
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+ReadWritePaths=/var/lib/camelot/sentinel
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost
 
 [Install]
 WantedBy=multi-user.target

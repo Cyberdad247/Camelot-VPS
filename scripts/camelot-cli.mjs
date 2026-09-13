@@ -4,9 +4,10 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const STATE_PATH = process.env.CAMELOT_CLI_STATE || join(homedir(), '.camelot', 'command-center-state.json');
 const BIFROST_URL = process.env.BIFROST_URL || process.env.VITE_BIFROST_URL || 'http://127.0.0.1:4188';
+const OPERATOR_ID = process.env.CAMELOT_OPERATOR || 'sovereign';
 
 const scenes = [
   ['overview', '00', 'Battle State', 'Understand the overall condition before acting.'],
@@ -33,6 +34,7 @@ const defenses = {
 const threatTypes = ['ddos', 'prompt-injection', 'data-exfiltration', 'ai-adversary', 'reconnaissance'];
 const bifrostRealms = ['multivoice', 'godseye', 'worldmonitor'];
 const bifrostTransports = ['mcp', 'bridge', 'tailscale', 'handoff', 'auto'];
+const riskRings = ['R0', 'R1', 'R2', 'R3', 'R4', 'R5', 'R6'];
 
 const defaultState = () => ({
   version: VERSION,
@@ -55,6 +57,7 @@ const cyan = text => color('36', text);
 const gold = text => color('33', text);
 const green = text => color('32', text);
 const red = text => color('31', text);
+const violet = text => color('35', text);
 const dim = text => color('2', text);
 const bold = text => color('1', text);
 
@@ -87,7 +90,7 @@ function readiness(state) {
 
 function banner() {
   console.log(`${gold('♜')} ${bold('CAMELOT-OS')} ${cyan('SOVEREIGN TERMINAL')} ${dim(`v${VERSION}`)}`);
-  console.log(dim('World Director · Battle Mode · Bifrost'));
+  console.log(dim('World Director · Battle Mode · Bifrost · Shadow Subspace'));
 }
 
 function printStatus(state) {
@@ -103,6 +106,7 @@ function printStatus(state) {
   console.log(`  Latency       ${state.responseLatency}ms`);
   console.log(`  Auto-response ${state.autoResponse ? green('ENABLED') : red('DISABLED')}`);
   console.log(`  Bifrost       ${dim(BIFROST_URL)}`);
+  console.log(`  Operator      ${dim(OPERATOR_ID)}`);
   console.log(`  State file    ${dim(STATE_PATH)}\n`);
 }
 
@@ -126,10 +130,23 @@ function help() {
   console.log(`  ${cyan('bifrost probe')} <realm>               probe multivoice|godseye|worldmonitor`);
   console.log(`  ${cyan('bifrost cross')} <realm> <transport> <intent...>`);
   console.log(`                                        request a governed crossing`);
-  console.log(`  ${cyan('reset')}                               reset CLI operational state`);
+  console.log(`\n  ${violet('SHADOW SUBSPACE')}`);
+  console.log(`  ${violet('shadow status')}                      verify native Shadow CPU`);
+  console.log(`  ${violet('shadow list')}                        list shadow sessions`);
+  console.log(`  ${violet('shadow summon')} <delegate> <mission...>`);
+  console.log(`                                        create bounded Sir Umbra mission`);
+  console.log(`  ${violet('shadow inspect')} <session-id>        inspect one shadow`);
+  console.log(`  ${violet('shadow propose')} <session> <R0..R6> <effect> <target> <intent...>`);
+  console.log(`  ${violet('shadow approve')} <session> <effect> [scope] [note...]`);
+  console.log(`  ${violet('shadow deny')} <session> <effect> [note...]`);
+  console.log(`  ${violet('shadow receipts')} <session>          read signed HITL ledger`);
+  console.log(`  ${violet('shadow write')} <session> <path> <text...>`);
+  console.log(`  ${violet('shadow read')} <session> <path>`);
+  console.log(`  ${violet('shadow seal')} <session>              seal and purge workspace`);
+  console.log(`\n  ${cyan('reset')}                               reset CLI operational state`);
   console.log(`  ${cyan('help')}                                show this command map`);
   console.log(`  ${cyan('exit')}                                leave interactive terminal\n`);
-  console.log(dim('One-shot: `npm run camelot -- status` · Interactive: `npm run camelot`'));
+  console.log(dim('One-shot: `npm run camelot -- shadow status` · Interactive: `npm run camelot`'));
 }
 
 function resolveScene(value) {
@@ -158,6 +175,10 @@ async function bifrostRequest(path, init = {}) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function shadowRequest(path, init = {}) {
+  return bifrostRequest(`/api/bifrost/shadow${path}`, init);
 }
 
 async function execute(argv, state) {
@@ -244,6 +265,95 @@ async function execute(argv, state) {
       }
       throw new Error('bifrost supports status, probe <realm>, or cross <realm> <transport> <intent...>');
     }
+    case 'shadow': {
+      if (sub === 'status') {
+        const status = await shadowRequest('/health');
+        console.log(`${violet('◐ SHADOW CPU')} ${status.status === 'ok' ? green('ONLINE') : red('UNVERIFIED')}`);
+        console.log(JSON.stringify(status, null, 2));
+        break;
+      }
+      if (sub === 'list' || !sub) {
+        const sessions = await shadowRequest('/sessions');
+        if (!sessions.length) console.log(dim('No Shadow Subspace sessions.'));
+        sessions.forEach(session => console.log(`${session.state === 'sealed' ? dim('○') : violet('●')} ${session.session_id}  ${String(session.delegate_id || session.knight_id).padEnd(16)} ${session.risk_ceiling}  ${session.state}  ${session.mission}`));
+        break;
+      }
+      if (sub === 'summon') {
+        const [delegate = 'sir_umbra', ...missionParts] = rest;
+        const mission = missionParts.join(' ').trim();
+        if (!mission) throw new Error('shadow summon requires <delegate> <mission...>');
+        const session = await shadowRequest('/sessions', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
+          mission,
+          knight_id: 'sir_umbra',
+          delegate_id: delegate === 'sir_umbra' ? null : delegate,
+          ttl_seconds: 1800,
+          risk_ceiling: 'R5',
+          memory_mb: 512,
+          cpu_quota_percent: 25,
+          capabilities: ['shadow.read', 'shadow.write', 'shadow.plan', 'bifrost.request'],
+          allowed_egress: ['bifrost://governed'],
+        }) });
+        appendLog(state, `SHADOW SUMMONED // ${session.session_id} // ${delegate}`);
+        console.log(violet(`◐ Shadow summoned: ${session.session_id}`));
+        console.log(dim(`Workspace ${session.workspace.root_uri} · ${session.bounds.memory_mb}MB · CPU ${session.bounds.cpu_quota_percent}% · ${session.risk_ceiling} ceiling`));
+        break;
+      }
+      if (sub === 'inspect') {
+        const id = rest[0]; if (!id) throw new Error('shadow inspect requires session id');
+        console.log(JSON.stringify(await shadowRequest(`/sessions/${id}`), null, 2)); break;
+      }
+      if (sub === 'propose') {
+        const [sessionId, risk, effect, target, ...intentParts] = rest;
+        if (!sessionId || !riskRings.includes(String(risk).toUpperCase()) || !effect || !target || !intentParts.length) {
+          throw new Error('shadow propose requires <session> <R0..R6> <effect> <target> <intent...>');
+        }
+        const intent = intentParts.join(' ');
+        const result = await shadowRequest(`/sessions/${sessionId}/effects`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
+          intent, effect, target, risk: String(risk).toUpperCase(), requested_capabilities: effect.startsWith('external') || effect.startsWith('production') ? ['bifrost.request'] : [],
+        }) });
+        appendLog(state, `SHADOW EFFECT // ${result.risk} // ${result.status} // ${result.effect_id}`);
+        console.log(result.requires_hitl ? gold(`⚠ HITL REQUIRED ${result.effect_id}`) : green(`✓ AUTHORIZED ${result.effect_id}`));
+        console.log(dim(`${result.effect} -> ${result.target}`)); break;
+      }
+      if (sub === 'approve') {
+        const [sessionId, effectId, maybeScope, ...noteParts] = rest;
+        if (!sessionId || !effectId) throw new Error('shadow approve requires <session> <effect> [scope] [note...]');
+        const scope = ['once', 'sovereign'].includes(maybeScope) ? maybeScope : 'once';
+        const note = ['once', 'sovereign'].includes(maybeScope) ? noteParts.join(' ') : [maybeScope, ...noteParts].filter(Boolean).join(' ');
+        const result = await shadowRequest(`/sessions/${sessionId}/effects/${effectId}/approve`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operator: OPERATOR_ID, scope, note: note || 'Approved from Sovereign CLI.' }) });
+        appendLog(state, `SHADOW HITL APPROVE // ${effectId} // ${scope}`); console.log(green(`✓ ${result.risk} effect approved (${scope})`)); break;
+      }
+      if (sub === 'deny') {
+        const [sessionId, effectId, ...noteParts] = rest;
+        if (!sessionId || !effectId) throw new Error('shadow deny requires <session> <effect> [note...]');
+        const result = await shadowRequest(`/sessions/${sessionId}/effects/${effectId}/deny`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ operator: OPERATOR_ID, note: noteParts.join(' ') || 'Denied from Sovereign CLI.' }) });
+        appendLog(state, `SHADOW HITL DENY // ${effectId}`); console.log(red(`✗ ${result.risk} effect denied and receipted`)); break;
+      }
+      if (sub === 'receipts') {
+        const id = rest[0]; if (!id) throw new Error('shadow receipts requires session id');
+        const receipts = await shadowRequest(`/sessions/${id}/receipts`);
+        receipts.forEach(receipt => console.log(`${dim(receipt.timestamp)} ${receipt.decision.includes('DENY') ? red(receipt.decision) : green(receipt.decision)} ${receipt.risk} ${receipt.action} ${dim(receipt.receipt_hash)}`));
+        break;
+      }
+      if (sub === 'write') {
+        const [sessionId, path, ...contentParts] = rest;
+        if (!sessionId || !path || !contentParts.length) throw new Error('shadow write requires <session> <path> <text...>');
+        const result = await shadowRequest(`/sessions/${sessionId}/files/write`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path, content: contentParts.join(' ') }) });
+        console.log(green(`✓ ${result.status}: ${result.path}`)); break;
+      }
+      if (sub === 'read') {
+        const [sessionId, path] = rest;
+        if (!sessionId || !path) throw new Error('shadow read requires <session> <path>');
+        const result = await shadowRequest(`/sessions/${sessionId}/files/read?path=${encodeURIComponent(path)}`);
+        console.log(result.content); break;
+      }
+      if (sub === 'seal') {
+        const id = rest[0]; if (!id) throw new Error('shadow seal requires session id');
+        const result = await shadowRequest(`/sessions/${id}/seal`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+        appendLog(state, `SHADOW SEALED // ${id}`); console.log(violet(`◐ ${result.status}: workspace purged, ledger retained`)); break;
+      }
+      throw new Error('shadow supports status, list, summon, inspect, propose, approve, deny, receipts, write, read, seal');
+    }
     case 'reset': {
       const fresh = defaultState(); Object.keys(state).forEach(key => delete state[key]); Object.assign(state, fresh); console.log(green('✓ CLI state reset')); break;
     }
@@ -266,7 +376,7 @@ function tokenize(line) {
 }
 
 async function interactive(state) {
-  banner(); printStatus(state); console.log(dim('Type `help` for commands. Arrow history is supported by your terminal.\n'));
+  banner(); printStatus(state); console.log(dim('Type `help` for commands. Alt+U opens the browser Shadow Subspace surface.\n'));
   const rl = createInterface({ input: process.stdin, output: process.stdout, historySize: 100, prompt: `${gold('camelot')} ${cyan('❯')} ` });
   rl.prompt();
   rl.on('line', async line => {

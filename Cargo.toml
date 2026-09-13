@@ -8,6 +8,7 @@ members = [
     "apps/sentinel",
     "apps/vfs-guardian",
     "apps/node-agent",
-    "apps/gideon"
+    "apps/gideon",
+    "apps/shadowd"
 ]
 resolver = "2"
