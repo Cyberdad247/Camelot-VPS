@@ -9,6 +9,7 @@ ExecStart=/opt/camelot/bin/sentinel
 WorkingDirectory=/opt/camelot
 Environment=RUST_LOG=info
 Environment=CAMELOT_SENTINEL_SIGNING_KEY=/var/lib/camelot/sentinel/lease-ed25519.key
+Environment=CAMELOT_AUTHORITY_EPOCH=1
 EnvironmentFile=-/etc/camelot/sentinel.env
 Restart=on-failure
 RestartSec=3
