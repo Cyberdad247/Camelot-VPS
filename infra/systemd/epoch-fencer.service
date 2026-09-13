@@ -1,0 +1,52 @@
+[Unit]
+Description=Camelot Twin-Brain Authority Epoch Fencer
+After=local-fs.target
+Before=sentinel.service vfs-guardian.service state-service.service node-agent.service gideon.service arthur.service
+
+[Service]
+Type=simple
+User=camelot-epoch
+Group=camelot
+Slice=camelot-critical.slice
+ExecStart=/opt/camelot/bin/epoch-fencer
+WorkingDirectory=/opt/camelot
+Environment=RUST_LOG=info
+Environment=CAMELOT_EPOCH_HOST=127.0.0.1
+Environment=CAMELOT_EPOCH_PORT=3014
+Environment=CAMELOT_EPOCH_DATABASE_URL=sqlite:///var/lib/camelot/epoch-fencer/fencer.sqlite3
+Environment=CAMELOT_EPOCH_CERTIFICATE_PATH=/run/camelot/authority/epoch.json
+Environment=CAMELOT_EPOCH_HEARTBEAT_MAX_AGE_SECONDS=15
+Environment=CAMELOT_ACTIVE_BRAIN=open-notebook
+Environment=CAMELOT_AUTHORITY_EPOCH=1
+EnvironmentFile=-/etc/camelot/epoch-fencer.env
+LoadCredential=epoch-signing-key:/etc/camelot/credentials/epoch-signing-key
+LoadCredential=epoch-api-token:/etc/camelot/credentials/epoch-api-token
+LoadCredential=epoch-promotion-token:/etc/camelot/credentials/epoch-promotion-token
+StateDirectory=camelot/epoch-fencer
+RuntimeDirectory=camelot/authority
+RuntimeDirectoryMode=0750
+Restart=on-failure
+RestartSec=2
+UMask=0077
+MemoryHigh=96M
+MemoryMax=128M
+CPUQuota=20%
+TasksMax=48
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost
+ReadWritePaths=/var/lib/camelot/epoch-fencer /run/camelot/authority
+
+[Install]
+WantedBy=multi-user.target
