@@ -5,28 +5,36 @@ mod model;
 mod store;
 
 use api::AppState;
-use axum::{routing::{get, post}, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 use camelot_crypto::KeyPair;
 use camelot_epoch::BrainId;
 use std::{env, fs, net::IpAddr, path::PathBuf, sync::Arc};
 use store::EpochStore;
 use tracing::info;
 
-fn signer_path() -> PathBuf {
-    if let Ok(path) = env::var("CAMELOT_EPOCH_SIGNING_KEY_FILE") {
+fn credential_path(name: &str, explicit_env: &str) -> PathBuf {
+    if let Ok(path) = env::var(explicit_env) {
         return PathBuf::from(path);
     }
     if let Ok(directory) = env::var("CREDENTIALS_DIRECTORY") {
-        return PathBuf::from(directory).join("epoch-signing-key");
+        return PathBuf::from(directory).join(name);
     }
-    PathBuf::from("/etc/camelot/credentials/epoch-signing-key")
+    PathBuf::from("/etc/camelot/credentials").join(name)
+}
+
+fn read_credential(name: &str, explicit_env: &str) -> Result<String, String> {
+    let path = credential_path(name, explicit_env);
+    fs::read_to_string(&path)
+        .map(|value| value.trim().to_string())
+        .map_err(|error| format!("read pre-provisioned credential {name}: {error}"))
 }
 
 fn load_signer() -> Result<KeyPair, String> {
-    let path = signer_path();
-    let raw = fs::read_to_string(&path)
-        .map_err(|error| format!("read pre-provisioned epoch signing credential: {error}"))?;
-    KeyPair::from_secret_hex(raw.trim())
+    let raw = read_credential("epoch-signing-key", "CAMELOT_EPOCH_SIGNING_KEY_FILE")?;
+    KeyPair::from_secret_hex(&raw)
 }
 
 #[tokio::main]
@@ -34,9 +42,19 @@ async fn main() {
     tracing_subscriber::fmt::init();
 
     let api_token = env::var("CAMELOT_EPOCH_TOKEN")
-        .expect("CAMELOT_EPOCH_TOKEN must be configured for Twin-Brain heartbeats");
+        .ok()
+        .or_else(|| read_credential("epoch-api-token", "CAMELOT_EPOCH_TOKEN_FILE").ok())
+        .expect("epoch heartbeat credential must be configured");
     let promotion_token = env::var("CAMELOT_EPOCH_PROMOTION_TOKEN")
-        .expect("CAMELOT_EPOCH_PROMOTION_TOKEN must be configured for authority promotion");
+        .ok()
+        .or_else(|| {
+            read_credential(
+                "epoch-promotion-token",
+                "CAMELOT_EPOCH_PROMOTION_TOKEN_FILE",
+            )
+            .ok()
+        })
+        .expect("epoch promotion credential must be configured");
     if api_token.len() < 24 || promotion_token.len() < 24 {
         panic!("epoch fencer credentials must contain at least 24 characters");
     }
