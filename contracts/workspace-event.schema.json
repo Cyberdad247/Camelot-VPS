@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot-os.dev/contracts/workspace-event.schema.json",
+  "title": "Camelot Workspace Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "type",
+    "occurredAt",
+    "tenantId",
+    "workspaceId",
+    "cartridgeId",
+    "missionId",
+    "traceId",
+    "sequence",
+    "classification",
+    "visibility",
+    "payload",
+    "provenance",
+    "integrity"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "type": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "workspaceId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "cartridgeId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "missionId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "traceId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "classification": {
+      "enum": ["public", "internal", "confidential", "restricted"]
+    },
+    "visibility": {
+      "enum": ["user", "operator", "audit"]
+    },
+    "payload": {},
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "nodeId": { "type": "string", "maxLength": 160 },
+        "policyDecisionId": { "type": "string", "maxLength": 160 },
+        "capabilityLeaseId": { "type": "string", "maxLength": 160 },
+        "receiptId": { "type": "string", "maxLength": 160 }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["payloadHash"],
+      "properties": {
+        "payloadHash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-fA-F]{64}$"
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^ed25519:[0-9a-fA-F]{128}$"
+        }
+      }
+    }
+  }
+}
