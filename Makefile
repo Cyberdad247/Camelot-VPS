@@ -1,9 +1,9 @@
-.PHONY: build-all install clean check-hub build-bifrost build-operator build-receipts build-sentinel build-vfs build-state build-scheduler build-worldtree
+.PHONY: build-all install clean check-hub build-bifrost build-operator build-receipts build-sentinel build-vfs build-state build-gideon build-arthur build-scheduler build-worldtree
 
 PREFIX ?= /opt/camelot
 BIN_DIR = $(PREFIX)/bin
 
-build-all: build-bifrost build-operator build-receipts build-sentinel build-vfs build-state build-scheduler build-worldtree
+build-all: build-bifrost build-operator build-receipts build-sentinel build-vfs build-state build-gideon build-arthur build-scheduler build-worldtree
 
 build-bifrost:
 	@echo "=> Building Bifrost (Go)..."
@@ -17,8 +17,12 @@ check-hub:
 	cd apps/bifrost-hub && go test ./...
 	@echo "=> Running Bifrost vet..."
 	cd apps/bifrost-hub && go vet ./...
+	@echo "=> Checking World Tree projection gateway formatting..."
+	@test -z "$$(gofmt -l apps/world-tree-api/main.go)" || (echo "World Tree API requires gofmt" && gofmt -d apps/world-tree-api/main.go && exit 1)
+	@echo "=> Building World Tree projection gateway..."
+	cd apps/world-tree-api && go build -o /tmp/camelot-world-tree-check main.go
 	@echo "=> Validating Hub JSON contracts and crystal..."
-	jq empty contracts/bifrost-envelope.schema.json contracts/workspace-event.schema.json contracts/task-snapshot.schema.json contracts/receipt.schema.json crystal/vps-hub-integration-crystal.json
+	jq empty contracts/bifrost-envelope.schema.json contracts/workspace-event.schema.json contracts/task-snapshot.schema.json contracts/receipt.schema.json contracts/gideon-verdict.schema.json contracts/arthur-resolution.schema.json crystal/vps-hub-integration-crystal.json
 	@echo "=> VPS Hub contract gate passed."
 
 build-operator:
@@ -57,6 +61,18 @@ build-state:
 	mkdir -p bin
 	cp target/release/state-service bin/
 
+build-gideon:
+	@echo "=> Building Gideon Evidence Verifier (Rust)..."
+	cargo build --release --manifest-path apps/gideon/Cargo.toml
+	mkdir -p bin
+	cp target/release/gideon bin/
+
+build-arthur:
+	@echo "=> Building Arthur Resolution Gate (Rust)..."
+	cargo build --release --manifest-path apps/arthur/Cargo.toml
+	mkdir -p bin
+	cp target/release/arthur bin/
+
 install: build-all
 	@echo "=> Installing binaries to $(BIN_DIR)"
 	mkdir -p $(BIN_DIR)
@@ -66,6 +82,8 @@ install: build-all
 	cp bin/sentinel $(BIN_DIR)/
 	cp bin/vfs-guardian $(BIN_DIR)/
 	cp bin/state-service $(BIN_DIR)/
+	cp bin/gideon $(BIN_DIR)/
+	cp bin/arthur $(BIN_DIR)/
 	cp bin/task-scheduler $(BIN_DIR)/
 	cp bin/world-tree-api $(BIN_DIR)/
 	@echo "=> Installing Static Assets..."
@@ -79,11 +97,6 @@ install: build-all
 clean:
 	rm -rf bin/
 	cargo clean
-build-gideon:
-	@echo "=> Building Gideon (Rust)..."
-	cargo build --release --manifest-path apps/gideon/Cargo.toml
-	mkdir -p bin
-	cp target/release/gideon bin/
 
 build-node-agent:
 	@echo "=> Building Node Agent (Rust)..."
@@ -96,8 +109,7 @@ build-hermes:
 	cd adapters/hermes-adapter && go mod init camelot.vps/hermes || true
 	cd adapters/hermes-adapter && go build -ldflags="-s -w" -o ../../bin/hermes-adapter main.go
 
-install-phase3: build-gideon build-node-agent build-hermes
-	cp bin/gideon $(BIN_DIR)/
+install-phase3: build-node-agent build-hermes
 	cp bin/node-agent $(BIN_DIR)/
 	cp bin/hermes-adapter $(BIN_DIR)/
 	cp infra/systemd/*.service /etc/systemd/system/
