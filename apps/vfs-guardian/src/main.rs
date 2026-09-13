@@ -232,6 +232,7 @@ async fn request_access(
         state.authority_epoch,
         resource,
         operation_hash,
+        payload.operation.expected_hash.clone(),
         state.signer.public_key_hex(),
     );
     if let Err(error) = attestation.sign_with(&state.signer) {
