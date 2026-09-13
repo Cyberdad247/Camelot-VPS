@@ -40,6 +40,10 @@ impl KeyPair {
         self.signing_key.sign(message)
     }
 
+    pub fn sign_hex(&self, message: &[u8]) -> String {
+        encode_hex(&self.sign(message).to_bytes())
+    }
+
     pub fn verify(
         &self,
         message: &[u8],
@@ -135,8 +139,7 @@ mod tests {
         assert_eq!(first.public_key_hex(), second.public_key_hex());
 
         let message = b"camelot-shadow-receipt";
-        let signature = second.sign(message);
-        let signature_hex = encode_hex(&signature.to_bytes());
+        let signature_hex = second.sign_hex(message);
         verify_detached_hex(&second.public_key_hex(), message, &signature_hex)
             .expect("verify detached signature");
     }
