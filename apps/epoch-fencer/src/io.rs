@@ -17,7 +17,8 @@ pub fn publish_certificate(
         .write(true)
         .open(&temporary)
         .map_err(|error| error.to_string())?;
-    file.write_all(&payload).map_err(|error| error.to_string())?;
+    file.write_all(&payload)
+        .map_err(|error| error.to_string())?;
     file.write_all(b"\n").map_err(|error| error.to_string())?;
     file.sync_all().map_err(|error| error.to_string())?;
     fs::rename(&temporary, path).map_err(|error| error.to_string())?;
