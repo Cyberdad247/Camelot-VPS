@@ -16,6 +16,7 @@ Environment=CAMELOT_SHADOW_DB=/var/lib/camelot/shadow/shadow.db
 Environment=CAMELOT_SHADOW_RECEIPT_MIRROR=/var/lib/camelot/shadow/ledger/receipts.jsonl
 Environment=CAMELOT_SHADOW_SIGNING_KEY=/var/lib/camelot/shadow/keys/receipt-ed25519.key
 Environment=CAMELOT_SHADOW_ALLOW_R6=0
+Environment=CAMELOT_SENTINEL_URL=http://127.0.0.1:3002
 EnvironmentFile=-/etc/camelot/shadowd.env
 Restart=on-failure
 RestartSec=3
