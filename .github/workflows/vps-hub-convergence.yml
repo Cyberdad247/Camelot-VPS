@@ -9,12 +9,14 @@ on:
       - 'apps/bifrost-hub/**'
       - 'apps/sentinel/**'
       - 'apps/vfs-guardian/**'
+      - 'apps/state-service/**'
       - 'crates/camelot-crypto/**'
       - 'crates/camelot-lease/**'
       - 'crates/camelot-vfs/**'
       - 'infra/systemd/bifrost.service'
       - 'infra/systemd/sentinel.service'
       - 'infra/systemd/vfs-guardian.service'
+      - 'infra/systemd/state-service.service'
       - 'infra/systemd/camelot-critical.slice'
       - '.env.example'
       - 'Cargo.toml'
@@ -47,23 +49,23 @@ jobs:
       - name: Build production Bifrost binary
         run: make build-bifrost
 
-  authority-vfs:
-    name: Sentinel and VFS Authority
+  authority-runtime:
+    name: Authority and Workspace Runtime
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
       - name: Format authority packages
-        run: cargo fmt --package camelot-lease --package camelot-vfs --package sentinel --package vfs-guardian -- --check
+        run: cargo fmt --package camelot-crypto --package camelot-lease --package camelot-vfs --package sentinel --package vfs-guardian --package state-service -- --check
       - name: Check authority packages
-        run: cargo check -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian
+        run: cargo check -p camelot-crypto -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian -p state-service
       - name: Test authority packages
-        run: cargo test -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian
+        run: cargo test -p camelot-crypto -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian -p state-service
       - name: Clippy authority packages
-        run: cargo clippy -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian --all-targets -- -D warnings
+        run: cargo clippy -p camelot-crypto -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian -p state-service --all-targets -- -D warnings
 
   experience-contract:
     name: Experience Plane Build
