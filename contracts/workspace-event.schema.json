@@ -5,6 +5,7 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "schemaVersion",
     "id",
     "type",
     "occurredAt",
@@ -21,6 +22,7 @@
     "integrity"
   ],
   "properties": {
+    "schemaVersion": { "const": "workspace-event/1" },
     "id": { "type": "string", "minLength": 1, "maxLength": 160 },
     "type": { "type": "string", "minLength": 1, "maxLength": 160 },
     "occurredAt": { "type": "string", "format": "date-time" },
@@ -57,6 +59,10 @@
         "payloadHash": {
           "type": "string",
           "pattern": "^sha256:[0-9a-fA-F]{64}$"
+        },
+        "signerPublicKey": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
         },
         "signature": {
           "type": "string",
