@@ -45,8 +45,7 @@ impl VfsAttestation {
     pub fn signing_payload(&self) -> Result<Vec<u8>, String> {
         let mut unsigned = self.clone();
         unsigned.vfs_signature.clear();
-        serde_json::to_vec(&unsigned)
-            .map_err(|error| format!("serialize VFS attestation: {error}"))
+        serde_json::to_vec(&unsigned).map_err(|error| format!("serialize VFS attestation: {error}"))
     }
 
     pub fn sign_with(&mut self, signer: &KeyPair) -> Result<(), String> {
@@ -124,6 +123,9 @@ mod tests {
         assert_eq!(FileOperationType::Read.capability(), "vfs:read");
         assert_eq!(FileOperationType::Write.capability(), "vfs:write");
         assert_eq!(FileOperationType::Delete.capability(), "vfs:delete");
-        assert_eq!(FileOperationType::Quarantine.capability(), "vfs:quarantine");
+        assert_eq!(
+            FileOperationType::Quarantine.capability(),
+            "vfs:quarantine"
+        );
     }
 }
