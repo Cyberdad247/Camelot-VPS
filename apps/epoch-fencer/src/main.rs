@@ -131,5 +131,7 @@ async fn main() {
         signer_public_key,
         "Twin-Brain authority epoch fencer online"
     );
-    axum::serve(listener, app).await.expect("epoch fencer failed");
+    axum::serve(listener, app)
+        .await
+        .expect("epoch fencer failed");
 }
