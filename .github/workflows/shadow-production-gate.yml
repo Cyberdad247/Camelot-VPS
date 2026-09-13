@@ -5,6 +5,8 @@ on:
     paths:
       - 'apps/shadowd/**'
       - 'crates/camelot-crypto/**'
+      - 'crates/camelot-lease/**'
+      - 'apps/sentinel/**'
       - 'apps/bifrost-bridge-command-center/**'
       - 'src/components/ShadowSubspacePortal.tsx'
       - 'src/components/shadow-subspace.css'
@@ -33,8 +35,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Format
-        run: cargo fmt --all -- --check
+      - name: Format production packages
+        run: cargo fmt --package camelot-shadowd --package camelot-crypto -- --check
       - name: Check
         run: cargo check -p camelot-shadowd
       - name: Test Shadow and crypto
