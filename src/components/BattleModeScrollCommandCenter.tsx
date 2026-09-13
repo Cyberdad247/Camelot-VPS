@@ -79,7 +79,7 @@ export const BattleModeScrollCommandCenter: React.FC = () => {
   useEffect(() => {
     const root = scrollerRef.current;
     if (!root) return;
-    const sections = Array.from(root.querySelectorAll<HTMLElement>('[data-battle-chapter]'));
+    const sections: HTMLElement[] = [...root.querySelectorAll<HTMLElement>('[data-battle-chapter]')];
     const observer = new IntersectionObserver(entries => {
       const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
       if (visible) setActiveChapter((visible.target as HTMLElement).dataset.battleChapter as ChapterId);
