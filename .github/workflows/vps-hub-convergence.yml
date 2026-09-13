@@ -7,8 +7,17 @@ on:
       - 'contracts/**'
       - 'crystal/**'
       - 'apps/bifrost-hub/**'
+      - 'apps/sentinel/**'
+      - 'apps/vfs-guardian/**'
+      - 'crates/camelot-crypto/**'
+      - 'crates/camelot-lease/**'
+      - 'crates/camelot-vfs/**'
       - 'infra/systemd/bifrost.service'
+      - 'infra/systemd/sentinel.service'
+      - 'infra/systemd/vfs-guardian.service'
       - 'infra/systemd/camelot-critical.slice'
+      - '.env.example'
+      - 'Cargo.toml'
       - 'CAMELOT_ARCHITECTURE_OVERVIEW.md'
       - 'Makefile'
       - '.github/workflows/vps-hub-convergence.yml'
@@ -37,6 +46,24 @@ jobs:
         run: make check-hub
       - name: Build production Bifrost binary
         run: make build-bifrost
+
+  authority-vfs:
+    name: Sentinel and VFS Authority
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format authority packages
+        run: cargo fmt --package camelot-lease --package camelot-vfs --package sentinel --package vfs-guardian -- --check
+      - name: Check authority packages
+        run: cargo check -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian
+      - name: Test authority packages
+        run: cargo test -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian
+      - name: Clippy authority packages
+        run: cargo clippy -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian --all-targets -- -D warnings
 
   experience-contract:
     name: Experience Plane Build
