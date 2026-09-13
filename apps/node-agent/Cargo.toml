@@ -4,6 +4,7 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
+camelot-crypto = { path = "../../crates/camelot-crypto" }
 camelot-lease = { path = "../../crates/camelot-lease" }
 camelot-vfs = { path = "../../crates/camelot-vfs" }
 axum = "0.7"
