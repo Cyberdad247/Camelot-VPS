@@ -231,11 +231,11 @@ func health(gateway *Gateway, ready bool) http.HandlerFunc {
 			state = "not_ready"
 		}
 		writeJSON(w, status, map[string]any{
-			"status":          state,
-			"service":         "camelot-bifrost-hub",
-			"version":         serviceVersion,
-			"authorityGrant":  false,
-			"trustRootCount":  len(gateway.trustRoots),
+			"status":           state,
+			"service":          "camelot-bifrost-hub",
+			"version":          serviceVersion,
+			"authorityGrant":   false,
+			"trustRootCount":   len(gateway.trustRoots),
 			"maxEnvelopeBytes": maxEnvelopeBytes,
 		})
 	}
