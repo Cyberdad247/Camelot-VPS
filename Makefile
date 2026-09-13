@@ -1,9 +1,9 @@
-.PHONY: build-all install clean check-hub build-bifrost build-operator build-receipts build-sentinel build-vfs build-state build-gideon build-arthur build-scheduler build-worldtree build-node-agent build-hermes build-bitnet install-phase3 install-phase4
+.PHONY: build-all install clean check-hub build-bifrost build-operator build-receipts build-epoch build-sentinel build-vfs build-state build-gideon build-arthur build-scheduler build-worldtree build-node-agent build-hermes build-bitnet install-phase3 install-phase4
 
 PREFIX ?= /opt/camelot
 BIN_DIR = $(PREFIX)/bin
 
-build-all: build-bifrost build-operator build-receipts build-sentinel build-vfs build-state build-gideon build-arthur build-scheduler build-worldtree build-node-agent
+build-all: build-bifrost build-operator build-receipts build-epoch build-sentinel build-vfs build-state build-gideon build-arthur build-scheduler build-worldtree build-node-agent
 
 build-bifrost:
 	@echo "=> Building Bifrost (Go)..."
@@ -22,7 +22,7 @@ check-hub:
 	@echo "=> Building World Tree projection gateway..."
 	cd apps/world-tree-api && go build -o /tmp/camelot-world-tree-check main.go
 	@echo "=> Validating Hub JSON contracts and crystal..."
-	jq empty contracts/bifrost-envelope.schema.json contracts/workspace-event.schema.json contracts/task-snapshot.schema.json contracts/receipt.schema.json contracts/gideon-verdict.schema.json contracts/arthur-resolution.schema.json contracts/vfs-attestation.schema.json contracts/wasm-execution.schema.json crystal/vps-hub-integration-crystal.json
+	jq empty contracts/bifrost-envelope.schema.json contracts/workspace-event.schema.json contracts/task-snapshot.schema.json contracts/receipt.schema.json contracts/gideon-verdict.schema.json contracts/arthur-resolution.schema.json contracts/vfs-attestation.schema.json contracts/wasm-execution.schema.json contracts/authority-epoch.schema.json crystal/vps-hub-integration-crystal.json
 	@echo "=> VPS Hub contract gate passed."
 
 build-operator:
@@ -42,6 +42,12 @@ build-receipts:
 	cargo build --release --manifest-path apps/receipt-service/Cargo.toml
 	mkdir -p bin
 	cp target/release/receipt-service bin/
+
+build-epoch:
+	@echo "=> Building Twin-Brain Epoch Fencer (Rust)..."
+	cargo build --release --manifest-path apps/epoch-fencer/Cargo.toml
+	mkdir -p bin
+	cp target/release/epoch-fencer bin/
 
 build-sentinel:
 	@echo "=> Building Sentinel Policy Engine (Rust)..."
@@ -85,6 +91,7 @@ install: build-all
 	cp bin/bifrost $(BIN_DIR)/
 	cp bin/operator-console $(BIN_DIR)/
 	cp bin/receipt-service $(BIN_DIR)/
+	cp bin/epoch-fencer $(BIN_DIR)/
 	cp bin/sentinel $(BIN_DIR)/
 	cp bin/vfs-guardian $(BIN_DIR)/
 	cp bin/state-service $(BIN_DIR)/

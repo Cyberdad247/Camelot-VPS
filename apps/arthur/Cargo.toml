@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 camelot-crypto = { path = "../../crates/camelot-crypto" }
+camelot-epoch = { path = "../../crates/camelot-epoch" }
 axum = "0.7"
 tokio = { version = "1.36", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }

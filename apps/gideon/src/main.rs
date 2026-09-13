@@ -7,6 +7,7 @@ use axum::{
 #[cfg(test)]
 use camelot_crypto::verify_detached_hex;
 use camelot_crypto::{hash_payload, KeyPair};
+use camelot_epoch::EpochSource;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -25,7 +26,7 @@ const VERDICT_SCHEMA: &str = "gideon-verdict/1";
 #[derive(Clone)]
 struct AppState {
     signer: Arc<KeyPair>,
-    authority_epoch: u64,
+    epoch_source: Arc<EpochSource>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -224,23 +225,43 @@ fn evaluate(request: &VerifyRequest, current_epoch: u64) -> Result<(VerdictKind,
     ))
 }
 
-async fn health(State(state): State<AppState>) -> Json<Value> {
-    Json(json!({
-        "status": "ready",
-        "service": "gideon",
-        "schema": VERDICT_SCHEMA,
-        "authorityEpoch": state.authority_epoch,
-        "verificationMode": "evidence-gate",
-        "formalProof": false,
-        "signerPublicKey": state.signer.public_key_hex()
-    }))
+async fn health(State(state): State<AppState>) -> (StatusCode, Json<Value>) {
+    match state.epoch_source.current_epoch() {
+        Ok(authority_epoch) => (
+            StatusCode::OK,
+            Json(json!({
+                "status": "ready",
+                "service": "gideon",
+                "schema": VERDICT_SCHEMA,
+                "authorityEpoch": authority_epoch,
+                "dynamicEpoch": state.epoch_source.is_dynamic(),
+                "verificationMode": "evidence-gate",
+                "formalProof": false,
+                "signerPublicKey": state.signer.public_key_hex()
+            })),
+        ),
+        Err(error) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({
+                "status": "not_ready",
+                "service": "gideon",
+                "reason": error
+            })),
+        ),
+    }
 }
 
 async fn handle_verify(
     State(state): State<AppState>,
     Json(request): Json<VerifyRequest>,
 ) -> Result<(StatusCode, Json<GideonVerdict>), (StatusCode, Json<Value>)> {
-    let (verdict, reason) = evaluate(&request, state.authority_epoch)
+    let authority_epoch = state.epoch_source.current_epoch().map_err(|error| {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({ "error": format!("authority epoch unavailable: {error}") })),
+        )
+    })?;
+    let (verdict, reason) = evaluate(&request, authority_epoch)
         .map_err(|error| (StatusCode::BAD_REQUEST, Json(json!({ "error": error }))))?;
     let evidence_json = serde_json::to_string(&request.checks).map_err(|error| {
         (
@@ -280,13 +301,12 @@ async fn handle_verify(
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
-    let authority_epoch = env::var("CAMELOT_AUTHORITY_EPOCH")
-        .ok()
-        .and_then(|value| value.parse::<u64>().ok())
-        .unwrap_or(1);
-    if authority_epoch == 0 {
-        panic!("CAMELOT_AUTHORITY_EPOCH must be greater than zero");
-    }
+    let epoch_source = Arc::new(
+        EpochSource::from_environment().expect("load signed authority epoch source"),
+    );
+    let boot_epoch = epoch_source
+        .current_epoch()
+        .expect("verify current authority epoch at Gideon startup");
     let key_path = PathBuf::from(
         env::var("CAMELOT_GIDEON_SIGNING_KEY")
             .unwrap_or_else(|_| "/var/lib/camelot/gideon/verdict-ed25519.key".into()),
@@ -294,7 +314,7 @@ async fn main() {
     let signer = load_or_create_signer(&key_path).expect("load Gideon signing identity");
     let state = AppState {
         signer: Arc::new(signer),
-        authority_epoch,
+        epoch_source,
     };
     let app = Router::new()
         .route("/health", get(health))
@@ -316,7 +336,8 @@ async fn main() {
         .await
         .expect("bind Gideon");
     info!(
-        authority_epoch,
+        authority_epoch = boot_epoch,
+        dynamic_epoch = state.epoch_source.is_dynamic(),
         signer_public_key = %state.signer.public_key_hex(),
         "Gideon evidence verification gate online; formal proof disabled"
     );

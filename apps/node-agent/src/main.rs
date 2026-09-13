@@ -7,6 +7,7 @@ use axum::{
     Json, Router,
 };
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use camelot_epoch::EpochSource;
 use camelot_lease::CapabilityLease;
 use camelot_vfs::{VfsAttestation, VFS_ATTESTATION_SCHEMA};
 use chrono::{Duration, Utc};
@@ -30,7 +31,7 @@ struct AppState {
     token: Arc<String>,
     sentinel_public_key: Arc<String>,
     vfs_public_key: Arc<String>,
-    authority_epoch: u64,
+    epoch_source: Arc<EpochSource>,
     max_fuel: u64,
 }
 
@@ -71,6 +72,7 @@ fn valid_sha256(value: &str) -> bool {
 }
 
 fn validate_request(state: &AppState, payload: &ExecutionRequest) -> Result<Vec<u8>, String> {
+    let authority_epoch = state.epoch_source.current_epoch()?;
     if payload.task_id.trim().is_empty() || payload.task_id.len() > 160 {
         return Err("taskId must contain 1..160 characters".into());
     }
@@ -91,7 +93,7 @@ fn validate_request(state: &AppState, payload: &ExecutionRequest) -> Result<Vec<
     if !lease.is_valid() {
         return Err("Sentinel lease is expired or revoked".into());
     }
-    if !lease.is_current_epoch(state.authority_epoch) {
+    if !lease.is_current_epoch(authority_epoch) {
         return Err("Sentinel lease belongs to a stale authority epoch".into());
     }
     if !lease.binds_session(payload.workspace_id) {
@@ -121,7 +123,7 @@ fn validate_request(state: &AppState, payload: &ExecutionRequest) -> Result<Vec<
     if attestation.lease_id != lease.lease_id {
         return Err("VFS attestation is not bound to this Sentinel lease".into());
     }
-    if attestation.epoch != state.authority_epoch {
+    if attestation.epoch != authority_epoch {
         return Err("VFS attestation belongs to a stale authority epoch".into());
     }
     if attestation.resource_uri != payload.artifact_resource_uri {
@@ -185,17 +187,33 @@ async fn health_live() -> Json<serde_json::Value> {
     }))
 }
 
-async fn health_ready(State(state): State<AppState>) -> Json<serde_json::Value> {
-    Json(json!({
-        "status": "ready",
-        "service": "node-agent",
-        "runtime": "wasmtime",
-        "authorityEpoch": state.authority_epoch,
-        "maxModuleBytes": MAX_MODULE_BYTES,
-        "maxFuel": state.max_fuel,
-        "hostImports": false,
-        "shellExecution": false
-    }))
+async fn health_ready(
+    State(state): State<AppState>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    match state.epoch_source.current_epoch() {
+        Ok(authority_epoch) => (
+            StatusCode::OK,
+            Json(json!({
+                "status": "ready",
+                "service": "node-agent",
+                "runtime": "wasmtime",
+                "authorityEpoch": authority_epoch,
+                "dynamicEpoch": state.epoch_source.is_dynamic(),
+                "maxModuleBytes": MAX_MODULE_BYTES,
+                "maxFuel": state.max_fuel,
+                "hostImports": false,
+                "shellExecution": false
+            })),
+        ),
+        Err(error) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({
+                "status": "not_ready",
+                "service": "node-agent",
+                "reason": error
+            })),
+        ),
+    }
 }
 
 async fn handle_execute(
@@ -287,7 +305,9 @@ async fn handle_execute(
                     artifact_sha256: payload.module_sha256,
                     attestation_id: payload.vfs_attestation.attestation_id,
                     execution_time_ms: started.elapsed().as_millis(),
-                    message: format!("module imports are not permitted in the bounded executor: {error}"),
+                    message: format!(
+                        "module imports are not permitted in the bounded executor: {error}"
+                    ),
                 }),
             )
         }
@@ -348,8 +368,9 @@ async fn handle_execute(
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let token = env::var("CAMELOT_NODE_AGENT_TOKEN")
-        .expect("CAMELOT_NODE_AGENT_TOKEN must be set; node-agent refuses unauthenticated execution");
+    let token = env::var("CAMELOT_NODE_AGENT_TOKEN").expect(
+        "CAMELOT_NODE_AGENT_TOKEN must be set; node-agent refuses unauthenticated execution",
+    );
     if token.len() < 24 {
         panic!("CAMELOT_NODE_AGENT_TOKEN must contain at least 24 characters");
     }
@@ -365,13 +386,12 @@ async fn main() {
             panic!("{name} must be a 32-byte Ed25519 public key in hex");
         }
     }
-    let authority_epoch = env::var("CAMELOT_AUTHORITY_EPOCH")
-        .ok()
-        .and_then(|value| value.parse::<u64>().ok())
-        .unwrap_or(1);
-    if authority_epoch == 0 {
-        panic!("CAMELOT_AUTHORITY_EPOCH must be greater than zero");
-    }
+    let epoch_source = Arc::new(
+        EpochSource::from_environment().expect("load signed authority epoch source"),
+    );
+    let boot_epoch = epoch_source
+        .current_epoch()
+        .expect("verify current authority epoch at node-agent startup");
     let max_fuel = env::var("CAMELOT_NODE_AGENT_MAX_FUEL")
         .ok()
         .and_then(|value| value.parse::<u64>().ok())
@@ -381,7 +401,7 @@ async fn main() {
         token: Arc::new(token),
         sentinel_public_key: Arc::new(sentinel_public_key),
         vfs_public_key: Arc::new(vfs_public_key),
-        authority_epoch,
+        epoch_source,
         max_fuel,
     };
 
@@ -410,7 +430,8 @@ async fn main() {
         .await
         .expect("bind node-agent");
     tracing::info!(
-        authority_epoch,
+        authority_epoch = boot_epoch,
+        dynamic_epoch = state.epoch_source.is_dynamic(),
         max_fuel,
         "governed Wasmtime node executor online; host imports disabled"
     );

@@ -1,0 +1,44 @@
+name: Twin-Brain Authority Fencing Gate
+
+on:
+  pull_request:
+    paths:
+      - 'crates/camelot-epoch/**'
+      - 'apps/epoch-fencer/**'
+      - 'apps/sentinel/**'
+      - 'contracts/authority-epoch.schema.json'
+      - 'infra/systemd/epoch-fencer.service'
+      - 'Cargo.toml'
+      - 'Makefile'
+      - '.github/workflows/twin-brain-fencing.yml'
+  push:
+    branches:
+      - 'feature/twin-brain-epoch-fencing-v1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: twin-brain-fencing-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fencing-runtime:
+    name: Signed Epoch and Promotion Runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format
+        run: cargo fmt --package camelot-epoch --package epoch-fencer --package sentinel -- --check
+      - name: Check
+        run: cargo check -p camelot-epoch -p epoch-fencer -p sentinel
+      - name: Test
+        run: cargo test -p camelot-epoch -p epoch-fencer -p sentinel
+      - name: Clippy
+        run: cargo clippy -p camelot-epoch -p epoch-fencer -p sentinel --all-targets -- -D warnings
+      - name: Validate authority epoch contract
+        run: jq empty contracts/authority-epoch.schema.json

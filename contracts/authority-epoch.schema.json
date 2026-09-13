@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot.local/contracts/authority-epoch.schema.json",
+  "title": "Camelot Authority Epoch Certificate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "certificateId",
+    "epoch",
+    "activeBrain",
+    "promotionMode",
+    "promotedAt",
+    "reason",
+    "receiptHeadSequence",
+    "stateDigest",
+    "signerPublicKey",
+    "signature"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "authority-epoch/1" },
+    "certificateId": { "type": "string", "format": "uuid" },
+    "epoch": { "type": "integer", "minimum": 1 },
+    "activeBrain": { "enum": ["open-notebook", "notebooklm"] },
+    "previousBrain": {
+      "anyOf": [
+        { "enum": ["open-notebook", "notebooklm"] },
+        { "type": "null" }
+      ]
+    },
+    "promotionMode": { "enum": ["BOOTSTRAP", "PLANNED", "FAILOVER"] },
+    "promotedAt": { "type": "string", "format": "date-time" },
+    "reason": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "receiptHeadSequence": { "type": "integer", "minimum": 0 },
+    "stateDigest": { "type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$" },
+    "signerPublicKey": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "signature": { "type": "string", "pattern": "^[0-9a-fA-F]{128}$" }
+  }
+}

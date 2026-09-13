@@ -3,6 +3,7 @@ mod model;
 mod store;
 
 use api::ApiState;
+use camelot_epoch::EpochSource;
 use std::{env, net::IpAddr, sync::Arc};
 use store::StateStore;
 use tokio::sync::broadcast;
@@ -12,13 +13,12 @@ use tracing::info;
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let authority_epoch = env::var("CAMELOT_AUTHORITY_EPOCH")
-        .ok()
-        .and_then(|value| value.parse::<u64>().ok())
-        .unwrap_or(1);
-    if authority_epoch == 0 {
-        panic!("CAMELOT_AUTHORITY_EPOCH must be greater than zero");
-    }
+    let epoch_source = Arc::new(
+        EpochSource::from_environment().expect("load signed authority epoch source"),
+    );
+    let boot_epoch = epoch_source
+        .current_epoch()
+        .expect("verify current authority epoch at State Service startup");
 
     let database_url = env::var("CAMELOT_STATE_DATABASE_URL")
         .unwrap_or_else(|_| "sqlite:///var/lib/camelot/state/runtime.sqlite3".into());
@@ -34,7 +34,7 @@ async fn main() {
     let (events, _) = broadcast::channel(1024);
     let app = api::router(ApiState {
         store,
-        authority_epoch,
+        epoch_source: epoch_source.clone(),
         events,
         receipt_base_url: Arc::new(receipt_base_url),
         client,
@@ -56,7 +56,8 @@ async fn main() {
         .await
         .expect("bind state service");
     info!(
-        authority_epoch,
+        authority_epoch = boot_epoch,
+        dynamic_epoch = epoch_source.is_dynamic(),
         "Camelot authoritative workspace state service online"
     );
     axum::serve(listener, app)
