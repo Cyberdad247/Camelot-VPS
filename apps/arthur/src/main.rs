@@ -264,9 +264,12 @@ async fn handle_resolve(
         signer_public_key: state.signer.public_key_hex(),
         signature: String::new(),
     };
-    output
-        .sign_with(&state.signer)
-        .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": error }))))?;
+    output.sign_with(&state.signer).map_err(|error| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": error })),
+        )
+    })?;
     Ok((StatusCode::OK, Json(output)))
 }
 
@@ -301,7 +304,9 @@ async fn main() {
         .with_state(state.clone());
 
     let host = env::var("CAMELOT_ARTHUR_HOST").unwrap_or_else(|_| "127.0.0.1".into());
-    let parsed_host: IpAddr = host.parse().expect("CAMELOT_ARTHUR_HOST must be an IP address");
+    let parsed_host: IpAddr = host
+        .parse()
+        .expect("CAMELOT_ARTHUR_HOST must be an IP address");
     if !parsed_host.is_loopback() {
         panic!("Arthur must remain loopback-only behind Camelot controls");
     }
@@ -317,7 +322,9 @@ async fn main() {
         signer_public_key = %state.signer.public_key_hex(),
         "Arthur final resolution gate online; execution authority disabled"
     );
-    axum::serve(listener, app).await.expect("Arthur server failed");
+    axum::serve(listener, app)
+        .await
+        .expect("Arthur server failed");
 }
 
 #[cfg(test)]
@@ -356,9 +363,15 @@ mod tests {
     fn resolves_only_passing_current_epoch() {
         let signer = KeyPair::generate();
         let passing = verdict(GideonKind::Pass, 5, &signer);
-        assert_eq!(resolve(&passing, true, false, 5).0, ResolutionKind::Resolved);
+        assert_eq!(
+            resolve(&passing, true, false, 5).0,
+            ResolutionKind::Resolved
+        );
         assert_eq!(resolve(&passing, false, false, 5).0, ResolutionKind::Retry);
-        assert_eq!(resolve(&passing, true, false, 6).0, ResolutionKind::Quarantined);
+        assert_eq!(
+            resolve(&passing, true, false, 6).0,
+            ResolutionKind::Quarantined
+        );
     }
 
     #[test]
