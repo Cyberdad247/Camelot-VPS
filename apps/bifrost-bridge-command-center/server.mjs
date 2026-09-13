@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { timingSafeEqual } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,6 +9,7 @@ const PORT = Number(process.env.BIFROST_PORT || 4188);
 const HOST = process.env.BIFROST_HOST || '127.0.0.1';
 const SHADOWD_URL = String(process.env.CAMELOT_SHADOW_URL || 'http://127.0.0.1:4190').replace(/\/$/, '');
 const SHADOWD_TOKEN = String(process.env.CAMELOT_SHADOW_TOKEN || '');
+const HITL_TOKEN = String(process.env.CAMELOT_HITL_TOKEN || '');
 const ALLOWED_ORIGINS = new Set(
   String(process.env.BIFROST_ALLOWED_ORIGINS || 'http://127.0.0.1:3000,http://localhost:3000')
     .split(',')
@@ -50,6 +52,8 @@ function corsHeaders(req) {
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    // Deliberately excludes X-Camelot-HITL-Assertion. Browser JavaScript is not
+    // an authenticated human-approval surface.
     'Access-Control-Allow-Headers': 'Content-Type,Accept',
     'Access-Control-Max-Age': '600',
     Vary: 'Origin',
@@ -89,6 +93,24 @@ async function fetchWithTimeout(url, init = {}, timeoutMs = 5000) {
   }
 }
 
+function secureEquals(actual, expected) {
+  const a = Buffer.from(String(actual || ''), 'utf8');
+  const b = Buffer.from(String(expected || ''), 'utf8');
+  if (!a.length || a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+function requireHitlAssertion(req) {
+  if (!HITL_TOKEN || HITL_TOKEN.length < 24) {
+    return { ok: false, status: 503, error: 'Authenticated HITL is not configured on Bifrost' };
+  }
+  const supplied = req.headers['x-camelot-hitl-assertion'];
+  if (!secureEquals(supplied, HITL_TOKEN)) {
+    return { ok: false, status: 403, error: 'A valid server-authenticated HITL assertion is required' };
+  }
+  return { ok: true };
+}
+
 async function probeRealm(realmId) {
   const realm = REALMS[realmId];
   if (!realm) return { reachable: false, detail: 'Unknown realm' };
@@ -98,7 +120,7 @@ async function probeRealm(realmId) {
       method: 'GET',
       headers: {
         Accept: realmId === 'worldmonitor' ? 'text/markdown,text/plain;q=0.9,*/*;q=0.5' : 'application/json,text/html;q=0.9,*/*;q=0.5',
-        'User-Agent': 'Camelot-Bifrost/1.1',
+        'User-Agent': 'Camelot-Bifrost/1.2',
       },
     }, 4500);
     return {
@@ -140,7 +162,7 @@ async function worldMonitorMcpCall(method, params = {}) {
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json, text/event-stream',
-      'User-Agent': 'Camelot-Bifrost/1.1',
+      'User-Agent': 'Camelot-Bifrost/1.2',
     },
     body: JSON.stringify(envelope),
   }, 8000);
@@ -151,8 +173,6 @@ async function worldMonitorMcpCall(method, params = {}) {
 async function executeCrossing(crossing) {
   const { destination, transport, intent, payload } = crossing;
 
-  // Bifrost never acts as a generic open proxy. Every remote destination is
-  // selected from REALMS above, and each adapter exposes only a narrow action.
   if (destination === 'worldmonitor' && transport === 'mcp') {
     const result = await worldMonitorMcpCall('tools/list', {});
     if (!result.ok) return { result: `MCP DISCOVERY FAILED (${result.status})`, detail: result.text };
@@ -271,7 +291,12 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && url.pathname === '/api/bifrost/config') {
     return sendJson(req, res, 200, {
       realms: Object.fromEntries(Object.entries(REALMS).map(([id, realm]) => [id, { launchUrl: realm.launchUrl }])),
-      shadow: { configured: Boolean(SHADOWD_TOKEN), boundary: 'loopback-authenticated', publicCredentialExposure: false },
+      shadow: {
+        configured: Boolean(SHADOWD_TOKEN),
+        boundary: 'loopback-authenticated',
+        publicCredentialExposure: false,
+        hitlAuthenticated: Boolean(HITL_TOKEN && HITL_TOKEN.length >= 24),
+      },
       policy: 'allowlisted-fail-closed',
       allowedOrigins: [...ALLOWED_ORIGINS],
     });
@@ -295,8 +320,6 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // Shadow Subspace is intentionally exposed as a narrow governed adapter.
-  // The daemon bearer token never crosses this boundary into browser/Puter clients.
   if (req.method === 'GET' && url.pathname === '/api/bifrost/shadow/health') {
     return proxyShadow(req, res, '/health', { requireAuth: false });
   }
@@ -321,6 +344,8 @@ const server = http.createServer(async (req, res) => {
 
   const approvalMatch = url.pathname.match(/^\/api\/bifrost\/shadow\/sessions\/([^/]+)\/effects\/([^/]+)\/(approve|deny)$/);
   if (req.method === 'POST' && approvalMatch && isUuid(approvalMatch[1]) && isUuid(approvalMatch[2])) {
+    const hitl = requireHitlAssertion(req);
+    if (!hitl.ok) return sendJson(req, res, hitl.status, { error: hitl.error });
     try {
       const [, sessionId, effectId, decision] = approvalMatch;
       return proxyShadow(req, res, `/v1/shadow/sessions/${sessionId}/effects/${effectId}/${decision}`, { method: 'POST', body: await readJson(req) });
@@ -360,5 +385,6 @@ server.listen(PORT, HOST, () => {
   console.log(`[BIFROST] Hermes/Heimdall command center listening on http://${HOST}:${PORT}`);
   console.log('[BIFROST] Remote targets are allowlisted. No arbitrary proxy route is exposed.');
   console.log(`[BIFROST] Shadow Subspace adapter: ${SHADOWD_TOKEN ? 'configured' : 'disabled (missing CAMELOT_SHADOW_TOKEN)'}`);
+  console.log(`[BIFROST] Authenticated HITL: ${HITL_TOKEN && HITL_TOKEN.length >= 24 ? 'configured' : 'disabled'}`);
   console.log(`[BIFROST] Allowed UI origins: ${[...ALLOWED_ORIGINS].join(', ') || '(none)'}`);
 });
