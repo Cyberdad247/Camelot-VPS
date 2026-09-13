@@ -1,0 +1,55 @@
+name: VPS Hub Convergence Gate
+
+on:
+  pull_request:
+    paths:
+      - '.agent/**'
+      - 'contracts/**'
+      - 'crystal/**'
+      - 'apps/bifrost-hub/**'
+      - 'infra/systemd/bifrost.service'
+      - 'infra/systemd/camelot-critical.slice'
+      - 'CAMELOT_ARCHITECTURE_OVERVIEW.md'
+      - 'Makefile'
+      - '.github/workflows/vps-hub-convergence.yml'
+  push:
+    branches:
+      - 'feature/vps-hub-sovereign-convergence-v2'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vps-hub-convergence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-bifrost:
+    name: Native Bifrost Contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+      - name: Hub contract gate
+        run: make check-hub
+      - name: Build production Bifrost binary
+        run: make build-bifrost
+
+  experience-contract:
+    name: Experience Plane Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: TypeScript
+        run: npm run lint
+      - name: Production build
+        run: npm run build
