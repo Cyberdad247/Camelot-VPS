@@ -1,9 +1,9 @@
-.PHONY: build-all install clean check-hub build-bifrost build-operator build-receipts build-sentinel build-vfs build-state build-gideon build-arthur build-scheduler build-worldtree
+.PHONY: build-all install clean check-hub build-bifrost build-operator build-receipts build-sentinel build-vfs build-state build-gideon build-arthur build-scheduler build-worldtree build-node-agent build-hermes build-bitnet install-phase3 install-phase4
 
 PREFIX ?= /opt/camelot
 BIN_DIR = $(PREFIX)/bin
 
-build-all: build-bifrost build-operator build-receipts build-sentinel build-vfs build-state build-gideon build-arthur build-scheduler build-worldtree
+build-all: build-bifrost build-operator build-receipts build-sentinel build-vfs build-state build-gideon build-arthur build-scheduler build-worldtree build-node-agent
 
 build-bifrost:
 	@echo "=> Building Bifrost (Go)..."
@@ -22,7 +22,7 @@ check-hub:
 	@echo "=> Building World Tree projection gateway..."
 	cd apps/world-tree-api && go build -o /tmp/camelot-world-tree-check main.go
 	@echo "=> Validating Hub JSON contracts and crystal..."
-	jq empty contracts/bifrost-envelope.schema.json contracts/workspace-event.schema.json contracts/task-snapshot.schema.json contracts/receipt.schema.json contracts/gideon-verdict.schema.json contracts/arthur-resolution.schema.json crystal/vps-hub-integration-crystal.json
+	jq empty contracts/bifrost-envelope.schema.json contracts/workspace-event.schema.json contracts/task-snapshot.schema.json contracts/receipt.schema.json contracts/gideon-verdict.schema.json contracts/arthur-resolution.schema.json contracts/vfs-attestation.schema.json contracts/wasm-execution.schema.json crystal/vps-hub-integration-crystal.json
 	@echo "=> VPS Hub contract gate passed."
 
 build-operator:
@@ -73,6 +73,12 @@ build-arthur:
 	mkdir -p bin
 	cp target/release/arthur bin/
 
+build-node-agent:
+	@echo "=> Building Governed Node Agent (Rust / Wasmtime)..."
+	cargo build --release --manifest-path apps/node-agent/Cargo.toml
+	mkdir -p bin
+	cp target/release/node-agent bin/
+
 install: build-all
 	@echo "=> Installing binaries to $(BIN_DIR)"
 	mkdir -p $(BIN_DIR)
@@ -86,6 +92,7 @@ install: build-all
 	cp bin/arthur $(BIN_DIR)/
 	cp bin/task-scheduler $(BIN_DIR)/
 	cp bin/world-tree-api $(BIN_DIR)/
+	cp bin/node-agent $(BIN_DIR)/
 	@echo "=> Installing Static Assets..."
 	mkdir -p /opt/camelot/static
 	cp -r apps/operator-console/static/* /opt/camelot/static/ || true
@@ -97,12 +104,6 @@ install: build-all
 clean:
 	rm -rf bin/
 	cargo clean
-
-build-node-agent:
-	@echo "=> Building Node Agent (Rust)..."
-	cargo build --release --manifest-path apps/node-agent/Cargo.toml
-	mkdir -p bin
-	cp target/release/node-agent bin/
 
 build-hermes:
 	@echo "=> Building Hermes Adapter (Go)..."
