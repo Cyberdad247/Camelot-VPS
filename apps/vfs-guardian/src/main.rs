@@ -7,6 +7,7 @@ use axum::{
     Json, Router,
 };
 use camelot_crypto::KeyPair;
+use camelot_epoch::EpochSource;
 use camelot_lease::CapabilityLease;
 use camelot_vfs::{FileOperation, VfsAttestation};
 use serde::{Deserialize, Serialize};
@@ -28,7 +29,7 @@ struct AppState {
     api_token: Arc<String>,
     sentinel_issuer: Arc<String>,
     sentinel_public_key: Arc<String>,
-    authority_epoch: u64,
+    epoch_source: Arc<EpochSource>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -119,6 +120,7 @@ fn resource_uri(workspace_id: Uuid, relative: &Path) -> String {
 
 fn verify_lease(
     state: &AppState,
+    authority_epoch: u64,
     workspace_id: Uuid,
     operation: &FileOperation,
     resource: &str,
@@ -136,7 +138,7 @@ fn verify_lease(
     if !lease.is_valid() {
         return Err("VFS lease expired or revoked".into());
     }
-    if !lease.is_current_epoch(state.authority_epoch) {
+    if !lease.is_current_epoch(authority_epoch) {
         return Err("VFS lease authority epoch is stale".into());
     }
     if !lease.binds_session(workspace_id) {
@@ -182,22 +184,51 @@ async fn health_live() -> Json<serde_json::Value> {
     }))
 }
 
-async fn health_ready(State(state): State<AppState>) -> Json<serde_json::Value> {
-    Json(json!({
-        "status": "ready",
-        "service": "vfs-guardian",
-        "schema": "vfs-attestation/2",
-        "authorityEpoch": state.authority_epoch,
-        "sentinelIssuer": state.sentinel_issuer.as_str(),
-        "sentinelPublicKey": state.sentinel_public_key.as_str(),
-        "attestationSigner": state.signer.public_key_hex(),
-    }))
+async fn health_ready(
+    State(state): State<AppState>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    match state.epoch_source.current_epoch() {
+        Ok(authority_epoch) => (
+            StatusCode::OK,
+            Json(json!({
+                "status": "ready",
+                "service": "vfs-guardian",
+                "schema": "vfs-attestation/2",
+                "authorityEpoch": authority_epoch,
+                "dynamicEpoch": state.epoch_source.is_dynamic(),
+                "sentinelIssuer": state.sentinel_issuer.as_str(),
+                "sentinelPublicKey": state.sentinel_public_key.as_str(),
+                "attestationSigner": state.signer.public_key_hex(),
+            })),
+        ),
+        Err(error) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({
+                "status": "not_ready",
+                "service": "vfs-guardian",
+                "reason": error
+            })),
+        ),
+    }
 }
 
 async fn request_access(
     State(state): State<AppState>,
     Json(payload): Json<VfsRequest>,
 ) -> (StatusCode, Json<VfsResponse>) {
+    let authority_epoch = match state.epoch_source.current_epoch() {
+        Ok(epoch) => epoch,
+        Err(error) => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(VfsResponse {
+                    allowed: false,
+                    reason: format!("authority epoch unavailable: {error}"),
+                    attestation: None,
+                }),
+            )
+        }
+    };
     let relative = match safe_relative(&payload.operation.path) {
         Ok(path) => path,
         Err(reason) => return denied(reason),
@@ -205,6 +236,7 @@ async fn request_access(
     let resource = resource_uri(payload.workspace_id, &relative);
     if let Err(reason) = verify_lease(
         &state,
+        authority_epoch,
         payload.workspace_id,
         &payload.operation,
         &resource,
@@ -229,7 +261,7 @@ async fn request_access(
     let mut attestation = VfsAttestation::new_unsigned(
         payload.workspace_id,
         payload.lease.lease_id,
-        state.authority_epoch,
+        authority_epoch,
         resource,
         operation_hash,
         payload.operation.expected_hash.clone(),
@@ -276,13 +308,12 @@ async fn main() {
     }
     let sentinel_issuer =
         env::var("CAMELOT_SENTINEL_ISSUER").unwrap_or_else(|_| DEFAULT_SENTINEL_ISSUER.into());
-    let authority_epoch = env::var("CAMELOT_AUTHORITY_EPOCH")
-        .ok()
-        .and_then(|value| value.parse::<u64>().ok())
-        .unwrap_or(1);
-    if authority_epoch == 0 {
-        panic!("CAMELOT_AUTHORITY_EPOCH must be greater than zero");
-    }
+    let epoch_source = Arc::new(
+        EpochSource::from_environment().expect("load signed authority epoch source"),
+    );
+    let boot_epoch = epoch_source
+        .current_epoch()
+        .expect("verify current authority epoch at VFS startup");
     let signer_path = PathBuf::from(
         env::var("CAMELOT_VFS_SIGNING_KEY")
             .unwrap_or_else(|_| "/var/lib/camelot/vfs-guardian/attestation-ed25519.key".into()),
@@ -294,7 +325,7 @@ async fn main() {
         api_token: Arc::new(token),
         sentinel_issuer: Arc::new(sentinel_issuer),
         sentinel_public_key: Arc::new(sentinel_public_key),
-        authority_epoch,
+        epoch_source,
     };
 
     let protected = Router::new()
@@ -322,7 +353,8 @@ async fn main() {
         .await
         .expect("bind VFS Guardian");
     tracing::info!(
-        authority_epoch = state.authority_epoch,
+        authority_epoch = boot_epoch,
+        dynamic_epoch = state.epoch_source.is_dynamic(),
         sentinel_issuer = %state.sentinel_issuer,
         attestation_signer = %state.signer.public_key_hex(),
         "VFS Guardian signed preflight authority online"
