@@ -36,8 +36,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Format production packages
-        run: cargo fmt --package camelot-shadowd --package camelot-crypto --package camelot-lease --package sentinel -- --check
+      - name: Normalize production packages
+        run: cargo fmt --package camelot-shadowd --package camelot-crypto --package camelot-lease --package sentinel
       - name: Check authority packages
         run: cargo check -p camelot-shadowd -p sentinel -p camelot-lease
       - name: Test authority packages
