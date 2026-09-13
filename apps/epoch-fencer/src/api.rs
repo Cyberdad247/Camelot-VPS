@@ -73,7 +73,10 @@ pub async fn status(State(state): State<AppState>) -> Result<Json<EpochStatus>, 
             heartbeat,
         })
         .collect();
-    Ok(Json(EpochStatus { certificate, brains }))
+    Ok(Json(EpochStatus {
+        certificate,
+        brains,
+    }))
 }
 
 pub async fn heartbeat(
