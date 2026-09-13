@@ -17,6 +17,8 @@ pub struct CapabilityLease {
     pub issuer_id: String,
     #[serde(default)]
     pub nonce: String,
+    #[serde(default)]
+    pub authority_epoch: u64,
     pub revoked: bool,
     #[serde(default)]
     pub issuer_public_key: Option<String>,
@@ -49,6 +51,10 @@ impl CapabilityLease {
         self.session_id == Some(session_id)
     }
 
+    pub fn is_current_epoch(&self, authority_epoch: u64) -> bool {
+        authority_epoch > 0 && self.authority_epoch == authority_epoch
+    }
+
     pub fn resource_allows(&self, resource: &str) -> bool {
         self.resource_bounds.iter().any(|bound| {
             if let Some(prefix) = bound.strip_suffix("/**") {
@@ -62,7 +68,8 @@ impl CapabilityLease {
     pub fn signing_payload(&self) -> Result<Vec<u8>, String> {
         let mut unsigned = self.clone();
         unsigned.signature = None;
-        serde_json::to_vec(&unsigned).map_err(|error| format!("serialize capability lease: {error}"))
+        serde_json::to_vec(&unsigned)
+            .map_err(|error| format!("serialize capability lease: {error}"))
     }
 
     pub fn sign_with(&mut self, signer: &KeyPair) -> Result<(), String> {
@@ -105,6 +112,7 @@ mod tests {
             expires_at: now + Duration::minutes(5),
             issuer_id: "sentinel".into(),
             nonce: Uuid::new_v4().to_string(),
+            authority_epoch: 7,
             revoked: false,
             issuer_public_key: None,
             signature: None,
@@ -124,5 +132,13 @@ mod tests {
         let lease = lease();
         assert!(lease.resource_allows("shadow://abc/workspace/src/main.rs"));
         assert!(!lease.resource_allows("shadow://other/workspace/src/main.rs"));
+    }
+
+    #[test]
+    fn authority_epoch_must_match() {
+        let lease = lease();
+        assert!(lease.is_current_epoch(7));
+        assert!(!lease.is_current_epoch(6));
+        assert!(!lease.is_current_epoch(0));
     }
 }
