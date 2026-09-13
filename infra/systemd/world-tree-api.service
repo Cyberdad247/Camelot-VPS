@@ -1,17 +1,26 @@
 [Unit]
-Description=Camelot World Tree Graph API
-After=network.target
+Description=Camelot World Tree Verified Projection Gateway
+After=network.target state-service.service
+Wants=state-service.service
 
 [Service]
 Type=simple
 Slice=camelot-control.slice
 ExecStart=/opt/camelot/bin/world-tree-api
 WorkingDirectory=/opt/camelot
-Restart=always
+Restart=on-failure
 RestartSec=3
-LimitNOFILE=65536
+LimitNOFILE=8192
 Environment=GOMAXPROCS=2
 Environment=GOGC=50
+Environment=CAMELOT_STATE_URL=http://127.0.0.1:3012
+EnvironmentFile=-/etc/camelot/world-tree-api.env
+MemoryHigh=96M
+MemoryMax=144M
+CPUQuota=20%
+TasksMax=48
+NoNewPrivileges=true
+PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target

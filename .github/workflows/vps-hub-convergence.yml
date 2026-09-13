@@ -1,0 +1,87 @@
+name: VPS Hub Convergence Gate
+
+on:
+  pull_request:
+    paths:
+      - '.agent/**'
+      - 'contracts/**'
+      - 'crystal/**'
+      - 'apps/bifrost-hub/**'
+      - 'apps/sentinel/**'
+      - 'apps/vfs-guardian/**'
+      - 'apps/state-service/**'
+      - 'apps/node-agent/**'
+      - 'crates/camelot-crypto/**'
+      - 'crates/camelot-lease/**'
+      - 'crates/camelot-vfs/**'
+      - 'infra/systemd/bifrost.service'
+      - 'infra/systemd/sentinel.service'
+      - 'infra/systemd/vfs-guardian.service'
+      - 'infra/systemd/state-service.service'
+      - 'infra/systemd/node-agent.service'
+      - 'infra/systemd/camelot-critical.slice'
+      - 'infra/systemd/camelot-workers.slice'
+      - '.env.example'
+      - 'Cargo.toml'
+      - 'CAMELOT_ARCHITECTURE_OVERVIEW.md'
+      - 'Makefile'
+      - '.github/workflows/vps-hub-convergence.yml'
+  push:
+    branches:
+      - 'feature/vps-hub-sovereign-convergence-v2'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vps-hub-convergence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-bifrost:
+    name: Native Bifrost Contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+      - name: Hub contract gate
+        run: make check-hub
+      - name: Build production Bifrost binary
+        run: make build-bifrost
+
+  authority-runtime:
+    name: Authority, VFS, State and Executor Runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format authority packages
+        run: cargo fmt --package camelot-crypto --package camelot-lease --package camelot-vfs --package sentinel --package vfs-guardian --package state-service --package node-agent -- --check
+      - name: Check authority packages
+        run: cargo check -p camelot-crypto -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian -p state-service -p node-agent
+      - name: Test authority packages
+        run: cargo test -p camelot-crypto -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian -p state-service -p node-agent
+      - name: Clippy authority packages
+        run: cargo clippy -p camelot-crypto -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian -p state-service -p node-agent --all-targets -- -D warnings
+
+  experience-contract:
+    name: Experience Plane Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: TypeScript
+        run: npm run lint
+      - name: Production build
+        run: npm run build

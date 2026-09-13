@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot-os.dev/contracts/arthur-resolution.schema.json",
+  "title": "Camelot Arthur Resolution",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "resolutionId",
+    "timestamp",
+    "tenantId",
+    "workspaceId",
+    "missionId",
+    "taskId",
+    "gideonVerdictId",
+    "manifestHash",
+    "resultHash",
+    "authorityEpoch",
+    "resolution",
+    "reason",
+    "effectAuthorized",
+    "signerPublicKey",
+    "signature"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "arthur-resolution/1" },
+    "resolutionId": { "type": "string", "format": "uuid" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "workspaceId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "missionId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "taskId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "gideonVerdictId": { "type": "string", "format": "uuid" },
+    "manifestHash": { "type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$" },
+    "resultHash": { "type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$" },
+    "authorityEpoch": { "type": "integer", "minimum": 1 },
+    "resolution": { "enum": ["RESOLVED", "RETRY", "REJECTED", "QUARANTINED"] },
+    "reason": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "effectAuthorized": { "const": false },
+    "signerPublicKey": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "signature": { "type": "string", "pattern": "^ed25519:[0-9a-fA-F]{128}$" }
+  }
+}

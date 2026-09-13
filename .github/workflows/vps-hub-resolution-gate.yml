@@ -1,0 +1,61 @@
+name: VPS Hub Resolution Gate
+
+on:
+  pull_request:
+    paths:
+      - 'apps/gideon/**'
+      - 'apps/arthur/**'
+      - 'apps/task-scheduler/**'
+      - 'apps/world-tree-api/**'
+      - 'contracts/gideon-verdict.schema.json'
+      - 'contracts/arthur-resolution.schema.json'
+      - 'infra/systemd/gideon.service'
+      - 'infra/systemd/arthur.service'
+      - '.github/workflows/vps-hub-resolution-gate.yml'
+  push:
+    branches:
+      - 'feature/vps-hub-sovereign-convergence-v2'
+
+permissions:
+  contents: read
+
+jobs:
+  resolution:
+    name: Gideon and Arthur Resolution
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format
+        run: cargo fmt --package gideon --package arthur -- --check
+      - name: Check
+        run: cargo check -p gideon -p arthur
+      - name: Test
+        run: cargo test -p gideon -p arthur
+      - name: Clippy
+        run: cargo clippy -p gideon -p arthur --all-targets -- -D warnings
+      - name: Contracts
+        run: jq empty contracts/gideon-verdict.schema.json contracts/arthur-resolution.schema.json
+
+  projection-ingress:
+    name: Projection and Proposal Ingress
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+      - name: Go formatting
+        run: |
+          test -z "$(gofmt -l apps/world-tree-api/main.go apps/task-scheduler/main.go)" || {
+            gofmt -d apps/world-tree-api/main.go apps/task-scheduler/main.go
+            exit 1
+          }
+      - name: Build projection gateway
+        run: cd apps/world-tree-api && go build main.go
+      - name: Build proposal ingress
+        run: cd apps/task-scheduler && go build main.go

@@ -12,8 +12,7 @@ use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{
-    env,
-    fs,
+    env, fs,
     io::Write,
     path::{Path, PathBuf},
     sync::Arc,
@@ -28,6 +27,11 @@ const ALLOWED_CAPABILITIES: &[&str] = &[
     "shadow.write",
     "shadow.plan",
     "bifrost.request",
+    "vfs:read",
+    "vfs:write",
+    "vfs:delete",
+    "vfs:quarantine",
+    "execute:wasm",
 ];
 
 #[derive(Clone)]
@@ -35,6 +39,7 @@ struct AppState {
     signer: Arc<KeyPair>,
     token: Arc<String>,
     tenant_id: Uuid,
+    authority_epoch: u64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -113,10 +118,16 @@ async fn require_token(
 }
 
 fn resource_allowed_for_session(resource: &str, session_id: Uuid) -> bool {
-    let workspace = format!("shadow://{session_id}/workspace");
-    resource == workspace
-        || resource == format!("{workspace}/**")
-        || resource.starts_with(&format!("{workspace}/"))
+    let shadow_workspace = format!("shadow://{session_id}/workspace");
+    let vfs_workspace = format!("vfs://{session_id}");
+    let executor = format!("executor://node-agent/{session_id}");
+    resource == shadow_workspace
+        || resource == format!("{shadow_workspace}/**")
+        || resource.starts_with(&format!("{shadow_workspace}/"))
+        || resource == vfs_workspace
+        || resource == format!("{vfs_workspace}/**")
+        || resource.starts_with(&format!("{vfs_workspace}/"))
+        || resource == executor
         || resource == "bifrost://governed"
 }
 
@@ -125,6 +136,7 @@ async fn identity(State(state): State<AppState>) -> Json<serde_json::Value> {
         "issuerId": SENTINEL_ISSUER,
         "publicKey": state.signer.public_key_hex(),
         "tenantId": state.tenant_id,
+        "authorityEpoch": state.authority_epoch,
         "maxLeaseSeconds": MAX_LEASE_SECONDS,
     }))
 }
@@ -135,6 +147,7 @@ async fn health(State(state): State<AppState>) -> Json<serde_json::Value> {
         "service": "sentinel",
         "issuerId": SENTINEL_ISSUER,
         "publicKey": state.signer.public_key_hex(),
+        "authorityEpoch": state.authority_epoch,
     }))
 }
 
@@ -144,26 +157,44 @@ async fn issue_lease(
 ) -> Result<(StatusCode, Json<CapabilityLease>), (StatusCode, Json<serde_json::Value>)> {
     let actor = request.actor_id.trim();
     if actor.is_empty() || actor.len() > 96 {
-        return Err((StatusCode::BAD_REQUEST, Json(json!({ "error": "invalid actor id" }))));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": "invalid actor id" })),
+        ));
     }
     if request.capabilities.is_empty() || request.capabilities.len() > ALLOWED_CAPABILITIES.len() {
-        return Err((StatusCode::BAD_REQUEST, Json(json!({ "error": "invalid capability set" }))));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": "invalid capability set" })),
+        ));
     }
     for capability in &request.capabilities {
         if !ALLOWED_CAPABILITIES.contains(&capability.as_str()) {
-            return Err((StatusCode::FORBIDDEN, Json(json!({ "error": format!("capability not issuable: {capability}") }))));
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": format!("capability not issuable: {capability}") })),
+            ));
         }
     }
     if request.resource_bounds.is_empty() || request.resource_bounds.len() > 4 {
-        return Err((StatusCode::BAD_REQUEST, Json(json!({ "error": "invalid resource bounds" }))));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": "invalid resource bounds" })),
+        ));
     }
     for resource in &request.resource_bounds {
         if !resource_allowed_for_session(resource, request.session_id) {
-            return Err((StatusCode::FORBIDDEN, Json(json!({ "error": format!("resource outside session authority: {resource}") }))));
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": format!("resource outside session authority: {resource}") })),
+            ));
         }
     }
 
-    let ttl = request.ttl_seconds.unwrap_or(300).clamp(30, MAX_LEASE_SECONDS);
+    let ttl = request
+        .ttl_seconds
+        .unwrap_or(300)
+        .clamp(30, MAX_LEASE_SECONDS);
     let now = Utc::now();
     let mut lease = CapabilityLease {
         lease_id: Uuid::new_v4(),
@@ -176,13 +207,17 @@ async fn issue_lease(
         expires_at: now + Duration::seconds(ttl),
         issuer_id: SENTINEL_ISSUER.into(),
         nonce: Uuid::new_v4().to_string(),
+        authority_epoch: state.authority_epoch,
         revoked: false,
         issuer_public_key: None,
         signature: None,
     };
-    lease
-        .sign_with(&state.signer)
-        .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": error }))))?;
+    lease.sign_with(&state.signer).map_err(|error| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": error })),
+        )
+    })?;
 
     Ok((StatusCode::CREATED, Json(lease)))
 }
@@ -200,23 +235,38 @@ async fn evaluate_policy(
         return deny(StatusCode::UNAUTHORIZED, "Lease issuer identity mismatch");
     }
     if let Err(error) = lease.verify_signature() {
-        return deny(StatusCode::UNAUTHORIZED, &format!("Invalid lease signature: {error}"));
+        return deny(
+            StatusCode::UNAUTHORIZED,
+            &format!("Invalid lease signature: {error}"),
+        );
     }
     if !lease.is_valid() {
         return deny(StatusCode::FORBIDDEN, "Lease expired or revoked");
     }
+    if !lease.is_current_epoch(state.authority_epoch) {
+        return deny(StatusCode::FORBIDDEN, "Lease authority epoch is stale");
+    }
     if !lease.has_capability(&manifest.required_lease_type) {
         return deny(
             StatusCode::FORBIDDEN,
-            &format!("Lease lacks required capability: {}", manifest.required_lease_type),
+            &format!(
+                "Lease lacks required capability: {}",
+                manifest.required_lease_type
+            ),
         );
     }
     if !lease.resource_allows(&manifest.target_resource) {
-        return deny(StatusCode::FORBIDDEN, "Target resource is outside lease bounds");
+        return deny(
+            StatusCode::FORBIDDEN,
+            "Target resource is outside lease bounds",
+        );
     }
     if let Some(session_id) = lease.session_id {
         if manifest.task_id != session_id {
-            return deny(StatusCode::FORBIDDEN, "Manifest is not bound to the lease session");
+            return deny(
+                StatusCode::FORBIDDEN,
+                "Manifest is not bound to the lease session",
+            );
         }
     }
 
@@ -224,7 +274,7 @@ async fn evaluate_policy(
         StatusCode::OK,
         Json(PolicyDecision {
             allowed: true,
-            reason: "Manifest authorized by Sentinel-signed capability lease".into(),
+            reason: "Manifest authorized by current Sentinel-signed capability lease".into(),
         }),
     )
 }
@@ -243,8 +293,9 @@ fn deny(status: StatusCode, reason: &str) -> (StatusCode, Json<PolicyDecision>) 
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let token = env::var("CAMELOT_SENTINEL_TOKEN")
-        .expect("CAMELOT_SENTINEL_TOKEN must be set; Sentinel refuses unauthenticated authority requests");
+    let token = env::var("CAMELOT_SENTINEL_TOKEN").expect(
+        "CAMELOT_SENTINEL_TOKEN must be set; Sentinel refuses unauthenticated authority requests",
+    );
     if token.len() < 24 {
         panic!("CAMELOT_SENTINEL_TOKEN must contain at least 24 characters");
     }
@@ -257,10 +308,18 @@ async fn main() {
         .ok()
         .and_then(|value| Uuid::parse_str(&value).ok())
         .unwrap_or_else(Uuid::nil);
+    let authority_epoch = env::var("CAMELOT_AUTHORITY_EPOCH")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(1);
+    if authority_epoch == 0 {
+        panic!("CAMELOT_AUTHORITY_EPOCH must be greater than zero");
+    }
     let state = AppState {
         signer: Arc::new(signer),
         token: Arc::new(token),
         tenant_id,
+        authority_epoch,
     };
 
     let protected = Router::new()
@@ -279,9 +338,12 @@ async fn main() {
     info!(
         issuer = SENTINEL_ISSUER,
         public_key = %state.signer.public_key_hex(),
+        authority_epoch = state.authority_epoch,
         "Sentinel signed capability authority online"
     );
-    axum::serve(listener, app).await.expect("Sentinel server failed");
+    axum::serve(listener, app)
+        .await
+        .expect("Sentinel server failed");
 }
 
 #[cfg(test)]
@@ -289,14 +351,30 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bounds_shadow_resources_to_the_session() {
+    fn bounds_shadow_vfs_and_executor_resources_to_the_session() {
         let session = Uuid::new_v4();
         assert!(resource_allowed_for_session(
             &format!("shadow://{session}/workspace/**"),
             session
         ));
+        assert!(resource_allowed_for_session(
+            &format!("vfs://{session}/**"),
+            session
+        ));
+        assert!(resource_allowed_for_session(
+            &format!("executor://node-agent/{session}"),
+            session
+        ));
         assert!(!resource_allowed_for_session(
             "shadow://someone-else/workspace/**",
+            session
+        ));
+        assert!(!resource_allowed_for_session(
+            "vfs://someone-else/**",
+            session
+        ));
+        assert!(!resource_allowed_for_session(
+            "executor://node-agent/someone-else",
             session
         ));
     }

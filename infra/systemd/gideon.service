@@ -1,5 +1,5 @@
 [Unit]
-Description=Camelot Gideon Verifier
+Description=Camelot Gideon Evidence Verifier
 After=network.target
 
 [Service]
@@ -7,10 +7,26 @@ Type=simple
 Slice=camelot-control.slice
 ExecStart=/opt/camelot/bin/gideon
 WorkingDirectory=/opt/camelot
-Restart=always
+Restart=on-failure
 RestartSec=3
-LimitNOFILE=65536
+LimitNOFILE=4096
 Environment=RUST_LOG=info
+Environment=CAMELOT_GIDEON_HOST=127.0.0.1
+Environment=CAMELOT_GIDEON_PORT=3011
+Environment=CAMELOT_GIDEON_SIGNING_KEY=/var/lib/camelot/gideon/verdict-ed25519.key
+Environment=CAMELOT_AUTHORITY_EPOCH=1
+EnvironmentFile=-/etc/camelot/gideon.env
+StateDirectory=camelot/gideon
+UMask=0077
+MemoryHigh=96M
+MemoryMax=144M
+CPUQuota=25%
+TasksMax=48
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/camelot/gideon
 
 [Install]
 WantedBy=multi-user.target
