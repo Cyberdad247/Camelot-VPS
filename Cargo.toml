@@ -10,6 +10,7 @@ members = [
     "apps/state-service",
     "apps/node-agent",
     "apps/gideon",
+    "apps/arthur",
     "apps/shadowd"
 ]
 resolver = "2"
