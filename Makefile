@@ -18,7 +18,7 @@ check-hub:
 	@echo "=> Running Bifrost vet..."
 	cd apps/bifrost-hub && go vet ./...
 	@echo "=> Validating Hub JSON contracts and crystal..."
-	jq empty contracts/bifrost-envelope.schema.json contracts/workspace-event.schema.json contracts/task-snapshot.schema.json crystal/vps-hub-integration-crystal.json
+	jq empty contracts/bifrost-envelope.schema.json contracts/workspace-event.schema.json contracts/task-snapshot.schema.json contracts/receipt.schema.json crystal/vps-hub-integration-crystal.json
 	@echo "=> VPS Hub contract gate passed."
 
 build-operator:
