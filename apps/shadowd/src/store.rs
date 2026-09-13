@@ -1,7 +1,7 @@
 use crate::{ShadowReceipt, ShadowSession};
 use chrono::Utc;
 use sqlx::{sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous}, Row, SqlitePool};
-use std::{path::Path, str::FromStr, time::Duration};
+use std::{path::Path, time::Duration};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -9,8 +9,7 @@ pub(crate) struct ShadowStore { pool: SqlitePool }
 
 impl ShadowStore {
     pub(crate) async fn open(path: &Path) -> Result<Self, String> {
-        let options = SqliteConnectOptions::from_str("sqlite::memory:")
-            .map_err(|e| e.to_string())?
+        let options = SqliteConnectOptions::new()
             .filename(path)
             .create_if_missing(true)
             .journal_mode(SqliteJournalMode::Wal)
