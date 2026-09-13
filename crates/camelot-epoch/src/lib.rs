@@ -1,3 +1,6 @@
+pub mod source;
+pub use source::EpochSource;
+
 use camelot_crypto::{verify_detached_hex, KeyPair};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
