@@ -61,12 +61,12 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 
 func propose(client *http.Client, proposal ProposalRequest) (map[string]any, error) {
 	for name, value := range map[string]string{
-		"tenantId": proposal.TenantID,
+		"tenantId":    proposal.TenantID,
 		"workspaceId": proposal.WorkspaceID,
-		"missionId": proposal.MissionID,
-		"taskId": proposal.TaskID,
+		"missionId":   proposal.MissionID,
+		"taskId":      proposal.TaskID,
 		"cartridgeId": proposal.CartridgeID,
-		"traceId": proposal.TraceID,
+		"traceId":     proposal.TraceID,
 	} {
 		if !validScope(value) {
 			return nil, fmt.Errorf("invalid %s", name)
@@ -86,11 +86,11 @@ func propose(client *http.Client, proposal ProposalRequest) (map[string]any, err
 		Classification: "internal",
 		Visibility:     "operator",
 		Payload: map[string]any{
-			"taskId": proposal.TaskID,
-			"state": "PROPOSED",
+			"taskId":         proposal.TaskID,
+			"state":          "PROPOSED",
 			"authorityEpoch": authorityEpoch(),
-			"reason": "mission proposal accepted for policy evaluation",
-			"objective": proposal.Objective,
+			"reason":         "mission proposal accepted for policy evaluation",
+			"objective":      proposal.Objective,
 		},
 		Provenance: map[string]any{
 			"source": "merlin-task-scheduler",
@@ -141,11 +141,11 @@ func main() {
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{
-			"status": "ready",
-			"service": "merlin-task-scheduler",
-			"role": "proposal-ingress",
+			"status":          "ready",
+			"service":         "merlin-task-scheduler",
+			"role":            "proposal-ingress",
 			"effectAuthority": false,
-			"stateService": stateURL,
+			"stateService":    stateURL,
 		})
 	})
 
@@ -168,18 +168,18 @@ func main() {
 			return
 		}
 		writeJSON(w, http.StatusAccepted, map[string]any{
-			"status": "proposed",
-			"nextGate": "sentinel",
+			"status":          "proposed",
+			"nextGate":        "sentinel",
 			"effectAuthority": false,
-			"event": event,
+			"event":           event,
 		})
 	})
 
 	mux.HandleFunc("/schedule/dag", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusGone, map[string]any{
-			"error": "mock DAG admission endpoint removed",
+			"error":       "mock DAG admission endpoint removed",
 			"replacement": "/schedule/proposal",
-			"reason": "a scheduler cannot claim admission before Sentinel and downstream gates produce evidence",
+			"reason":      "a scheduler cannot claim admission before Sentinel and downstream gates produce evidence",
 		})
 	})
 
