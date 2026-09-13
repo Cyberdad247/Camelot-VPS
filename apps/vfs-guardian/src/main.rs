@@ -58,13 +58,12 @@ fn denied(reason: impl Into<String>) -> (StatusCode, Json<VfsResponse>) {
 
 fn load_or_create_signer(path: &Path) -> Result<KeyPair, String> {
     if path.exists() {
-        let raw = fs::read_to_string(path)
-            .map_err(|error| format!("read VFS signing key: {error}"))?;
+        let raw =
+            fs::read_to_string(path).map_err(|error| format!("read VFS signing key: {error}"))?;
         return KeyPair::from_secret_hex(raw.trim());
     }
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|error| format!("create VFS key directory: {error}"))?;
+        fs::create_dir_all(parent).map_err(|error| format!("create VFS key directory: {error}"))?;
     }
     let key = KeyPair::generate();
     let mut options = fs::OpenOptions::new();
@@ -267,11 +266,15 @@ async fn main() {
     }
     let sentinel_public_key = env::var("CAMELOT_SENTINEL_PUBLIC_KEY")
         .expect("CAMELOT_SENTINEL_PUBLIC_KEY must pin the active Sentinel identity");
-    if sentinel_public_key.len() != 64 || !sentinel_public_key.bytes().all(|value| value.is_ascii_hexdigit()) {
+    if sentinel_public_key.len() != 64
+        || !sentinel_public_key
+            .bytes()
+            .all(|value| value.is_ascii_hexdigit())
+    {
         panic!("CAMELOT_SENTINEL_PUBLIC_KEY must be a 32-byte Ed25519 public key in hex");
     }
-    let sentinel_issuer = env::var("CAMELOT_SENTINEL_ISSUER")
-        .unwrap_or_else(|_| DEFAULT_SENTINEL_ISSUER.into());
+    let sentinel_issuer =
+        env::var("CAMELOT_SENTINEL_ISSUER").unwrap_or_else(|_| DEFAULT_SENTINEL_ISSUER.into());
     let authority_epoch = env::var("CAMELOT_AUTHORITY_EPOCH")
         .ok()
         .and_then(|value| value.parse::<u64>().ok())
@@ -283,7 +286,8 @@ async fn main() {
         env::var("CAMELOT_VFS_SIGNING_KEY")
             .unwrap_or_else(|_| "/var/lib/camelot/vfs-guardian/attestation-ed25519.key".into()),
     );
-    let signer = load_or_create_signer(&signer_path).expect("load VFS attestation signing identity");
+    let signer =
+        load_or_create_signer(&signer_path).expect("load VFS attestation signing identity");
     let state = AppState {
         signer: Arc::new(signer),
         api_token: Arc::new(token),
@@ -303,7 +307,9 @@ async fn main() {
         .with_state(state.clone());
 
     let host = env::var("CAMELOT_VFS_HOST").unwrap_or_else(|_| "127.0.0.1".into());
-    let parsed_host: IpAddr = host.parse().expect("CAMELOT_VFS_HOST must be an IP address");
+    let parsed_host: IpAddr = host
+        .parse()
+        .expect("CAMELOT_VFS_HOST must be an IP address");
     if !parsed_host.is_loopback() {
         panic!("VFS Guardian must remain loopback-only behind Camelot transport controls");
     }
@@ -343,7 +349,10 @@ mod tests {
         let valid = format!("sha256:{}", "a".repeat(64));
         assert!(valid_sha256_reference(&valid));
         assert!(!valid_sha256_reference("sha256:short"));
-        assert!(!valid_sha256_reference(&format!("sha256:{}", "z".repeat(64))));
+        assert!(!valid_sha256_reference(&format!(
+            "sha256:{}",
+            "z".repeat(64)
+        )));
     }
 
     #[test]
