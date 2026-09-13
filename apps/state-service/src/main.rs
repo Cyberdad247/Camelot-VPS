@@ -3,7 +3,7 @@ mod model;
 mod store;
 
 use api::ApiState;
-use std::{env, net::IpAddr};
+use std::{env, net::IpAddr, sync::Arc};
 use store::StateStore;
 use tokio::sync::broadcast;
 use tracing::info;
@@ -22,14 +22,22 @@ async fn main() {
 
     let database_url = env::var("CAMELOT_STATE_DATABASE_URL")
         .unwrap_or_else(|_| "sqlite:///var/lib/camelot/state/runtime.sqlite3".into());
+    let receipt_base_url = env::var("CAMELOT_RECEIPT_URL")
+        .unwrap_or_else(|_| "http://127.0.0.1:3001".into());
     let store = StateStore::open(&database_url)
         .await
         .expect("initialize authoritative state database");
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .expect("build receipt verification client");
     let (events, _) = broadcast::channel(1024);
     let app = api::router(ApiState {
         store,
         authority_epoch,
         events,
+        receipt_base_url: Arc::new(receipt_base_url),
+        client,
     });
 
     let host = env::var("CAMELOT_STATE_HOST").unwrap_or_else(|_| "127.0.0.1".into());
