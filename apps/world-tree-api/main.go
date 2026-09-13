@@ -146,15 +146,15 @@ func main() {
 	// Old demo routes must never invent graph truth. Clients should migrate to workspace projections.
 	mux.HandleFunc("/api/graph/nodes", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusGone, map[string]any{
-			"error": "legacy mock graph projection removed",
-			"replacement": "/api/workspaces/{workspaceId}/snapshot?tenantId={tenantId}",
+			"error":        "legacy mock graph projection removed",
+			"replacement":  "/api/workspaces/{workspaceId}/snapshot?tenantId={tenantId}",
 			"verifiedOnly": true,
 		})
 	})
 	mux.HandleFunc("/api/graph/stream", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusGone, map[string]any{
-			"error": "legacy synthetic event stream removed",
-			"replacement": "/api/workspaces/{workspaceId}/stream?tenantId={tenantId}",
+			"error":        "legacy synthetic event stream removed",
+			"replacement":  "/api/workspaces/{workspaceId}/stream?tenantId={tenantId}",
 			"verifiedOnly": true,
 		})
 	})
