@@ -171,18 +171,19 @@ impl LedgerStore {
         .fetch_all(&self.pool)
         .await
         .map_err(|error| format!("list receipts: {error}"))?;
-        rows.into_iter()
-            .map(|row| {
-                let raw: String = row
-                    .try_get("receipt_json")
-                    .map_err(|error| format!("decode receipt row: {error}"))?;
-                serde_json::from_str(&raw).map_err(|error| format!("decode receipt JSON: {error}"))
-            })
-            .collect()
+        decode_receipts(rows)
+    }
+
+    async fn all_receipts(&self) -> Result<Vec<Receipt>, String> {
+        let rows = sqlx::query("SELECT receipt_json FROM receipts ORDER BY sequence ASC")
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|error| format!("read full receipt chain: {error}"))?;
+        decode_receipts(rows)
     }
 
     pub async fn verify_chain(&self) -> Result<(), String> {
-        let receipts = self.list(-1, 100_000).await?;
+        let receipts = self.all_receipts().await?;
         let mut expected_sequence = 0_u64;
         let mut expected_parent: Option<String> = None;
         for receipt in receipts {
@@ -202,8 +203,38 @@ impl LedgerStore {
             expected_parent = Some(receipt.receipt_hash.clone());
             expected_sequence += 1;
         }
+
+        let meta = sqlx::query("SELECT next_sequence, head_hash FROM ledger_meta WHERE id = 1")
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|error| format!("read ledger metadata: {error}"))?;
+        let next_sequence: i64 = meta
+            .try_get("next_sequence")
+            .map_err(|error| format!("decode ledger metadata sequence: {error}"))?;
+        let head_hash: Option<String> = meta
+            .try_get("head_hash")
+            .map_err(|error| format!("decode ledger metadata head: {error}"))?;
+        if next_sequence as u64 != expected_sequence {
+            return Err(format!(
+                "ledger metadata sequence mismatch: expected {expected_sequence}, got {next_sequence}"
+            ));
+        }
+        if head_hash != expected_parent {
+            return Err("ledger metadata head hash does not match verified receipt chain".into());
+        }
         Ok(())
     }
+}
+
+fn decode_receipts(rows: Vec<sqlx::sqlite::SqliteRow>) -> Result<Vec<Receipt>, String> {
+    rows.into_iter()
+        .map(|row| {
+            let raw: String = row
+                .try_get("receipt_json")
+                .map_err(|error| format!("decode receipt row: {error}"))?;
+            serde_json::from_str(&raw).map_err(|error| format!("decode receipt JSON: {error}"))
+        })
+        .collect()
 }
 
 fn validate_draft(draft: &ReceiptDraft, authority_epoch: u64) -> Result<(), String> {
