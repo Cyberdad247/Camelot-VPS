@@ -1,0 +1,73 @@
+schema_version: camelot-capacity/2
+node:
+  id: cybertronia
+  profile: primary_vps
+  ram_physical_mib: 8192
+  operational_cap_mib: 7373
+  safety_reserve_mib: 1485
+
+budgets:
+  core_authority:
+    target_mib: 1280
+    includes:
+      - bifrost
+      - sentinel
+      - excalibur
+      - gideon
+      - arthur
+      - ledger
+  postgresql:
+    target_mib: 1024
+  sqlite_vss:
+    target_mib: 768
+  minio:
+    target_mib: 512
+  execution_control:
+    target_mib: 768
+    includes:
+      - moon
+      - agentbus
+      - scheduler
+      - nanobot_control
+  pwa_observability:
+    target_mib: 512
+  os_and_safety_reserve:
+    target_mib: 1485
+  burst_allowance:
+    target_mib: 1024
+
+shedding_order:
+  - evaluation_chamber
+  - background_nanobot_work
+  - graph_indexing
+  - analytics_and_visual_enrichment
+  - external_adapters
+
+preserve_under_pressure:
+  - bifrost
+  - sentinel
+  - excalibur
+  - gideon
+  - arthur
+  - ledger
+  - postgresql
+
+runtime_policy:
+  cgroups_v2: required
+  oom_policy: stop
+  per_service_non_root_user: required
+  explicit_writable_paths: required
+  destination_allowlists: required
+  no_ambient_capabilities: true
+  no_docker_runtime: true
+  no_kubernetes_runtime: true
+  no_node_api_hot_path: true
+  no_python_authority_hot_path: true
+
+alerts:
+  memory_pressure_percent: 90
+  operational_cap_mib: 7373
+  response:
+    first: shed_low_priority_work
+    second: stop_new_noncritical_admission
+    never: bypass_authority_controls
