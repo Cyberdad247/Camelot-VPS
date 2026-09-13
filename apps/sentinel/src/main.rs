@@ -7,6 +7,7 @@ use axum::{
     Json, Router,
 };
 use camelot_crypto::KeyPair;
+use camelot_epoch::EpochSource;
 use camelot_lease::{CapabilityLease, EffectManifest};
 use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
@@ -39,7 +40,7 @@ struct AppState {
     signer: Arc<KeyPair>,
     token: Arc<String>,
     tenant_id: Uuid,
-    authority_epoch: u64,
+    epoch_source: Arc<EpochSource>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -131,30 +132,64 @@ fn resource_allowed_for_session(resource: &str, session_id: Uuid) -> bool {
         || resource == "bifrost://governed"
 }
 
-async fn identity(State(state): State<AppState>) -> Json<serde_json::Value> {
-    Json(json!({
-        "issuerId": SENTINEL_ISSUER,
-        "publicKey": state.signer.public_key_hex(),
-        "tenantId": state.tenant_id,
-        "authorityEpoch": state.authority_epoch,
-        "maxLeaseSeconds": MAX_LEASE_SECONDS,
-    }))
+fn current_epoch(state: &AppState) -> Result<u64, String> {
+    state.epoch_source.current_epoch()
 }
 
-async fn health(State(state): State<AppState>) -> Json<serde_json::Value> {
-    Json(json!({
-        "status": "ready",
-        "service": "sentinel",
-        "issuerId": SENTINEL_ISSUER,
-        "publicKey": state.signer.public_key_hex(),
-        "authorityEpoch": state.authority_epoch,
-    }))
+async fn identity(State(state): State<AppState>) -> (StatusCode, Json<serde_json::Value>) {
+    match current_epoch(&state) {
+        Ok(epoch) => (
+            StatusCode::OK,
+            Json(json!({
+                "issuerId": SENTINEL_ISSUER,
+                "publicKey": state.signer.public_key_hex(),
+                "tenantId": state.tenant_id,
+                "authorityEpoch": epoch,
+                "dynamicEpoch": state.epoch_source.is_dynamic(),
+                "maxLeaseSeconds": MAX_LEASE_SECONDS,
+            })),
+        ),
+        Err(error) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({ "error": format!("authority epoch unavailable: {error}") })),
+        ),
+    }
+}
+
+async fn health(State(state): State<AppState>) -> (StatusCode, Json<serde_json::Value>) {
+    match current_epoch(&state) {
+        Ok(epoch) => (
+            StatusCode::OK,
+            Json(json!({
+                "status": "ready",
+                "service": "sentinel",
+                "issuerId": SENTINEL_ISSUER,
+                "publicKey": state.signer.public_key_hex(),
+                "authorityEpoch": epoch,
+                "dynamicEpoch": state.epoch_source.is_dynamic(),
+            })),
+        ),
+        Err(error) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({
+                "status": "not_ready",
+                "service": "sentinel",
+                "reason": error
+            })),
+        ),
+    }
 }
 
 async fn issue_lease(
     State(state): State<AppState>,
     Json(request): Json<IssueLeaseRequest>,
 ) -> Result<(StatusCode, Json<CapabilityLease>), (StatusCode, Json<serde_json::Value>)> {
+    let authority_epoch = current_epoch(&state).map_err(|error| {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({ "error": format!("authority epoch unavailable: {error}") })),
+        )
+    })?;
     let actor = request.actor_id.trim();
     if actor.is_empty() || actor.len() > 96 {
         return Err((
@@ -207,7 +242,7 @@ async fn issue_lease(
         expires_at: now + Duration::seconds(ttl),
         issuer_id: SENTINEL_ISSUER.into(),
         nonce: Uuid::new_v4().to_string(),
-        authority_epoch: state.authority_epoch,
+        authority_epoch,
         revoked: false,
         issuer_public_key: None,
         signature: None,
@@ -226,6 +261,15 @@ async fn evaluate_policy(
     State(state): State<AppState>,
     Json(payload): Json<EvaluationRequest>,
 ) -> (StatusCode, Json<PolicyDecision>) {
+    let authority_epoch = match current_epoch(&state) {
+        Ok(epoch) => epoch,
+        Err(error) => {
+            return deny(
+                StatusCode::SERVICE_UNAVAILABLE,
+                &format!("Authority epoch unavailable: {error}"),
+            )
+        }
+    };
     let lease = payload.lease;
     let manifest = payload.manifest;
 
@@ -243,7 +287,7 @@ async fn evaluate_policy(
     if !lease.is_valid() {
         return deny(StatusCode::FORBIDDEN, "Lease expired or revoked");
     }
-    if !lease.is_current_epoch(state.authority_epoch) {
+    if !lease.is_current_epoch(authority_epoch) {
         return deny(StatusCode::FORBIDDEN, "Lease authority epoch is stale");
     }
     if !lease.has_capability(&manifest.required_lease_type) {
@@ -308,18 +352,17 @@ async fn main() {
         .ok()
         .and_then(|value| Uuid::parse_str(&value).ok())
         .unwrap_or_else(Uuid::nil);
-    let authority_epoch = env::var("CAMELOT_AUTHORITY_EPOCH")
-        .ok()
-        .and_then(|value| value.parse::<u64>().ok())
-        .unwrap_or(1);
-    if authority_epoch == 0 {
-        panic!("CAMELOT_AUTHORITY_EPOCH must be greater than zero");
-    }
+    let epoch_source = Arc::new(
+        EpochSource::from_environment().expect("load signed authority epoch source"),
+    );
+    let boot_epoch = epoch_source
+        .current_epoch()
+        .expect("verify current authority epoch at Sentinel startup");
     let state = AppState {
         signer: Arc::new(signer),
         token: Arc::new(token),
         tenant_id,
-        authority_epoch,
+        epoch_source,
     };
 
     let protected = Router::new()
@@ -338,7 +381,8 @@ async fn main() {
     info!(
         issuer = SENTINEL_ISSUER,
         public_key = %state.signer.public_key_hex(),
-        authority_epoch = state.authority_epoch,
+        authority_epoch = boot_epoch,
+        dynamic_epoch = state.epoch_source.is_dynamic(),
         "Sentinel signed capability authority online"
     );
     axum::serve(listener, app)
