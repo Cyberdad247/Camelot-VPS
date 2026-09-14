@@ -310,13 +310,10 @@ impl NotebookLmMcp {
             }
         });
         let (_, session) = self.post_rpc(initialize, None).await?;
-        let session = session.ok_or_else(|| {
-            "NotebookLM MCP did not return Mcp-Session-Id during initialize".to_string()
-        })?;
 
         self.post_rpc(
             json!({ "jsonrpc": "2.0", "method": "notifications/initialized" }),
-            Some(&session),
+            session.as_deref(),
         )
         .await?;
 
@@ -333,7 +330,7 @@ impl NotebookLmMcp {
                 }
             }
         });
-        let (response, _) = self.post_rpc(call, Some(&session)).await?;
+        let (response, _) = self.post_rpc(call, session.as_deref()).await?;
         let response =
             response.ok_or_else(|| "NotebookLM MCP returned an empty tool response".to_string())?;
         extract_answer(&response)
@@ -347,17 +344,25 @@ fn parse_mcp_body(text: &str) -> Result<Value, String> {
     if let Ok(value) = serde_json::from_str::<Value>(text) {
         return Ok(value);
     }
+
+    let mut candidate = None;
     for line in text.lines() {
         if let Some(data) = line.strip_prefix("data:") {
             let data = data.trim();
-            if !data.is_empty() {
-                if let Ok(value) = serde_json::from_str::<Value>(data) {
-                    return Ok(value);
+            if data.is_empty() {
+                continue;
+            }
+            if let Ok(value) = serde_json::from_str::<Value>(data) {
+                if value.get("result").is_some()
+                    || value.get("error").is_some()
+                    || value.get("id").is_some()
+                {
+                    candidate = Some(value);
                 }
             }
         }
     }
-    Err("NotebookLM MCP response was neither JSON nor parseable SSE data".into())
+    candidate.ok_or_else(|| "NotebookLM MCP response was neither JSON nor parseable SSE data".into())
 }
 
 fn extract_answer(value: &Value) -> Result<(String, Value), String> {
@@ -631,7 +636,7 @@ async fn main() {
     let mcp_url = env::var("CAMELOT_NOTEBOOKLM_MCP_URL")
         .unwrap_or_else(|_| "http://127.0.0.1:8484/mcp".into());
     let mcp_health_url = env::var("CAMELOT_NOTEBOOKLM_MCP_HEALTH_URL")
-        .unwrap_or_else(|_| "http://127.0.0.1:8484/healthz".into());
+        .unwrap_or_else(|_| "http://127.0.0.1:8484/health".into());
     validate_loopback_url("CAMELOT_NOTEBOOKLM_MCP_URL", &mcp_url).expect("validate MCP URL");
     validate_loopback_url("CAMELOT_NOTEBOOKLM_MCP_HEALTH_URL", &mcp_health_url)
         .expect("validate MCP health URL");
@@ -728,6 +733,13 @@ mod tests {
         let (answer, references) = extract_answer(&value).expect("answer");
         assert_eq!(answer, "Camelot");
         assert_eq!(references.as_array().map(Vec::len), Some(1));
+    }
+
+    #[test]
+    fn stateless_mcp_body_is_supported() {
+        let body = "data: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"structuredContent\":{\"answer\":\"ok\"}}}\n\n";
+        let value = parse_mcp_body(body).expect("parse");
+        assert_eq!(value.get("id").and_then(Value::as_i64), Some(2));
     }
 
     #[test]
