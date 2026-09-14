@@ -33,6 +33,7 @@ const ALLOWED_CAPABILITIES: &[&str] = &[
     "vfs:delete",
     "vfs:quarantine",
     "execute:wasm",
+    "cloudbrain:retrieve",
 ];
 
 #[derive(Clone)]
@@ -122,6 +123,7 @@ fn resource_allowed_for_session(resource: &str, session_id: Uuid) -> bool {
     let shadow_workspace = format!("shadow://{session_id}/workspace");
     let vfs_workspace = format!("vfs://{session_id}");
     let executor = format!("executor://node-agent/{session_id}");
+    let cloudbrain = format!("cloudbrain://notebooklm/{session_id}");
     resource == shadow_workspace
         || resource == format!("{shadow_workspace}/**")
         || resource.starts_with(&format!("{shadow_workspace}/"))
@@ -129,6 +131,9 @@ fn resource_allowed_for_session(resource: &str, session_id: Uuid) -> bool {
         || resource == format!("{vfs_workspace}/**")
         || resource.starts_with(&format!("{vfs_workspace}/"))
         || resource == executor
+        || resource == cloudbrain
+        || resource == format!("{cloudbrain}/**")
+        || resource.starts_with(&format!("{cloudbrain}/"))
         || resource == "bifrost://governed"
 }
 
@@ -395,7 +400,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bounds_shadow_vfs_and_executor_resources_to_the_session() {
+    fn bounds_shadow_vfs_executor_and_cloudbrain_resources_to_the_session() {
         let session = Uuid::new_v4();
         assert!(resource_allowed_for_session(
             &format!("shadow://{session}/workspace/**"),
@@ -409,6 +414,10 @@ mod tests {
             &format!("executor://node-agent/{session}"),
             session
         ));
+        assert!(resource_allowed_for_session(
+            &format!("cloudbrain://notebooklm/{session}/notebook-a"),
+            session
+        ));
         assert!(!resource_allowed_for_session(
             "shadow://someone-else/workspace/**",
             session
@@ -419,6 +428,10 @@ mod tests {
         ));
         assert!(!resource_allowed_for_session(
             "executor://node-agent/someone-else",
+            session
+        ));
+        assert!(!resource_allowed_for_session(
+            "cloudbrain://notebooklm/someone-else/notebook-a",
             session
         ));
     }
