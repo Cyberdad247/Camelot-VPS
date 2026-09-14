@@ -7,9 +7,12 @@ export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
     resolve: {
-      alias: {
-        '@': path.resolve(__dirname, '.'),
-      },
+      alias: [
+        { find: '@', replacement: path.resolve(__dirname, '.') },
+        { find: /^three\/webgpu$/, replacement: path.resolve(__dirname, 'node_modules/three/build/three.webgpu.js') },
+        { find: /^three\/examples\/jsm\/(.*)/, replacement: path.resolve(__dirname, 'node_modules/three/examples/jsm/$1') },
+        { find: /^three$/, replacement: path.resolve(__dirname, 'node_modules/three/build/three.module.js') },
+      ],
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
