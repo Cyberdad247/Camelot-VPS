@@ -1,0 +1,28 @@
+{
+  "schema_version": "camelot-provider-lock/1",
+  "provider": "notebooklm-mcp-cli",
+  "display_name": "Gemini Notebook / NotebookLM MCP",
+  "version": "0.11.2",
+  "released_at": "2026-09-08",
+  "pypi_project": "notebooklm-mcp-cli",
+  "source_repository": "https://github.com/jacob-bd/gemini-notebook-mcp-cli",
+  "source_commit": "a5150cb5e5faa181231b009235ded34909857483",
+  "source_tag": "v0.11.2",
+  "wheel": {
+    "filename": "notebooklm_mcp_cli-0.11.2-py3-none-any.whl",
+    "sha256": "86f23f282d04e632a10d5612e29b3a0d4f8166320c74337bd9f2e0a5cd0dac12"
+  },
+  "sdist": {
+    "filename": "notebooklm_mcp_cli-0.11.2.tar.gz",
+    "sha256": "3811fe94a7fd323e1f9dbd1b89358e4b4394bf8c56e2f5bd5353cf578849068c"
+  },
+  "trusted_publishing": true,
+  "sigstore_transparency_entry": "2762339817",
+  "camelot_trust_class": "external_provider_evidence",
+  "authority": false,
+  "notes": [
+    "Provider uses undocumented/internal Google Notebook APIs and may change without notice.",
+    "Upgrade only through Evaluation Chamber review and a provider lock update.",
+    "Never grant this provider Sentinel, Ledger, VFS, Gideon, Arthur, or epoch signing material."
+  ]
+}
