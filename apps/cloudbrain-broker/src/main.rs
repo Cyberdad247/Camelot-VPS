@@ -362,7 +362,8 @@ fn parse_mcp_body(text: &str) -> Result<Value, String> {
             }
         }
     }
-    candidate.ok_or_else(|| "NotebookLM MCP response was neither JSON nor parseable SSE data".into())
+    candidate
+        .ok_or_else(|| "NotebookLM MCP response was neither JSON nor parseable SSE data".into())
 }
 
 fn extract_answer(value: &Value) -> Result<(String, Value), String> {
