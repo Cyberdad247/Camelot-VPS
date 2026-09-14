@@ -1,0 +1,45 @@
+[Unit]
+Description=Camelot NotebookLM MCP Sidecar (non-authority provider adapter)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=camelot-notebooklm
+Group=camelot
+Slice=camelot-workers.slice
+WorkingDirectory=/var/lib/camelot/notebooklm
+ExecStart=/opt/camelot/notebooklm-mcp/bin/notebooklm-mcp --transport http --host 127.0.0.1 --port 8484 --path /mcp --stateless
+Environment=HOME=/var/lib/camelot/notebooklm
+Environment=NOTEBOOKLM_HEADLESS_REAUTH=0
+EnvironmentFile=-/etc/camelot/notebooklm-mcp.env
+Restart=on-failure
+RestartSec=5
+
+# This sidecar is an external evidence provider. It never receives Sentinel signing
+# material, Ledger signing material, epoch signing credentials, or browser secrets.
+# Authentication bootstrap/refresh is handled out of band so this hardened service
+# does not launch an interactive browser inside the long-running provider sandbox.
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectKernelLogs=yes
+LockPersonality=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/camelot/notebooklm
+MemoryHigh=384M
+MemoryMax=640M
+CPUQuota=50%
+TasksMax=96
+
+[Install]
+WantedBy=multi-user.target

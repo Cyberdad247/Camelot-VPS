@@ -1,0 +1,50 @@
+[Unit]
+Description=Camelot Cloudbrain Broker (governed NotebookLM retrieval)
+After=network-online.target sentinel.service receipt-service.service epoch-fencer.service notebooklm-mcp.service
+Wants=network-online.target
+Requires=sentinel.service receipt-service.service epoch-fencer.service
+
+[Service]
+Type=simple
+User=camelot-cloudbrain
+Group=camelot
+Slice=camelot-workers.slice
+ExecStart=/opt/camelot/bin/cloudbrain-broker
+Environment=CAMELOT_CLOUDBRAIN_HOST=127.0.0.1
+Environment=CAMELOT_CLOUDBRAIN_PORT=3015
+Environment=CAMELOT_NOTEBOOKLM_MCP_URL=http://127.0.0.1:8484/mcp
+Environment=CAMELOT_NOTEBOOKLM_MCP_HEALTH_URL=http://127.0.0.1:8484/health
+Environment=CAMELOT_NOTEBOOKLM_QUERY_TOOL=notebook_query
+Environment=CAMELOT_NOTEBOOKLM_MCP_PROTOCOL_VERSION=2025-06-18
+Environment=CAMELOT_CLOUDBRAIN_MAX_TOKENS=8192
+Environment=CAMELOT_RECEIPT_URL=http://127.0.0.1:3001
+Environment=CAMELOT_CLOUDBRAIN_SIGNING_KEY=/var/lib/camelot/cloudbrain/context-ed25519.key
+EnvironmentFile=-/etc/camelot/cloudbrain.env
+Restart=on-failure
+RestartSec=2
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectKernelLogs=yes
+LockPersonality=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost
+ReadWritePaths=/var/lib/camelot/cloudbrain
+MemoryHigh=192M
+MemoryMax=320M
+CPUQuota=35%
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

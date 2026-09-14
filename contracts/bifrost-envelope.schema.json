@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot-os.dev/contracts/bifrost-envelope.schema.json",
+  "title": "Camelot Bifrost Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "type",
+    "lane",
+    "occurred_at",
+    "expires_at",
+    "routing",
+    "payload_hash",
+    "integrity"
+  ],
+  "properties": {
+    "schema_version": { "const": "bifrost/1" },
+    "id": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "type": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "lane": {
+      "enum": ["P0_CRITICAL", "P1_ACTIONABLE", "P2_DIGEST", "P3_TELEMETRY", "P4_RETRY", "RESERVE"]
+    },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "expires_at": { "type": "string", "format": "date-time" },
+    "routing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tenant_id", "workspace_id", "mission_id", "target", "correlation_id"],
+      "properties": {
+        "tenant_id": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "workspace_id": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "mission_id": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "target": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "correlation_id": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "idempotency_key": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-fA-F]{64}$"
+        }
+      }
+    },
+    "payload_ref": { "type": "string", "maxLength": 1024 },
+    "payload_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-fA-F]{64}$"
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["signer", "signature"],
+      "properties": {
+        "signer": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "signature": {
+          "type": "string",
+          "pattern": "^ed25519:[0-9a-fA-F]{128}$"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "lane": { "not": { "const": "P3_TELEMETRY" } } },
+        "required": ["lane"]
+      },
+      "then": {
+        "properties": {
+          "routing": { "required": ["idempotency_key"] }
+        }
+      }
+    }
+  ]
+}

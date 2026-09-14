@@ -1,0 +1,47 @@
+name: Cloudbrain NotebookLM Integration Gate
+
+on:
+  pull_request:
+    paths:
+      - 'apps/cloudbrain-broker/**'
+      - 'crates/camelot-cloudbrain/**'
+      - 'apps/sentinel/**'
+      - 'contracts/actor.schema.json'
+      - 'contracts/context-packet.schema.json'
+      - 'infra/systemd/cloudbrain-broker.service'
+      - 'infra/systemd/notebooklm-mcp.service'
+      - 'infra/notebooklm-mcp/provider.lock.json'
+      - 'scripts/install-notebooklm-mcp.sh'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'Makefile'
+      - '.github/workflows/cloudbrain-notebooklm.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cloudbrain-contract-and-runtime:
+    name: Governed Cloudbrain Broker
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format
+        run: cargo fmt --check --package camelot-cloudbrain --package cloudbrain-broker --package sentinel
+      - name: Check
+        run: cargo check --package camelot-cloudbrain --package cloudbrain-broker --package sentinel
+      - name: Test
+        run: cargo test --package camelot-cloudbrain --package cloudbrain-broker --package sentinel
+      - name: Clippy
+        run: cargo clippy --package camelot-cloudbrain --package cloudbrain-broker --package sentinel --all-targets -- -D warnings
+      - name: Validate contracts and provider lock
+        run: |
+          jq empty contracts/actor.schema.json contracts/context-packet.schema.json infra/notebooklm-mcp/provider.lock.json
+          test "$(jq -r '.provider' infra/notebooklm-mcp/provider.lock.json)" = "notebooklm-mcp-cli"
+          test "$(jq -r '.version' infra/notebooklm-mcp/provider.lock.json)" = "0.11.2"
+          test "$(jq -r '.authority' infra/notebooklm-mcp/provider.lock.json)" = "false"
+          test "$(jq -r '.camelot_trust_class' infra/notebooklm-mcp/provider.lock.json)" = "external_provider_evidence"

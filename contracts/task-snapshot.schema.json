@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot-os.dev/contracts/task-snapshot.schema.json",
+  "title": "Camelot Task Snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "missionId",
+    "taskId",
+    "state",
+    "authorityEpoch",
+    "updatedAt",
+    "lastEventId",
+    "lastSequence"
+  ],
+  "properties": {
+    "missionId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "taskId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "state": {
+      "enum": [
+        "PROPOSED",
+        "POLICY_PENDING",
+        "APPROVAL_PENDING",
+        "LEASED",
+        "VFS_PREFLIGHT",
+        "QUEUED",
+        "RUNNING",
+        "VERIFYING",
+        "RESOLVED",
+        "RECEIPTED",
+        "DENIED",
+        "FAILED",
+        "REVOKED",
+        "QUARANTINED"
+      ]
+    },
+    "authorityEpoch": { "type": "integer", "minimum": 1 },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "lastEventId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "lastSequence": { "type": "integer", "minimum": 0 },
+    "receiptId": { "type": ["string", "null"], "maxLength": 160 }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "state": { "const": "RECEIPTED" } } },
+      "then": { "required": ["receiptId"], "properties": { "receiptId": { "type": "string", "minLength": 1 } } }
+    }
+  ]
+}

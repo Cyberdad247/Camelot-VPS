@@ -1,17 +1,59 @@
 [Unit]
-Description=Camelot VFS Guardian
-After=network.target
-Wants=network-online.target
+Description=Camelot VFS Guardian Signed Preflight Authority
+After=sentinel.service
+Wants=sentinel.service
 
 [Service]
 Type=simple
+User=camelot-vfs
+Group=camelot
 Slice=camelot-critical.slice
 ExecStart=/opt/camelot/bin/vfs-guardian
 WorkingDirectory=/opt/camelot
-Restart=always
-RestartSec=3
-LimitNOFILE=65536
 Environment=RUST_LOG=info
+Environment=CAMELOT_VFS_HOST=127.0.0.1
+Environment=CAMELOT_VFS_PORT=3003
+Environment=CAMELOT_VFS_SIGNING_KEY=/var/lib/camelot/vfs-guardian/attestation-ed25519.key
+Environment=CAMELOT_SENTINEL_ISSUER=camelot-sentinel
+Environment=CAMELOT_AUTHORITY_EPOCH=1
+EnvironmentFile=-/etc/camelot/vfs-guardian.env
+Restart=on-failure
+RestartSec=3
+UMask=0077
+
+MemoryHigh=128M
+MemoryMax=192M
+CPUQuota=25%
+TasksMax=64
+LimitNOFILE=4096
+OOMPolicy=stop
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectHostname=true
+ProtectClock=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectProc=invisible
+ProcSubset=pid
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+ReadWritePaths=/var/lib/camelot/vfs-guardian /runtime/camelot/tasks
+
+# VFS Guardian is an internal preflight service. No public or arbitrary network.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost
 
 [Install]
 WantedBy=multi-user.target

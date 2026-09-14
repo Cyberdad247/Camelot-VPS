@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot.local/contracts/wasm-execution.schema.json",
+  "title": "Camelot Governed WASM Execution Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "taskId",
+    "workspaceId",
+    "artifactResourceUri",
+    "moduleSha256",
+    "wasmBase64",
+    "lease",
+    "vfsAttestation"
+  ],
+  "properties": {
+    "taskId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "workspaceId": { "type": "string", "format": "uuid" },
+    "artifactResourceUri": { "type": "string", "pattern": "^vfs://" },
+    "moduleSha256": { "type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$" },
+    "wasmBase64": { "type": "string", "minLength": 4, "maxLength": 699072 },
+    "lease": { "type": "object" },
+    "vfsAttestation": { "$ref": "./vfs-attestation.schema.json" }
+  }
+}

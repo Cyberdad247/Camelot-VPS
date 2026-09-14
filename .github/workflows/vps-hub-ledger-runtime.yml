@@ -1,0 +1,38 @@
+name: VPS Hub Ledger Runtime Gate
+
+on:
+  pull_request:
+    paths:
+      - 'apps/receipt-service/**'
+      - 'crates/camelot-receipts/**'
+      - 'crates/camelot-crypto/**'
+      - 'contracts/receipt.schema.json'
+      - 'infra/systemd/receipt-service.service'
+      - '.github/workflows/vps-hub-ledger-runtime.yml'
+  push:
+    branches:
+      - 'feature/vps-hub-sovereign-convergence-v2'
+
+permissions:
+  contents: read
+
+jobs:
+  receipt-ledger:
+    name: Signed Receipt Ledger
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format
+        run: cargo fmt --package camelot-crypto --package camelot-receipts --package receipt-service -- --check
+      - name: Check
+        run: cargo check -p camelot-crypto -p camelot-receipts -p receipt-service
+      - name: Test
+        run: cargo test -p camelot-crypto -p camelot-receipts -p receipt-service
+      - name: Clippy
+        run: cargo clippy -p camelot-crypto -p camelot-receipts -p receipt-service --all-targets -- -D warnings
+      - name: Contract JSON
+        run: jq empty contracts/receipt.schema.json

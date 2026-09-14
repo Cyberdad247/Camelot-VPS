@@ -1,16 +1,53 @@
 [Unit]
-Description=Camelot Node Agent (Wasmtime)
-After=network.target
+Description=Camelot Governed Node Agent (Wasmtime)
+After=network.target sentinel.service vfs-guardian.service
+Wants=sentinel.service vfs-guardian.service
 
 [Service]
 Type=simple
+User=camelot-node-agent
+Group=camelot
 Slice=camelot-workers.slice
 ExecStart=/opt/camelot/bin/node-agent
 WorkingDirectory=/opt/camelot
-Restart=always
-RestartSec=3
-LimitNOFILE=65536
 Environment=RUST_LOG=info
+Environment=CAMELOT_NODE_AGENT_HOST=127.0.0.1
+Environment=CAMELOT_NODE_AGENT_PORT=3010
+Environment=CAMELOT_NODE_AGENT_MAX_FUEL=10000000
+Environment=CAMELOT_AUTHORITY_EPOCH=1
+EnvironmentFile=-/etc/camelot/node-agent.env
+Restart=on-failure
+RestartSec=3
+UMask=0077
+LimitNOFILE=4096
+MemoryHigh=320M
+MemoryMax=448M
+CPUQuota=60%
+TasksMax=96
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectHostname=true
+ProtectClock=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectProc=invisible
+ProcSubset=pid
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+MemoryDenyWriteExecute=false
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost
 
 [Install]
 WantedBy=multi-user.target

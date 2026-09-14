@@ -1,0 +1,17 @@
+[package]
+name = "epoch-fencer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.7"
+camelot-crypto = { path = "../../crates/camelot-crypto" }
+camelot-epoch = { path = "../../crates/camelot-epoch" }
+chrono = { version = "0.4.34", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "sqlite"] }
+tokio = { version = "1.36", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+uuid = { version = "1.7", features = ["v4", "serde"] }

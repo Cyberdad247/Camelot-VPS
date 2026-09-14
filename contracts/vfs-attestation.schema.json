@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot.local/contracts/vfs-attestation.schema.json",
+  "title": "Camelot VFS Attestation v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "attestation_id",
+    "workspace_id",
+    "lease_id",
+    "epoch",
+    "resource_uri",
+    "operation_hash",
+    "timestamp",
+    "signer_public_key",
+    "vfs_signature"
+  ],
+  "properties": {
+    "schema_version": { "const": "vfs-attestation/2" },
+    "attestation_id": { "type": "string", "format": "uuid" },
+    "workspace_id": { "type": "string", "format": "uuid" },
+    "lease_id": { "type": "string", "format": "uuid" },
+    "epoch": { "type": "integer", "minimum": 1 },
+    "resource_uri": { "type": "string", "pattern": "^vfs://" },
+    "operation_hash": { "type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$" },
+    "content_hash": {
+      "oneOf": [
+        { "type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$" },
+        { "type": "null" }
+      ]
+    },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "signer_public_key": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "vfs_signature": { "type": "string", "pattern": "^[0-9a-fA-F]{128}$" }
+  }
+}

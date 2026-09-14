@@ -1,0 +1,33 @@
+[Unit]
+Description=Camelot Arthur Final Resolution Gate
+After=network.target gideon.service
+Wants=gideon.service
+
+[Service]
+Type=simple
+Slice=camelot-control.slice
+ExecStart=/opt/camelot/bin/arthur
+WorkingDirectory=/opt/camelot
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=4096
+Environment=RUST_LOG=info
+Environment=CAMELOT_ARTHUR_HOST=127.0.0.1
+Environment=CAMELOT_ARTHUR_PORT=3013
+Environment=CAMELOT_ARTHUR_SIGNING_KEY=/var/lib/camelot/arthur/resolution-ed25519.key
+Environment=CAMELOT_AUTHORITY_EPOCH=1
+EnvironmentFile=-/etc/camelot/arthur.env
+StateDirectory=camelot/arthur
+UMask=0077
+MemoryHigh=96M
+MemoryMax=144M
+CPUQuota=20%
+TasksMax=48
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/camelot/arthur
+
+[Install]
+WantedBy=multi-user.target

@@ -1,72 +1,202 @@
-# Camelot-OS: The Hyper-Efficient AI Operating System
-**An Architecture Guide (Explained Simply)**
+# Camelot-OS VPS Hub — Sovereign Control Plane Architecture
 
-Imagine trying to fit a massive, highly-trained corporate team into a tiny studio apartment, and still expecting them to work flawlessly without bumping into each other. 
+**Node:** Cybertronia  
+**Profile:** Primary VPS, 8 GB  
+**Binding baseline:** `CAMELOT-OS-SADD-LLDD-vMAX-20260912` v2.0.0  
+**Status:** Living architecture. Implementation is converging toward the binding baseline and must not be described as fully production-ready until the release gates pass.
 
-In the software world, running complex Artificial Intelligence (AI) usually requires massive, expensive servers. **Camelot-OS** is a revolutionary operating system designed to do the impossible: run an advanced, highly-secure AI agent network on a cheap, basic computer with only 8 Gigabytes of memory (the same amount of memory in a standard smartphone or budget laptop).
+## Architectural axiom
 
-We call this the **8GB Scarcity Protocol**. To achieve this, we had to throw away all the bulky, standard software tools (like Docker or heavy virtual machines) and build a custom, ultra-lean facility from the ground up.
+> MODEL SELECTS. CAMELOT RESOLVES. CAMELOT AUTHORIZES. CAMELOT RENDERS.
 
-Here is a tour of how the Camelot-OS facility works.
+A model output is a proposal. Network connectivity is transport. UI state is a projection. None of those are authority.
 
----
+## What the VPS Hub is
 
-## 🏢 The Departments (Core Architecture)
+The Camelot-OS VPS Hub is the active control, trust, evidence, and coordination plane for the Camelot mesh. It converts authenticated intent into bounded, tenant-scoped work while preserving human authority over consequential effects.
 
-Think of Camelot-OS as a highly secure, specialized research facility. Every piece of software is a specific "department" with a strict job and a strict memory budget.
+```text
+User / Operator
+    │
+    ▼
+Ecoshell / World Tree / Mobile Orb
+    │  HTTPS + authenticated session
+    ▼
+Cybertronia VPS Hub
+    ├─ Bifrost      trust + transport admission
+    ├─ Sentinel     policy + capability leases + revocation
+    ├─ Excalibur    exact-manifest human approval
+    ├─ VFS Guardian workspace/path/resource preflight
+    ├─ Moon/AgentBus bounded scheduling and dispatch
+    ├─ Wasmtime     trusted constrained Pills
+    ├─ Firecracker  untrusted evaluation chamber
+    ├─ Gideon       independent verification
+    ├─ Arthur       final completion/promotion resolution
+    ├─ Ledger       append-only signed receipt chain
+    ├─ PostgreSQL   relational tenancy truth
+    ├─ SQLite-VSS   scoped graph/semantic retrieval
+    ├─ MinIO        encrypted evidence/object storage
+    └─ Redis        ephemeral cache, locks and idempotency only
+    │
+    ▼
+Twin-Brain standby / future lease-bound edge silos
+```
 
-### 1. The Front Desk (Bifrost)
-* **What it is:** A router written in a fast language called Go.
-* **Its Job:** It is the only door into the building. When you (or an app) ask the AI to do something, Bifrost receives the request, checks where it needs to go, and directs traffic. 
+## The outcome contract
 
-### 2. The Security Guards (Sentinel & Gideon)
-* **What they are:** Security checkpoints written in ultra-safe Rust.
-* **Their Job:** We operate on a "Zero-Trust" policy. 
-  * **Sentinel** checks the ID badge. It ensures that whoever is asking the AI to do a task has a valid, temporary "lease" (permission slip).
-  * **Gideon** is the mathematical safety inspector. Before any code is allowed to run, Gideon calculates all possible outcomes to mathematically prove the task won't break the system or leak private data. If it can't prove it's safe, the task is denied.
+```text
+Intent
+→ typed plan
+→ Sentinel policy decision
+→ immutable effect manifest
+→ Excalibur approval when required
+→ manifest-bound capability lease
+→ VFS preflight
+→ bounded execution
+→ Gideon verification
+→ Arthur decision
+→ Ledger receipt
+→ verified workspace projection
+```
 
-### 3. The Blast-Proof Sandbox (Node-Agent & Wasmtime)
-* **What it is:** The execution arena.
-* **Its Job:** When the AI decides to write and run code to solve a problem, we don't just let it run wild on the computer. We place the task inside a "Wasmtime Sandbox"—a digital blast-proof room. 
-  * We give this room exactly 64 Megabytes of memory.
-  * We bolt the furniture to the floor (a concept called "Zero Dynamic Heap").
-  * If the AI's code tries to use more memory or sneak out of the room, the sandbox instantly vaporizes the task, keeping the rest of the computer perfectly safe.
+The UI may show `proposal`, `pending approval`, `running`, or `verification pending`, but it may show an effect as complete only after the authoritative receipt projection is available.
 
-### 4. The Frugal AI Brain (BitNet Ternary Worker)
-* **What it is:** The actual AI thinker (Large Language Model).
-* **Its Job:** Normal AI models use highly complex, massive numbers to "think," which eats up memory. Our AI uses a breakthrough technique called **Ternary Quantization**. 
-  * Instead of complex decimals, the AI's brain connections are simplified to just three states: **-1, 0, and 1** (Think of it as: "Negative", "Neutral", and "Positive").
-  * This allows the AI to be just as smart, but it shrinks its memory footprint so dramatically that it easily fits into our 8GB apartment without crashing.
+## Authority chain
 
-### 5. The Indestructible Filing Cabinet (Receipt Service & VFS)
-* **What it is:** The permanent record system.
-* **Its Job:** Every single time the AI does *anything*—reads a file, writes code, or answers a prompt—the Receipt Service writes it down in permanent ink (cryptographic hashes) in an unchangeable ledger. If a hacker tries to alter the history of what the AI did, the math won't add up, and alarms will sound.
+| Actor | Owns | Explicitly does not own |
+|---|---|---|
+| Anya | typed intent/task proposals | leases, effects, policy mutation |
+| Sentinel | policy, leases, revocation, admission | tool execution or self-approval |
+| Excalibur | exact-manifest human approval | manifest mutation or lease issuance |
+| Gideon | verification, evidence, tests, safety/quality assessment | promotion or effect execution |
+| Arthur | final completion/promotion resolution after gates | bypass of policy, verification or approval |
+| Ledger | append-only signed evidence | authorization or history rewriting |
 
-### 6. The Building Manager (Omarchy)
-* **What it is:** The ultimate resource monitor.
-* **Its Job:** Omarchy watches the power meter. It tracks exactly how much of the 8GB of memory is being used. It puts every department into a strict "Slice" (a hard limit set by the Linux operating system). If the AI Brain tries to use 3GB when it's only allowed 2GB, the Operating System physically cuts its power before it can crash the whole server.
+The authorization predicate additionally requires authenticated identity, server-resolved tenant scope, current authority epoch, valid node/workload identity, resource availability, VFS pass, current approval where required, and a healthy receipt chain.
 
----
+## Bifrost v2 Hub boundary
 
-## 🚀 How a Mission Actually Works
+Production Bifrost is a native Go transport service. It verifies `bifrost/1` signed envelopes, freshness, routing scope, lane, message size, signer trust, and replay/idempotency state before admitting traffic.
 
-Let's say you tell the Operator Console (your 3D visual dashboard): *"AI, research the latest solar panel tech and write a summary report."*
+**Important:** Bifrost admission never grants effect authority. A successfully admitted envelope still proceeds to Sentinel.
 
-1. **Ingestion:** The request hits **Bifrost** (The Front Desk).
-2. **Authorization:** **Sentinel** checks your permission. **Gideon** verifies that "researching solar panels" is a safe action.
-3. **Thinking:** The request is sent to the **BitNet AI Brain**. It uses its hyper-efficient -1, 0, 1 logic to formulate a plan.
-4. **Execution:** The AI writes a script to fetch the research. The script is placed in the **Blast-Proof Sandbox** to run safely. 
-5. **Recording:** The data is saved, and the **Receipt Service** logs a permanent receipt of the action.
-6. **Delivery:** The summary is streamed back to your 3D dashboard.
+Lane model:
 
----
+- `P0_CRITICAL` — revocations and approval control events
+- `P1_ACTIONABLE` — missions, tasks, tool calls
+- `P2_DIGEST` — reports and summaries
+- `P3_TELEMETRY` — health and metrics
+- `P4_RETRY` — receipt-aware retries
+- reserve — heartbeat and system events
 
-## 🛡️ Why This is "Production-Ready"
+Messages target less than 8 KiB. Larger artifacts travel by signed object reference rather than inline payload.
 
-For a system to be used in the real world (production), it needs to be reliable, secure, and cost-effective. Camelot-OS is ready because:
+The historical Node Bifrost command-center server is retained only as a development/compatibility surface. It is not the target production authority/transport hot path.
 
-* **It's Crash-Proof:** Because of Omarchy's strict memory slices and the Sandbox's hard limits, one bad task cannot bring down the server.
-* **It's Unhackable by Design:** With Sentinel and the immutable Ledger, no rogue actor can secretly change files or run unapproved code.
-* **It's Incredibly Cheap to Host:** Because it doesn't require massive $5,000 AI servers, a business can host this entire hyper-secure AI system on a standard $10/month cloud server. 
+## Runtime classes
 
-**Summary:** We built a Formula 1 race car that runs on AAA batteries. It is lean, fast, secure, and mathematically proven to be safe.
+| Class | Technology | Trust | Hub use |
+|---|---|---|---|
+| R0 Control | Rust native | highest | Sentinel, Excalibur, Arthur, Ledger |
+| R1 Transport | Go native | high | Bifrost, AgentBus/gateways |
+| R2 Trusted Pill | Wasmtime + WASI | constrained | parsers, transforms, validators |
+| R3 Untrusted Chamber | Firecracker | isolated | third-party/evaluation candidates |
+| R4 Experience | Browser PWA | untrusted client | World Tree, operator surfaces, mobile UI |
+
+Production hot-path dependencies do **not** include Docker, Docker Compose, Kubernetes, Python authority services, Node.js API authority services, or direct browser-to-database access.
+
+## Data authority
+
+| Store | Purpose | Not allowed |
+|---|---|---|
+| PostgreSQL | tenants, memberships, missions, leases, approvals, receipts, metadata | unbounded raw artifacts |
+| SQLite-VSS | scoped graph + semantic retrieval | global cross-tenant index |
+| MinIO | encrypted evidence, source files, exports | public/unscoped buckets |
+| Redis | ephemeral cache, locks, rate limits, idempotency | durable policy truth, receipts, secrets |
+| Ledger | signed hash-chain references | mutable outcomes |
+
+Every request, event, object, graph/vector row, lease, approval, receipt and artifact carries tenant, workspace, cartridge, mission, classification, retention and provenance scope. The server derives authority context from authenticated identity; browser-supplied tenant assertions are untrusted.
+
+## VFS Guardian
+
+The execution filesystem for each task is rooted at:
+
+```text
+/runtime/camelot/tasks/<task-id>/
+  source/      read-only pinned source
+  worktree/    lease-approved writes
+  tmp/         quota-limited scratch
+  evidence/    manifests, reports, artifacts
+  socket/      task-local AgentBus endpoint
+  logs/        redacted structured events
+  lease.json   verified local lease copy
+```
+
+Preflight denies path escape, unleased writes, unallowlisted executables, unnamed network routes, missing secret handles, stale/expired/revoked leases, resource excess, or source provenance/classification failure.
+
+The current VFS Guardian still contains Phase-0 mock attestation behavior and is therefore an active convergence item, not a completed production gate.
+
+## Ecosystem integrations
+
+External projects are capabilities beneath Camelot governance, not peers of the authority plane:
+
+- **QtScrcpy** → device-action cartridge under device identity, lease and explicit confirmation.
+- **t3code** → compiler cartridge inside an approved worktree.
+- **jcode** → AST analysis/execution cartridge under VFS + Wasmtime/Firecracker admission.
+- **skillscript** → signed/versioned skill candidate; cannot rewrite binding truth or self-promote.
+- **Fonoster** → communications cartridge behind consent, policy, exact manifest and receipts.
+- **Multivoice-router** → governed voice/persona handoff through Bifrost.
+- **Graphiti / Neo4j / Qdrant** → optional adapter or migration source. The binding P0 Cloudbrain direction is scoped SQLite-VSS.
+
+## Experience plane
+
+World Tree, Battle Mode, Shadow Subspace and future cinematic Hub views are immersive **projections** of system truth. The Experience Plane must always retain:
+
+- accessible semantic 2D state,
+- reduced-motion fallback,
+- timestamps and evidence references,
+- receipt references for completed effects,
+- explicit distinction between fixture/simulation and verified runtime state.
+
+The uploaded Scroll-Film approach is appropriate as an Experience Plane technique: continuous spatial storytelling, GPU-friendly transforms, mobile-specific composition, and reduced-motion fallbacks. It does not alter the authority model.
+
+## 8 GB Scarcity Protocol
+
+Cybertronia follows the v2 target budget:
+
+- Core authority group: **1.25 GB**
+- PostgreSQL: **1.0 GB**
+- SQLite-VSS: **0.75 GB**
+- MinIO: **0.50 GB**
+- Moon / AgentBus / scheduler / Nanobot control: **0.75 GB**
+- Static PWA + observability: **0.50 GB**
+- OS + safety reserve: **1.45 GB**
+- Burst allowance: **1.0 GB**
+- Operational cap: **7.2 GB**
+
+Shedding order is Evaluation Chamber → background Nanobot work → graph indexing → analytics/visual enrichment → external adapters. Preserve Bifrost, Sentinel, Excalibur, Gideon, Arthur, Ledger and PostgreSQL.
+
+## Living architecture files
+
+```text
+.agent/governance.yaml                 L0 governance
+.agent/north-star/vps-hub.md          L1 Hub intent + non-goals
+.agent/blueprint/vps-hub-contracts.md L2 contracts and state rules
+.agent/guardrails/vps-hub-security.md L3 security/privacy/runtime rules
+.agent/engine/vps-hub-capacity.yaml   L4 operations and capacity
+crystal/vps-hub-integration-crystal.json integration projection
+contracts/*.schema.json               machine-readable contracts
+```
+
+If implementation conflicts with a binding document, the correct behavior is to stop, emit a documentation-mismatch finding, and request a human-reviewed correction. Code does not silently outrank the architecture.
+
+## Current convergence priorities
+
+1. Finish native Bifrost compile/test/replay validation and promote it over the Node compatibility gateway.
+2. Replace VFS mock attestations with verified lease, authority-epoch, path and evidence attestations.
+3. Build authoritative task snapshot + SSE workspace-event projections.
+4. Expand machine-readable schemas and compatibility tests across manifests, leases, receipts and Gideon verdicts.
+5. Complete Twin-Brain fencing, authority-epoch promotion and receipt reconciliation.
+6. Keep Shadow Subspace under the same Sentinel → Excalibur → Gideon → Arthur → Ledger chain.
+
+**Doctrine:** The Castle loads light. The Cartridge loads on demand. The Knight awakens for a purpose. The Gateway transports trust. Sentinel decides authority. The Ledger remembers truth.

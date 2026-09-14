@@ -1,20 +1,34 @@
 [Unit]
-Description=Camelot Receipt Evidence Engine
+Description=Camelot Signed Receipt Evidence Ledger
 After=network.target
-Wants=network-online.target
 
 [Service]
 Type=simple
-# Bind to the data slice to prevent memory leaks from starving the control plane
 Slice=camelot-data.slice
 ExecStart=/opt/camelot/bin/receipt-service
 WorkingDirectory=/opt/camelot
-Restart=always
+Restart=on-failure
 RestartSec=3
-LimitNOFILE=65536
+LimitNOFILE=8192
 Environment=RUST_LOG=info
-# Optimize Rust memory allocator (optional if using jemalloc, but good default)
 Environment=MALLOC_ARENA_MAX=2
+Environment=CAMELOT_RECEIPT_HOST=127.0.0.1
+Environment=CAMELOT_RECEIPT_PORT=3001
+Environment=CAMELOT_RECEIPT_DATABASE_URL=sqlite:///var/lib/camelot/receipts/ledger.sqlite3
+Environment=CAMELOT_RECEIPT_SIGNING_KEY=/var/lib/camelot/receipts/ledger-ed25519.key
+Environment=CAMELOT_AUTHORITY_EPOCH=1
+EnvironmentFile=-/etc/camelot/receipt-service.env
+StateDirectory=camelot/receipts
+UMask=0077
+MemoryHigh=128M
+MemoryMax=192M
+CPUQuota=25%
+TasksMax=64
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/camelot/receipts
 
 [Install]
 WantedBy=multi-user.target
