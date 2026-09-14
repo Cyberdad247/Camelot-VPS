@@ -357,9 +357,8 @@ async fn main() {
         .ok()
         .and_then(|value| Uuid::parse_str(&value).ok())
         .unwrap_or_else(Uuid::nil);
-    let epoch_source = Arc::new(
-        EpochSource::from_environment().expect("load signed authority epoch source"),
-    );
+    let epoch_source =
+        Arc::new(EpochSource::from_environment().expect("load signed authority epoch source"));
     let boot_epoch = epoch_source
         .current_epoch()
         .expect("verify current authority epoch at Sentinel startup");
