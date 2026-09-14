@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot-os/schemas/context-packet.schema.json",
+  "title": "Camelot Context Packet",
+  "description": "Signed, token-budgeted context packet emitted by the Cloudbrain context compiler. External NotebookLM content is treated as evidence, never authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "packet_id",
+    "tenant_id",
+    "correlation_id",
+    "task_id",
+    "retrieval_lease_id",
+    "compiled_by",
+    "sections",
+    "total_input_tokens",
+    "hard_max_tokens",
+    "signature"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "const": "camelot-context-packet/1"},
+    "packet_id": {"type": "string", "pattern": "^pkt_[A-Za-z0-9_-]+$"},
+    "tenant_id": {"type": "string", "pattern": "^tenant_[A-Za-z0-9_-]+$"},
+    "correlation_id": {"type": "string", "pattern": "^cor_[A-Za-z0-9_-]+$"},
+    "task_id": {"type": "string", "pattern": "^task_[A-Za-z0-9_-]+$"},
+    "retrieval_lease_id": {"type": "string", "pattern": "^rl_[A-Za-z0-9_-]+$"},
+    "compiled_by": {"$ref": "https://camelot-os/schemas/actor.schema.json"},
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "content_ref", "tokens"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["system_policy", "l0_summary", "l1_verified", "l2_evidence", "graph_traversal"]
+          },
+          "content_ref": {"type": "string"},
+          "tokens": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "total_input_tokens": {"type": "integer", "minimum": 0},
+    "hard_max_tokens": {"type": "integer", "minimum": 0},
+    "untrusted_content_stripped": {"type": "integer", "minimum": 0},
+    "cache_key": {"type": "string"},
+    "cache_signature": {"type": "string"},
+    "signature": {"type": "string", "pattern": "^ed25519:[A-Fa-f0-9]+$"},
+    "receipt_ref": {"type": "string", "pattern": "^receipt://[A-Za-z0-9:./_-]+$"}
+  }
+}
