@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot.vps/schemas/cartridge-manifest.schema.json",
+  "title": "Camelot Cartridge Manifest",
+  "description": "Formal specification for hot-swappable capability cartridges assimilated into Camelot-VPS and WorldTree.",
+  "type": "object",
+  "properties": {
+    "cartridge_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-_]{2,63}$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.]+)?$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128
+    },
+    "description": {
+      "type": "string"
+    },
+    "target_repo": {
+      "type": "string",
+      "format": "uri"
+    },
+    "branch": {
+      "type": "string"
+    },
+    "base_branch": {
+      "type": "string",
+      "default": "main"
+    },
+    "aspects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "subsystem": { "type": "string" },
+          "ports": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 1, "maximum": 65535 }
+          },
+          "health_endpoint": { "type": "string" },
+          "enabled": { "type": "boolean", "default": true },
+          "systemd_unit": { "type": "string" }
+        },
+        "required": ["id", "name", "subsystem"]
+      },
+      "minItems": 1
+    },
+    "capabilities": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "engine": { "type": "string", "enum": ["native_binary", "node", "bun", "wasmtime", "python", "docker"] },
+        "env": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "required": ["engine"]
+    },
+    "governance": {
+      "type": "object",
+      "properties": {
+        "guardian": { "type": "string" },
+        "anya_gate": { "type": "string", "enum": ["FIRST_GATE_PASSED", "VERIFIED_SEALED", "PENDING"] },
+        "merlin_crucible": { "type": "string", "enum": ["CERTIFIED", "PROVEN", "PENDING"] },
+        "zero_trust": { "type": "boolean", "default": true }
+      },
+      "required": ["guardian", "anya_gate", "merlin_crucible"]
+    },
+    "integrity": {
+      "type": "object",
+      "properties": {
+        "payload_hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "signed_by": { "type": "string" },
+        "signed_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["payload_hash", "signed_by", "signed_at"]
+    }
+  },
+  "required": [
+    "cartridge_id",
+    "version",
+    "name",
+    "target_repo",
+    "branch",
+    "aspects",
+    "capabilities",
+    "runtime",
+    "governance",
+    "integrity"
+  ],
+  "additionalProperties": false
+}

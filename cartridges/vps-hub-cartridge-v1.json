@@ -1,0 +1,101 @@
+{
+  "cartridge_id": "vps-hub-cartridge-v1",
+  "version": "1.0.0",
+  "name": "Camelot VPS Hub Singularity Cartridge",
+  "description": "Modular capability cartridge for https://github.com/Cyberdad247/Camelot-VPS.git",
+  "target_repo": "https://github.com/Cyberdad247/Camelot-VPS.git",
+  "branch": "cartridge/vps-hub-cartridge-v1",
+  "base_branch": "main",
+  "aspects": [
+    {
+      "id": "aspect_multivoice",
+      "name": "Multivoice Router & Gemini Live Aoede S2S",
+      "subsystem": "audio_telemetry",
+      "enabled": true,
+      "ports": [
+        7680,
+        7682
+      ],
+      "health_endpoint": "/api/health",
+      "systemd_unit": "multivoice-router.service",
+      "description": "Duplex real-time audio routing with LMCache KV cache acceleration"
+    },
+    {
+      "id": "aspect_honcho",
+      "name": "Honcho Self-Hosted Metamemory Store",
+      "subsystem": "metamemory_l4",
+      "enabled": true,
+      "ports": [
+        8000
+      ],
+      "health_endpoint": "/v1/health",
+      "systemd_unit": "honcho-hermes.service",
+      "description": "Hermes Prime autonomous dialectic L4 memory and session persistence"
+    },
+    {
+      "id": "aspect_bifrost_mobile",
+      "name": "Bifrost Gateway & Mobile Mesh Bridge",
+      "subsystem": "mesh_transport",
+      "enabled": true,
+      "ports": [
+        3001,
+        8095
+      ],
+      "health_endpoint": "/health",
+      "systemd_unit": "bifrost-gateway.service",
+      "description": "Express WebSocket transport and Excalibur S26 Ultra telemetry SSE"
+    },
+    {
+      "id": "aspect_task_dag",
+      "name": "Task DAG & Ouroboros Scheduling Engine",
+      "subsystem": "task_scheduler",
+      "enabled": true,
+      "ports": [
+        9000
+      ],
+      "health_endpoint": "/api/dag/health",
+      "systemd_unit": "task-scheduler.service",
+      "description": "Mission execution DAG conforming to task-dag.schema.json"
+    },
+    {
+      "id": "aspect_heimdall",
+      "name": "Sir Heimdall Zero-Trust Perimeter Lock",
+      "subsystem": "security_mtls",
+      "enabled": true,
+      "ports": [
+        3001,
+        8095,
+        7680
+      ],
+      "health_endpoint": "/api/heimdall/lock",
+      "systemd_unit": "heimdall-perimeter.service",
+      "description": "Tailscale0 strict mTLS and capability lease access enforcement"
+    }
+  ],
+  "capabilities": [
+    "vps_orchestration",
+    "voice_routing",
+    "l4_metamemory",
+    "zero_trust_mtls",
+    "task_dag_execution"
+  ],
+  "runtime": {
+    "engine": "native_binary",
+    "env": {
+      "CARTRIDGE_ID": "vps-hub-cartridge-v1",
+      "TARGET_REPO": "https://github.com/Cyberdad247/Camelot-VPS.git",
+      "CARTRIDGE_BRANCH": "cartridge/vps-hub-cartridge-v1"
+    }
+  },
+  "governance": {
+    "guardian": "SIR_HEIMDALL",
+    "anya_gate": "FIRST_GATE_PASSED",
+    "merlin_crucible": "CERTIFIED",
+    "zero_trust": true
+  },
+  "integrity": {
+    "payload_hash": "sha256:311b28802ec7180e9a3f72e0f7c6d33059cc06e2f70f4cccefcdd0fba3e429b2",
+    "signed_by": "ANYA_OMEGA_SOVEREIGN_SEAL",
+    "signed_at": "2026-09-14T20:46:08.346164+00:00"
+  }
+}
