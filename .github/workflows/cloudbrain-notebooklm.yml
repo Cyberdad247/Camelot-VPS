@@ -10,6 +10,8 @@ on:
       - 'contracts/context-packet.schema.json'
       - 'infra/systemd/cloudbrain-broker.service'
       - 'infra/systemd/notebooklm-mcp.service'
+      - 'infra/notebooklm-mcp/provider.lock.json'
+      - 'scripts/install-notebooklm-mcp.sh'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'Makefile'
@@ -36,5 +38,10 @@ jobs:
         run: cargo test --package camelot-cloudbrain --package cloudbrain-broker --package sentinel
       - name: Clippy
         run: cargo clippy --package camelot-cloudbrain --package cloudbrain-broker --package sentinel --all-targets -- -D warnings
-      - name: Validate contracts
-        run: jq empty contracts/actor.schema.json contracts/context-packet.schema.json
+      - name: Validate contracts and provider lock
+        run: |
+          jq empty contracts/actor.schema.json contracts/context-packet.schema.json infra/notebooklm-mcp/provider.lock.json
+          test "$(jq -r '.provider' infra/notebooklm-mcp/provider.lock.json)" = "notebooklm-mcp-cli"
+          test "$(jq -r '.version' infra/notebooklm-mcp/provider.lock.json)" = "0.11.2"
+          test "$(jq -r '.authority' infra/notebooklm-mcp/provider.lock.json)" = "false"
+          test "$(jq -r '.camelot_trust_class' infra/notebooklm-mcp/provider.lock.json)" = "external_provider_evidence"
