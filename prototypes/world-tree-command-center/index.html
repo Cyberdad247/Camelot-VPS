@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#050307" />
+  <title>Camelot VPS | World Tree Command Center</title>
+  <link rel="stylesheet" href="world-tree.css" />
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <header class="topbar">
+    <div class="brand"><span class="sigil">♜</span><div><b>CAMELOT VPS</b><small>WORLD TREE // SOVEREIGN COMMAND</small></div></div>
+    <div class="status-strip" role="status" aria-live="polite">
+      <span><i class="dot ok"></i> VPS ONLINE</span><span>RAM 6.2 / 8 GB</span><span>VFS ATTESTED</span><span id="activeStratum">CROWN</span>
+    </div>
+    <button id="motionToggle" class="icon-btn" aria-pressed="false" title="Toggle reduced motion">◫</button>
+  </header>
+
+  <nav class="rail" aria-label="World Tree strata">
+    <button data-jump="crown" class="rail-btn active"><span>01</span><b>World Tree</b></button>
+    <button data-jump="brains" class="rail-btn"><span>02</span><b>Twin Brains</b></button>
+    <button data-jump="vfs" class="rail-btn"><span>03</span><b>VFS</b></button>
+    <button data-jump="roots" class="rail-btn"><span>04</span><b>VPS Roots</b></button>
+    <button data-jump="throne" class="rail-btn"><span>05</span><b>Throne</b></button>
+  </nav>
+
+  <main id="world" class="world-scroll">
+    <section id="crown" class="stratum hero" data-stratum="CROWN">
+      <div class="section-copy">
+        <p class="eyebrow">AXIS MUNDI // EXECUTIVE OVERVIEW</p>
+        <h1>The World Tree is the interface.</h1>
+        <p>Every branch is a system. Every root is an executable path. Select a living node or descend into the stack.</p>
+        <div class="chips"><button data-open="missions">Active Missions <strong>12</strong></button><button data-open="agents">Knights <strong>18</strong></button><button data-open="risk">Risk <strong>LOW</strong></button></div>
+      </div>
+
+      <div class="tree-stage" id="treeStage" tabindex="0" aria-label="Interactive World Tree command surface. Use arrow keys to rotate, Enter to inspect focused node.">
+        <div class="tree-plane">
+          <div class="tree-glow"></div>
+          <img class="tree-art" src="https://i.postimg.cc/tCKG0QJr/b-n-KG-CRYSTAL-OPEN.png" alt="Camelot World Tree system map" />
+          <button class="hotspot crown-node" data-panel="throne" aria-label="Open Throne Room"><span>THRONE ROOM</span></button>
+          <button class="hotspot left-brain" data-panel="open-notebook" aria-label="Open local Open Notebook brain"><span>OPEN NOTEBOOK</span></button>
+          <button class="hotspot right-brain" data-panel="notebooklm" aria-label="Open NotebookLM brain"><span>NOTEBOOKLM</span></button>
+          <button class="hotspot trunk-node" data-panel="world-api" aria-label="Inspect World Tree API"><span>WORLD TREE API</span></button>
+          <button class="hotspot root-node" data-panel="vfs" aria-label="Descend to virtual file system"><span>VFS ROOT</span></button>
+        </div>
+        <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>
+      </div>
+      <div class="scroll-cue">SCROLL TO DESCEND <span>⌄</span></div>
+    </section>
+
+    <section id="brains" class="stratum brains" data-stratum="TWIN BRAINS">
+      <div class="brain-shell left">
+        <div class="brain-card">
+          <div class="brain-kicker">LEFT HEMISPHERE // PRIVATE CORE</div>
+          <h2>Open Notebook</h2>
+          <p>VPS-hosted research brain for private corpora, memory, retrieval, synthesis and provenance.</p>
+          <div class="metric-grid"><span><b>8502</b>PORT</span><span><b>48K</b>SLABS</span><span><b>0.82ms</b>LAT</span></div>
+          <button class="primary" data-panel="open-notebook">Enter Local Brain</button>
+        </div>
+      </div>
+      <div class="synapse" aria-hidden="true"><i></i><i></i><i></i><b>⟷</b></div>
+      <div class="brain-shell right">
+        <div class="brain-card">
+          <div class="brain-kicker">RIGHT HEMISPHERE // CLOUD SYNTHESIS</div>
+          <h2>NotebookLM</h2>
+          <p>Curated external synthesis layer linked through a governed synapse instead of direct uncontrolled data flow.</p>
+          <div class="metric-grid"><span><b>SYNC</b>STATE</span><span><b>R/O</b>DEFAULT</span><span><b>HITL</b>GATE</span></div>
+          <button class="primary" data-panel="notebooklm">Inspect Synapse</button>
+        </div>
+      </div>
+      <div class="section-label"><span>02</span><b>COGNITIVE CANOPY</b><small>Private intelligence ↔ governed cloud reasoning</small></div>
+    </section>
+
+    <section id="vfs" class="stratum vfs" data-stratum="VFS">
+      <div class="vfs-perspective">
+        <div class="file-wall">
+          <div class="file-head"><span>VIRTUAL FILE SYSTEM</span><b>/vfs</b><em>ATT: SHA256 ✓</em></div>
+          <div class="file-columns">
+            <div class="folder-tree" role="tree" aria-label="VFS folders">
+              <button class="folder open">▾ /vfs</button>
+              <button class="folder indent open">▾ mempalace</button>
+              <button class="file indent2 active">◈ embeddings_768d.bin</button>
+              <button class="file indent2">◇ context_graph.jsonld</button>
+              <button class="folder indent">▸ refractions</button>
+              <button class="folder indent">▸ receipts</button>
+              <button class="folder indent">▸ agent_state</button>
+            </div>
+            <div class="file-inspector"><small>SELECTED SLAB</small><h3>embeddings_768d.bin</h3><dl><div><dt>Address</dt><dd>0x7F92A1C0</dd></div><div><dt>Size</dt><dd>1.82 GB</dd></div><div><dt>Owner</dt><dd>Lady Mnemosyne</dd></div><div><dt>Access</dt><dd>PINNED / R-W</dd></div><div><dt>Proof</dt><dd>VERIFIED</dd></div></dl><button class="primary" data-panel="vfs">Open Inspector</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="section-label"><span>03</span><b>MEMORY ROOTS</b><small>Scroll deeper to cross from semantic VFS into physical VPS topology</small></div>
+    </section>
+
+    <section id="roots" class="stratum roots" data-stratum="VPS ROOTS">
+      <div class="root-lines" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="server-stack">
+        <article class="server-card"><header><i class="dot ok"></i><b>vps3573819</b><span>PRIMARY</span></header><p>Ubuntu / Omarchy Edge Host</p><div><span>CPU 42%</span><span>RAM 77%</span><span>NVMe 61%</span></div></article>
+        <article class="server-card"><header><i class="dot ok"></i><b>world-tree-api</b><span>:3006</span></header><p>Graph stream + semantic topology</p><div><span>128 NODES</span><span>SSE LIVE</span><span>12ms</span></div></article>
+        <article class="server-card"><header><i class="dot ok"></i><b>vfs-guardian</b><span>POLICY</span></header><p>Attestation, leases, file access gates</p><div><span>44 RULES</span><span>0 FAIL</span><span>SEALED</span></div></article>
+        <article class="server-card"><header><i class="dot warn"></i><b>notebook-synapse</b><span>GATED</span></header><p>Open Notebook ↔ NotebookLM bridge</p><div><span>HITL</span><span>R/O</span><span>QUEUE 3</span></div></article>
+      </div>
+      <div class="section-label"><span>04</span><b>BARE METAL ROOTS</b><small>Infrastructure becomes the underground root network</small></div>
+    </section>
+
+    <section id="throne" class="stratum throne" data-stratum="THRONE ROOM">
+      <div class="throne-backdrop"><img src="https://i.postimg.cc/g0KC6xsb/b-n-KG-CRYSTAL-THE.png" alt="Camelot Throne Room interface" /></div>
+      <div class="throne-ui">
+        <div class="throne-title"><p class="eyebrow">SOVEREIGN EXECUTION LAYER</p><h2>Throne Room</h2><p>One CEO. One command plane. The council routes intent, evidence and execution without forcing you to babysit the machinery.</p></div>
+        <div class="council-ring">
+          <button style="--a:-55deg" data-agent="Merlin">MERLIN<small>ARCHITECT</small></button>
+          <button style="--a:-18deg" data-agent="Anya">ANYA<small>QERE</small></button>
+          <button style="--a:18deg" data-agent="Arthur">ARTHUR<small>GOVERNANCE</small></button>
+          <button style="--a:55deg" data-agent="Codex">CODEX<small>ENGINEER</small></button>
+          <div class="throne-core"><span>CEO</span><b>DECREE</b><i>READY</i></div>
+        </div>
+        <form id="decreeForm" class="decree"><label for="decree">Issue sovereign decree</label><div><input id="decree" autocomplete="off" placeholder="e.g. Audit VPS health, summarize risks, prepare remediation plan" /><button>EXECUTE</button></div><output id="decreeOutput">Awaiting command…</output></form>
+      </div>
+    </section>
+  </main>
+
+  <aside id="drawer" class="drawer" aria-hidden="true" aria-label="System inspector">
+    <button id="drawerClose" class="drawer-close" aria-label="Close inspector">×</button>
+    <p class="eyebrow" id="drawerEyebrow">SYSTEM NODE</p><h2 id="drawerTitle">Inspector</h2><p id="drawerText"></p><div id="drawerMetrics" class="drawer-metrics"></div><button class="primary">OPEN CONTROL SURFACE</button>
+  </aside>
+  <script src="world-tree.js"></script>
+</body>
+</html>
