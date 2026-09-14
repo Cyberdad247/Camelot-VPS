@@ -88,8 +88,7 @@ impl ContextPacket {
     pub fn signing_payload(&self) -> Result<Vec<u8>, String> {
         let mut unsigned = self.clone();
         unsigned.signature.clear();
-        serde_json::to_vec(&unsigned)
-            .map_err(|error| format!("serialize context packet: {error}"))
+        serde_json::to_vec(&unsigned).map_err(|error| format!("serialize context packet: {error}"))
     }
 
     pub fn sign_with(&mut self, signer: &KeyPair) -> Result<(), String> {
@@ -126,7 +125,8 @@ pub fn normalize_prefixed(prefix: &str, value: &str) -> String {
         .chars()
         .filter(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-'))
         .collect();
-    let cleaned = cleaned.trim_start_matches(&format!("{prefix}_"));
+    let expected_prefix = format!("{prefix}_");
+    let cleaned = cleaned.strip_prefix(&expected_prefix).unwrap_or(&cleaned);
     if cleaned.is_empty() {
         format!("{prefix}_{}", Uuid::new_v4().simple())
     } else {
@@ -174,5 +174,11 @@ mod tests {
         );
         packet.sign_with(&signer).expect("sign");
         assert!(packet.verify_with(&signer.public_key_hex()).is_err());
+    }
+
+    #[test]
+    fn prefixes_are_stable() {
+        assert_eq!(normalize_prefixed("cor", "cor_abc-123"), "cor_abc-123");
+        assert_eq!(normalize_prefixed("task", "task_abc_123"), "task_abc_123");
     }
 }
