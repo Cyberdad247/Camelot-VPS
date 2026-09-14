@@ -34,6 +34,7 @@ const DEFAULT_MAX_TOKENS: u64 = 4096;
 const ABSOLUTE_MAX_TOKENS: u64 = 16_384;
 const MAX_QUESTION_CHARS: usize = 16_000;
 const MAX_PROVIDER_BODY_BYTES: usize = 512 * 1024;
+const TRUNCATION_MARKER: &str = "\n[CONTEXT_TRUNCATED_BY_CAMELOT_TOKEN_BUDGET]";
 
 #[derive(Clone)]
 struct AppState {
@@ -120,13 +121,18 @@ fn load_or_create_signer(path: &Path) -> Result<KeyPair, String> {
 fn validate_loopback_url(name: &str, value: &str) -> Result<(), String> {
     let url = Url::parse(value).map_err(|error| format!("{name} is not a valid URL: {error}"))?;
     if url.scheme() != "http" {
-        return Err(format!("{name} must use loopback HTTP behind the local service boundary"));
+        return Err(format!(
+            "{name} must use loopback HTTP behind the local service boundary"
+        ));
     }
     let host = url
         .host_str()
         .ok_or_else(|| format!("{name} must include a host"))?;
     let allowed = host.eq_ignore_ascii_case("localhost")
-        || host.parse::<IpAddr>().map(|ip| ip.is_loopback()).unwrap_or(false);
+        || host
+            .parse::<IpAddr>()
+            .map(|ip| ip.is_loopback())
+            .unwrap_or(false);
     if !allowed {
         return Err(format!("{name} must remain loopback-only"));
     }
@@ -136,7 +142,10 @@ fn validate_loopback_url(name: &str, value: &str) -> Result<(), String> {
 fn bounded_label(name: &str, value: &str) -> Result<(), ApiError> {
     let value = value.trim();
     if value.is_empty() || value.len() > 160 {
-        return Err(api_error(StatusCode::BAD_REQUEST, format!("invalid {name}")));
+        return Err(api_error(
+            StatusCode::BAD_REQUEST,
+            format!("invalid {name}"),
+        ));
     }
     Ok(())
 }
@@ -160,7 +169,10 @@ fn validate_lease(
 ) -> Result<(), ApiError> {
     let lease = &request.lease;
     if lease.issuer_id != SENTINEL_ISSUER {
-        return Err(api_error(StatusCode::UNAUTHORIZED, "lease issuer is not Sentinel"));
+        return Err(api_error(
+            StatusCode::UNAUTHORIZED,
+            "lease issuer is not Sentinel",
+        ));
     }
     if lease.issuer_public_key.as_deref() != Some(state.sentinel_public_key.as_str()) {
         return Err(api_error(
@@ -175,7 +187,10 @@ fn validate_lease(
         )
     })?;
     if !lease.is_valid() {
-        return Err(api_error(StatusCode::FORBIDDEN, "lease is expired or revoked"));
+        return Err(api_error(
+            StatusCode::FORBIDDEN,
+            "lease is expired or revoked",
+        ));
     }
     if !lease.is_current_epoch(authority_epoch) {
         return Err(api_error(
@@ -268,7 +283,10 @@ impl NotebookLmMcp {
             .await
             .map_err(|error| format!("read NotebookLM MCP response: {error}"))?;
         if !status.is_success() {
-            return Err(format!("NotebookLM MCP returned {status}: {}", truncate_log(&text)));
+            return Err(format!(
+                "NotebookLM MCP returned {status}: {}",
+                truncate_log(&text)
+            ));
         }
         if text.trim().is_empty() {
             return Ok((None, session));
@@ -316,7 +334,8 @@ impl NotebookLmMcp {
             }
         });
         let (response, _) = self.post_rpc(call, Some(&session)).await?;
-        let response = response.ok_or_else(|| "NotebookLM MCP returned an empty tool response".to_string())?;
+        let response =
+            response.ok_or_else(|| "NotebookLM MCP returned an empty tool response".to_string())?;
         extract_answer(&response)
     }
 }
@@ -347,7 +366,10 @@ fn extract_answer(value: &Value) -> Result<(String, Value), String> {
         if let Some(answer) = structured.get("answer").and_then(Value::as_str) {
             return Ok((
                 answer.to_owned(),
-                structured.get("references").cloned().unwrap_or_else(|| json!([])),
+                structured
+                    .get("references")
+                    .cloned()
+                    .unwrap_or_else(|| json!([])),
             ));
         }
     }
@@ -384,9 +406,14 @@ fn enforce_budget(answer: String, max_tokens: u64) -> (String, u64, bool) {
     if estimated <= max_tokens {
         return (answer, estimated, false);
     }
-    let char_ceiling = max_tokens.saturating_mul(4) as usize;
-    let mut truncated: String = answer.chars().take(char_ceiling).collect();
-    truncated.push_str("\n[CONTEXT_TRUNCATED_BY_CAMELOT_TOKEN_BUDGET]");
+
+    let max_chars = max_tokens.saturating_mul(4) as usize;
+    let marker_chars = TRUNCATION_MARKER.chars().count();
+    let content_chars = max_chars.saturating_sub(marker_chars);
+    let mut truncated: String = answer.chars().take(content_chars).collect();
+    if marker_chars <= max_chars {
+        truncated.push_str(TRUNCATION_MARKER);
+    }
     let tokens = conservative_token_estimate(&truncated).min(max_tokens);
     (truncated, tokens, true)
 }
@@ -425,7 +452,10 @@ async fn create_retrieval_receipt(
     };
     let response = state
         .client
-        .post(format!("{}/receipts", state.receipt_url.trim_end_matches('/')))
+        .post(format!(
+            "{}/receipts",
+            state.receipt_url.trim_end_matches('/')
+        ))
         .json(&draft)
         .send()
         .await
@@ -440,7 +470,10 @@ async fn create_retrieval_receipt(
         let body = response.text().await.unwrap_or_default();
         return Err(api_error(
             StatusCode::BAD_GATEWAY,
-            format!("receipt ledger rejected retrieval ({status}): {}", truncate_log(&body)),
+            format!(
+                "receipt ledger rejected retrieval ({status}): {}",
+                truncate_log(&body)
+            ),
         ));
     }
     response.json::<Receipt>().await.map_err(|error| {
@@ -501,11 +534,17 @@ async fn handle_query(
     bounded_label("taskId", &request.task_id)?;
     bounded_label("correlationId", &request.correlation_id)?;
     if !valid_notebook_id(&request.notebook_id) {
-        return Err(api_error(StatusCode::BAD_REQUEST, "invalid NotebookLM notebook id"));
+        return Err(api_error(
+            StatusCode::BAD_REQUEST,
+            "invalid NotebookLM notebook id",
+        ));
     }
     let question = request.question.trim();
     if question.is_empty() || question.chars().count() > MAX_QUESTION_CHARS {
-        return Err(api_error(StatusCode::BAD_REQUEST, "question must contain 1..16000 characters"));
+        return Err(api_error(
+            StatusCode::BAD_REQUEST,
+            "question must contain 1..16000 characters",
+        ));
     }
     let authority_epoch = state.epoch_source.current_epoch().map_err(|error| {
         api_error(
@@ -572,7 +611,9 @@ async fn main() {
     let sentinel_public_key = env::var("CAMELOT_SENTINEL_PUBLIC_KEY")
         .expect("CAMELOT_SENTINEL_PUBLIC_KEY must pin the Sentinel identity");
     if sentinel_public_key.len() != 64
-        || !sentinel_public_key.bytes().all(|byte| byte.is_ascii_hexdigit())
+        || !sentinel_public_key
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit())
     {
         panic!("CAMELOT_SENTINEL_PUBLIC_KEY must be a 32-byte Ed25519 public key in hex");
     }
@@ -581,9 +622,8 @@ async fn main() {
             .unwrap_or_else(|_| "/var/lib/camelot/cloudbrain/context-ed25519.key".into()),
     );
     let signer = load_or_create_signer(&key_path).expect("load Cloudbrain signing identity");
-    let epoch_source = Arc::new(
-        EpochSource::from_environment().expect("load signed authority epoch source"),
-    );
+    let epoch_source =
+        Arc::new(EpochSource::from_environment().expect("load signed authority epoch source"));
     epoch_source
         .current_epoch()
         .expect("verify current authority epoch at Cloudbrain startup");
@@ -692,10 +732,11 @@ mod tests {
 
     #[test]
     fn context_budget_truncates_provider_output() {
-        let (answer, tokens, truncated) = enforce_budget("x".repeat(100), 5);
+        let (answer, tokens, truncated) = enforce_budget("x".repeat(100), 20);
         assert!(truncated);
-        assert!(tokens <= 5);
+        assert!(tokens <= 20);
         assert!(answer.contains("CONTEXT_TRUNCATED"));
+        assert!(conservative_token_estimate(&answer) <= 20);
     }
 
     #[test]
