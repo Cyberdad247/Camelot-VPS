@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot-os/schemas/actor.schema.json",
+  "title": "Camelot Actor",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "role"],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "role": {"type": "string", "minLength": 1},
+    "node_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+    "node_trust_band": {
+      "type": "string",
+      "enum": ["attested", "attested-witness", "enrolled", "probationary", "quarantined", "revoked"]
+    },
+    "persona_class": {"type": "string"},
+    "operator_id": {"type": "string"},
+    "tenant_id": {"type": "string", "pattern": "^tenant_[A-Za-z0-9_-]+$"},
+    "organization_id": {"type": "string", "pattern": "^org_[A-Za-z0-9_-]+$"}
+  }
+}
