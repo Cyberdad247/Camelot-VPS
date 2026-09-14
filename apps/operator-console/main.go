@@ -1,11 +1,12 @@
 package main
 
 import (
-	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
-	
+	"time"
+
 	"camelot.vps/operator/internal/omarchy"
 )
 
@@ -210,7 +211,6 @@ func main() {
             msg := fmt.Sprintf(`{"event": "graph_update", "node_id": "N-MOCK-%d", "type": "memory.promoted"}`, i)
             fmt.Fprintf(w, "data: %s\n\n", msg)
             flusher.Flush()
-            import("time")
             time.Sleep(3 * time.Second)
         }
     })
