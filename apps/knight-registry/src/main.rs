@@ -76,7 +76,7 @@ async fn health_ready(State(state): State<AppState>) -> Json<serde_json::Value> 
     }))
 }
 
-async fn knight(State(state): State<AppState>) -> Json<LoadedKnight> {
+async fn get_knight(State(state): State<AppState>) -> Json<LoadedKnight> {
     Json((*state.knight).clone())
 }
 
@@ -128,7 +128,7 @@ async fn main() {
     };
 
     let protected = Router::new()
-        .route("/v1/knight", get(knight))
+        .route("/v1/knight", get(get_knight))
         .route_layer(middleware::from_fn_with_state(state.clone(), require_token));
     let app = Router::new()
         .route("/health", get(health_ready))
