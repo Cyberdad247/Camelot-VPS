@@ -297,7 +297,8 @@ fn canonical_string(value: &Value) -> Result<String, String> {
                     }
                     entries.push((normalized_key, value));
                 }
-                entries.sort_by(|left, right| left.0.cmp(&right.0));                out.push('{');
+                entries.sort_by(|left, right| left.0.cmp(&right.0));
+                out.push('{');
                 for (index, (key, value)) in entries.iter().enumerate() {
                     if index > 0 {
                         out.push(',');
@@ -797,7 +798,6 @@ mod tests {
             "derived_from": []
         })
     }
-
     fn fixture() -> (KeyPair, Keyring, KnightPolicy, Value, Value, Value, Value) {
         let registry = KeyPair::from_secret_bytes([7_u8; 32]);
         let mut keyring = Keyring::default();
