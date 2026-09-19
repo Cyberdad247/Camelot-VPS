@@ -100,7 +100,10 @@ impl AuthorityEpochCertificate {
         let mut value = Self {
             schema_version: EPOCH_SCHEMA.into(),
             certificate_id: Uuid::new_v4(),
-            epoch: previous.epoch.checked_add(1).ok_or("authority epoch overflow")?,
+            epoch: previous
+                .epoch
+                .checked_add(1)
+                .ok_or("authority epoch overflow")?,
             active_brain: target_brain,
             previous_brain: Some(previous.active_brain),
             promotion_mode: mode,
@@ -133,11 +136,7 @@ impl AuthorityEpochCertificate {
         if self.signer_public_key != pinned_public_key {
             return Err("epoch certificate signer mismatch".into());
         }
-        verify_detached_hex(
-            pinned_public_key,
-            &self.signing_payload()?,
-            &self.signature,
-        )
+        verify_detached_hex(pinned_public_key, &self.signing_payload()?, &self.signature)
     }
 
     pub fn validate_shape(&self) -> Result<(), String> {
@@ -214,6 +213,7 @@ mod tests {
         assert_eq!(next.epoch, 8);
         assert_eq!(next.previous_brain, Some(BrainId::OpenNotebook));
         assert_eq!(next.active_brain, BrainId::Notebooklm);
-        next.verify_with_pinned_key(&signer.public_key_hex()).unwrap();
+        next.verify_with_pinned_key(&signer.public_key_hex())
+            .unwrap();
     }
 }
