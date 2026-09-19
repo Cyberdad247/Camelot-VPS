@@ -122,7 +122,10 @@ mod tests {
         );
         attestation.sign_with(&signer).expect("sign attestation");
         attestation.verify_signature().expect("verify attestation");
-        assert_eq!(attestation.content_hash.as_deref(), Some(content_hash.as_str()));
+        assert_eq!(
+            attestation.content_hash.as_deref(),
+            Some(content_hash.as_str())
+        );
     }
 
     #[test]
