@@ -252,7 +252,7 @@ fn decode_hex_32(value: &str) -> Result<[u8; 32], String> {
         return Err("expected a 32-byte Ed25519 public key in hex".into());
     }
     let mut out = [0_u8; 32];
-    for (index, chunk) in value.as_bytes().chunks_exact(2).enumerate() {
+    for (index, chunk) in value.as_bytes().as_chunks::<2>().0.iter().enumerate() {
         let text = std::str::from_utf8(chunk).map_err(|_| "invalid public key hex")?;
         out[index] = u8::from_str_radix(text, 16).map_err(|_| "invalid public key hex")?;
     }
