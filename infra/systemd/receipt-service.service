@@ -1,6 +1,7 @@
 [Unit]
 Description=Camelot Signed Receipt Evidence Ledger
-After=network.target
+After=network.target epoch-fencer.service
+Requires=epoch-fencer.service
 
 [Service]
 Type=simple
@@ -16,7 +17,11 @@ Environment=CAMELOT_RECEIPT_HOST=127.0.0.1
 Environment=CAMELOT_RECEIPT_PORT=3001
 Environment=CAMELOT_RECEIPT_DATABASE_URL=sqlite:///var/lib/camelot/receipts/ledger.sqlite3
 Environment=CAMELOT_RECEIPT_SIGNING_KEY=/var/lib/camelot/receipts/ledger-ed25519.key
+# Bootstrap fallback only. Production admission is driven by the signed certificate.
 Environment=CAMELOT_AUTHORITY_EPOCH=1
+Environment=CAMELOT_EPOCH_CERTIFICATE_PATH=/run/camelot/authority/epoch.json
+# CAMELOT_EPOCH_PUBLIC_KEY must be supplied by /etc/camelot/receipt-service.env.
+# If the certificate path is configured without its pinned key, the service fails closed.
 EnvironmentFile=-/etc/camelot/receipt-service.env
 StateDirectory=camelot/receipts
 UMask=0077
