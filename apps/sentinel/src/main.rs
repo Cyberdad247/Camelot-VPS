@@ -8,7 +8,8 @@ use axum::{
 };
 use camelot_crypto::KeyPair;
 use camelot_epoch::EpochSource;
-use camelot_lease::{CapabilityLease, EffectManifest};
+use camelot_knight::{is_knight_actor, KnightRegistry};
+use camelot_lease::{CapabilityLease, EffectManifest, KnightLeaseBinding};
 use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -42,11 +43,14 @@ struct AppState {
     token: Arc<String>,
     tenant_id: Uuid,
     epoch_source: Arc<EpochSource>,
+    knight_registry: Option<Arc<KnightRegistry>>,
 }
 
 #[derive(Debug, Deserialize)]
 struct IssueLeaseRequest {
     actor_id: String,
+    #[serde(default)]
+    knight_package_id: Option<String>,
     session_id: Uuid,
     capabilities: Vec<String>,
     resource_bounds: Vec<String>,
@@ -151,6 +155,7 @@ async fn identity(State(state): State<AppState>) -> (StatusCode, Json<serde_json
                 "tenantId": state.tenant_id,
                 "authorityEpoch": epoch,
                 "dynamicEpoch": state.epoch_source.is_dynamic(),
+                "knightRegistryEnabled": state.knight_registry.is_some(),
                 "maxLeaseSeconds": MAX_LEASE_SECONDS,
             })),
         ),
@@ -172,6 +177,7 @@ async fn health(State(state): State<AppState>) -> (StatusCode, Json<serde_json::
                 "publicKey": state.signer.public_key_hex(),
                 "authorityEpoch": epoch,
                 "dynamicEpoch": state.epoch_source.is_dynamic(),
+                "knightRegistryEnabled": state.knight_registry.is_some(),
             })),
         ),
         Err(error) => (
@@ -182,6 +188,28 @@ async fn health(State(state): State<AppState>) -> (StatusCode, Json<serde_json::
                 "reason": error
             })),
         ),
+    }
+}
+
+fn verify_knight_binding(state: &AppState, lease: &CapabilityLease) -> Result<(), String> {
+    match (is_knight_actor(&lease.actor_id), lease.knight_binding.as_ref()) {
+        (false, None) => Ok(()),
+        (false, Some(_)) => Err("non-Knight lease contains Knight package binding".into()),
+        (true, None) => Err("Knight lease is missing signed package binding".into()),
+        (true, Some(binding)) => {
+            let registry = state
+                .knight_registry
+                .as_ref()
+                .ok_or_else(|| "Knight registry is not configured".to_string())?;
+            let loaded = registry.load_for_actor(&lease.actor_id, &binding.package_id)?;
+            if loaded.package_digest != binding.package_digest
+                || loaded.persona_id != binding.persona_id
+                || loaded.persona_class != binding.persona_class
+            {
+                return Err("Knight lease package binding no longer matches registry".into());
+            }
+            Ok(())
+        }
     }
 }
 
@@ -202,6 +230,51 @@ async fn issue_lease(
             Json(json!({ "error": "invalid actor id" })),
         ));
     }
+
+    let knight_binding = if is_knight_actor(actor) {
+        let package_id = request.knight_package_id.as_deref().ok_or_else(|| {
+            (
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": "Knight actors require knight_package_id" })),
+            )
+        })?;
+        let registry = state.knight_registry.as_ref().ok_or_else(|| {
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(json!({ "error": "Knight registry is not configured" })),
+            )
+        })?;
+        let loaded = registry.load_for_actor(actor, package_id).map_err(|error| {
+            (
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": format!("Knight package rejected: {error}") })),
+            )
+        })?;
+        for capability in &request.capabilities {
+            if loaded.prohibits(capability) {
+                return Err((
+                    StatusCode::FORBIDDEN,
+                    Json(json!({
+                        "error": format!("Knight package prohibits capability: {capability}")
+                    })),
+                ));
+            }
+        }
+        Some(KnightLeaseBinding {
+            package_id: loaded.package_id,
+            package_digest: loaded.package_digest,
+            persona_id: loaded.persona_id,
+            persona_class: loaded.persona_class,
+        })
+    } else {
+        if request.knight_package_id.is_some() {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "knight_package_id is valid only for knight: actors" })),
+            ));
+        }
+        None
+    };
     if request.capabilities.is_empty() || request.capabilities.len() > ALLOWED_CAPABILITIES.len() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -240,6 +313,7 @@ async fn issue_lease(
         lease_id: Uuid::new_v4(),
         tenant_id: state.tenant_id,
         actor_id: actor.to_owned(),
+        knight_binding,
         session_id: Some(request.session_id),
         capabilities: request.capabilities,
         resource_bounds: request.resource_bounds,
@@ -291,6 +365,12 @@ async fn evaluate_policy(
     }
     if !lease.is_valid() {
         return deny(StatusCode::FORBIDDEN, "Lease expired or revoked");
+    }
+    if let Err(error) = verify_knight_binding(&state, &lease) {
+        return deny(
+            StatusCode::FORBIDDEN,
+            &format!("Knight package binding rejected: {error}"),
+        );
     }
     if !lease.is_current_epoch(authority_epoch) {
         return deny(StatusCode::FORBIDDEN, "Lease authority epoch is stale");
@@ -362,11 +442,14 @@ async fn main() {
     let boot_epoch = epoch_source
         .current_epoch()
         .expect("verify current authority epoch at Sentinel startup");
+    let knight_registry =
+        KnightRegistry::from_environment().expect("configure signed Knight registry");
     let state = AppState {
         signer: Arc::new(signer),
         token: Arc::new(token),
         tenant_id,
         epoch_source,
+        knight_registry: knight_registry.map(Arc::new),
     };
 
     let protected = Router::new()
@@ -387,6 +470,7 @@ async fn main() {
         public_key = %state.signer.public_key_hex(),
         authority_epoch = boot_epoch,
         dynamic_epoch = state.epoch_source.is_dynamic(),
+        knight_registry = state.knight_registry.is_some(),
         "Sentinel signed capability authority online"
     );
     axum::serve(listener, app)
