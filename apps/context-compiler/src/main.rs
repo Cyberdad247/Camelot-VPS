@@ -8,8 +8,7 @@ use axum::{
 };
 use camelot_crypto::KeyPair;
 use camelot_knight::{
-    compile_signed_spark, load_bundle_dir, Keyring, KnightPolicy, LoadedKnight,
-    SparkCompileRequest,
+    compile_signed_spark, load_bundle_dir, Keyring, KnightPolicy, LoadedKnight, SparkCompileRequest,
 };
 use chrono::Utc;
 use serde_json::{json, Value};
@@ -162,8 +161,7 @@ async fn main() {
     let policy = KnightPolicy {
         expected_tenant_id: env_required("CAMELOT_KNIGHT_TENANT_ID"),
         expected_workspace_id: env_required("CAMELOT_KNIGHT_WORKSPACE_ID"),
-        max_risk_tier: env::var("CAMELOT_KNIGHT_MAX_RISK_TIER")
-            .unwrap_or_else(|_| "T1".into()),
+        max_risk_tier: env::var("CAMELOT_KNIGHT_MAX_RISK_TIER").unwrap_or_else(|_| "T1".into()),
         max_cognition_ceiling: env::var("CAMELOT_KNIGHT_MAX_COGNITION_CEILING")
             .unwrap_or_else(|_| "L1".into()),
         allowed_effect_classes: csv_set(
