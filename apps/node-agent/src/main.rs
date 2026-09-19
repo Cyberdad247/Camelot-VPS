@@ -187,9 +187,7 @@ async fn health_live() -> Json<serde_json::Value> {
     }))
 }
 
-async fn health_ready(
-    State(state): State<AppState>,
-) -> (StatusCode, Json<serde_json::Value>) {
+async fn health_ready(State(state): State<AppState>) -> (StatusCode, Json<serde_json::Value>) {
     match state.epoch_source.current_epoch() {
         Ok(authority_epoch) => (
             StatusCode::OK,
@@ -386,9 +384,8 @@ async fn main() {
             panic!("{name} must be a 32-byte Ed25519 public key in hex");
         }
     }
-    let epoch_source = Arc::new(
-        EpochSource::from_environment().expect("load signed authority epoch source"),
-    );
+    let epoch_source =
+        Arc::new(EpochSource::from_environment().expect("load signed authority epoch source"));
     let boot_epoch = epoch_source
         .current_epoch()
         .expect("verify current authority epoch at node-agent startup");
