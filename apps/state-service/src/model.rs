@@ -139,6 +139,7 @@ pub struct TaskStatePayload {
     pub state: TaskState,
     pub authority_epoch: u64,
     #[serde(default)]
+    #[allow(dead_code)]
     pub reason: Option<String>,
 }
 
