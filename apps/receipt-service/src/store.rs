@@ -1,4 +1,5 @@
 use camelot_crypto::KeyPair;
+use camelot_epoch::EpochSource;
 use camelot_receipts::{is_sha256_reference, Receipt, ReceiptDraft};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
@@ -11,15 +12,19 @@ use uuid::Uuid;
 pub struct LedgerStore {
     pool: SqlitePool,
     signer: Arc<KeyPair>,
-    authority_epoch: u64,
+    epoch_source: EpochSource,
 }
 
 impl LedgerStore {
     pub async fn open(
         database_url: &str,
         signer: KeyPair,
-        authority_epoch: u64,
+        epoch_source: EpochSource,
     ) -> Result<Self, String> {
+        // Fail closed at startup when a dynamic signed epoch source is configured
+        // but missing, malformed, or signed by the wrong key.
+        epoch_source.current_epoch()?;
+
         let options = SqliteConnectOptions::from_str(database_url)
             .map_err(|error| format!("parse receipt database URL: {error}"))?
             .create_if_missing(true);
@@ -71,7 +76,7 @@ impl LedgerStore {
         let store = Self {
             pool,
             signer: Arc::new(signer),
-            authority_epoch,
+            epoch_source,
         };
         store.verify_chain().await?;
         Ok(store)
@@ -81,16 +86,29 @@ impl LedgerStore {
         self.signer.public_key_hex()
     }
 
-    pub fn authority_epoch(&self) -> u64 {
-        self.authority_epoch
+    pub fn current_authority_epoch(&self) -> Result<u64, String> {
+        self.epoch_source.current_epoch()
     }
 
-    pub async fn ready(&self) -> bool {
-        sqlx::query("SELECT 1").execute(&self.pool).await.is_ok()
+    pub fn dynamic_epoch(&self) -> bool {
+        self.epoch_source.is_dynamic()
+    }
+
+    pub async fn ready(&self) -> Result<u64, String> {
+        sqlx::query("SELECT 1")
+            .execute(&self.pool)
+            .await
+            .map_err(|error| format!("receipt database unavailable: {error}"))?;
+        self.current_authority_epoch()
     }
 
     pub async fn append(&self, draft: ReceiptDraft) -> Result<Receipt, String> {
-        validate_draft(&draft, self.authority_epoch)?;
+        // Resolve the signed current authority epoch on every admission. Historical
+        // receipts remain valid, but new drafts from N are rejected immediately
+        // after the certificate advances to N+1.
+        let authority_epoch = self.current_authority_epoch()?;
+        validate_draft(&draft, authority_epoch)?;
+
         let mut tx = self
             .pool
             .begin()
@@ -248,7 +266,10 @@ fn validate_draft(draft: &ReceiptDraft, authority_epoch: u64) -> Result<(), Stri
         }
     }
     if draft.authority_epoch != authority_epoch {
-        return Err("receipt draft carries a stale authority epoch".into());
+        return Err(format!(
+            "receipt draft authority epoch {} does not match current epoch {authority_epoch}",
+            draft.authority_epoch
+        ));
     }
     if !is_sha256_reference(&draft.manifest_hash) || !is_sha256_reference(&draft.result_hash) {
         return Err("manifestHash and resultHash must be canonical sha256 references".into());
