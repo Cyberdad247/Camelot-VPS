@@ -115,8 +115,13 @@ async fn verify_receipted_transition(
     if request.event_type != "task.state.changed" {
         return Ok(());
     }
-    let change: TaskStatePayload = serde_json::from_value(request.payload.clone())
-        .map_err(|err| error(StatusCode::BAD_REQUEST, format!("invalid task state payload: {err}")))?;
+    let change: TaskStatePayload =
+        serde_json::from_value(request.payload.clone()).map_err(|err| {
+            error(
+                StatusCode::BAD_REQUEST,
+                format!("invalid task state payload: {err}"),
+            )
+        })?;
     if change.state != TaskState::Receipted {
         return Ok(());
     }
@@ -125,7 +130,12 @@ async fn verify_receipted_transition(
         .receipt_id
         .as_deref()
         .filter(|value| !value.trim().is_empty())
-        .ok_or_else(|| error(StatusCode::CONFLICT, "RECEIPTED requires provenance.receiptId"))?;
+        .ok_or_else(|| {
+            error(
+                StatusCode::CONFLICT,
+                "RECEIPTED requires provenance.receiptId",
+            )
+        })?;
     let target = format!(
         "{}/receipts/{}",
         state.receipt_base_url.trim_end_matches('/'),
