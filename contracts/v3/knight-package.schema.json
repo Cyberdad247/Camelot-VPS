@@ -1,0 +1,230 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot-os/schemas/knight-package.schema.json",
+  "title": "Camelot Signed Knight Package",
+  "description": "Signed immutable binding of a persistent Soul, existing persona competence profile, enterprise role, allowed Runes/Pills, and maximum ceilings. A Knight package is identity/competence configuration and never grants effect authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "object_id",
+    "package_id",
+    "tenant_id",
+    "workspace_id",
+    "issuer_id",
+    "issued_at",
+    "not_before",
+    "expires_at",
+    "lifecycle",
+    "persona_id",
+    "persona_class",
+    "soul_ref",
+    "soul_digest",
+    "persona_digest",
+    "enterprise_role_ref",
+    "enterprise_role_digest",
+    "allowed_runes",
+    "allowed_pills",
+    "allowed_effect_classes",
+    "max_risk_tier",
+    "max_cognition_ceiling",
+    "prohibited_capabilities",
+    "authority_semantics",
+    "integrity"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "camelot-knight-package/1"
+    },
+    "object_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._:-]{2,127}$"
+    },
+    "package_id": {
+      "type": "string",
+      "pattern": "^knightpkg_[A-Za-z0-9_-]+$"
+    },
+    "tenant_id": {
+      "type": "string",
+      "pattern": "^tenant_[A-Za-z0-9_-]+$"
+    },
+    "workspace_id": {
+      "type": "string",
+      "pattern": "^ws_[A-Za-z0-9_-]+$"
+    },
+    "issuer_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "not_before": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "lifecycle": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "SUSPENDED",
+        "REVOKED",
+        "SUPERSEDED"
+      ]
+    },
+    "persona_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "persona_class": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]+$"
+    },
+    "soul_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "soul_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "persona_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "enterprise_role_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "enterprise_role_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "allowed_runes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "allowed_pills": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "allowed_effect_classes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "ro.fetch",
+          "ro.audit",
+          "internal.synth",
+          "workspace.test",
+          "workspace.patch",
+          "promote.worktree.merge",
+          "promote.deploy",
+          "external.publish.draft",
+          "external.publish.publish",
+          "external.email.send",
+          "payment.invoice.draft",
+          "payment.invoice.issue",
+          "payment.capture",
+          "payment.refund",
+          "device.calendar.write",
+          "device.sms.send",
+          "device.call.initiate",
+          "promote.failover"
+        ]
+      }
+    },
+    "max_risk_tier": {
+      "type": "string",
+      "enum": [
+        "T0",
+        "T1",
+        "T2",
+        "T3",
+        "T4"
+      ]
+    },
+    "max_cognition_ceiling": {
+      "type": "string",
+      "enum": [
+        "L0",
+        "L1",
+        "L2",
+        "L3",
+        "L4",
+        "L5"
+      ]
+    },
+    "prohibited_capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "authority_semantics": {
+      "type": "string",
+      "const": "package-not-authority"
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonicalization",
+        "digest_algorithm",
+        "digest",
+        "signature_algorithm",
+        "signature_domain",
+        "signer_key_id",
+        "signature"
+      ],
+      "properties": {
+        "canonicalization": {
+          "type": "string",
+          "const": "camelot-c14n-json/1"
+        },
+        "digest_algorithm": {
+          "type": "string",
+          "const": "sha256"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "signature_algorithm": {
+          "type": "string",
+          "const": "ed25519"
+        },
+        "signature_domain": {
+          "type": "string",
+          "const": "camelot-signature:camelot-knight-package/1"
+        },
+        "signer_key_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+        }
+      }
+    }
+  }
+}
