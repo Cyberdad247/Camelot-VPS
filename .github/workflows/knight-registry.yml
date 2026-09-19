@@ -1,0 +1,51 @@
+name: Knight Registry Runtime Gate
+
+on:
+  pull_request:
+    paths:
+      - 'crates/camelot-knight/**'
+      - 'crates/camelot-lease/**'
+      - 'crates/camelot-crypto/**'
+      - 'apps/sentinel/**'
+      - 'contracts/soul.schema.json'
+      - 'contracts/enterprise-role.schema.json'
+      - 'contracts/knight-package.schema.json'
+      - 'contracts/persona.schema.json'
+      - 'infra/systemd/sentinel.service'
+      - '.github/workflows/knight-registry.yml'
+  push:
+    branches:
+      - 'reforge/runtime-knight-registry-v1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: knight-registry-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  knight-registry:
+    name: Signed Knight Registry Boundary
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Format scoped packages
+        run: cargo fmt --package camelot-crypto --package camelot-knight --package camelot-lease --package sentinel -- --check
+
+      - name: Check scoped packages
+        run: cargo check -p camelot-crypto -p camelot-knight -p camelot-lease -p sentinel
+
+      - name: Test scoped packages
+        run: cargo test -p camelot-crypto -p camelot-knight -p camelot-lease -p sentinel
+
+      - name: Clippy scoped packages
+        run: cargo clippy -p camelot-crypto -p camelot-knight -p camelot-lease -p sentinel --all-targets -- -D warnings
+
+      - name: Validate Contract Forge JSON
+        run: jq empty contracts/soul.schema.json contracts/enterprise-role.schema.json contracts/knight-package.schema.json contracts/persona.schema.json
