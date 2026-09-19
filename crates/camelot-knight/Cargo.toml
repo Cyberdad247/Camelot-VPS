@@ -1,0 +1,13 @@
+[package]
+name = "camelot-knight"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+base64 = "0.22"
+camelot-crypto = { path = "../camelot-crypto" }
+chrono = "0.4.34"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+unicode-normalization = "0.1"

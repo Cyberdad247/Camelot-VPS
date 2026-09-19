@@ -10,6 +10,12 @@ WorkingDirectory=/opt/camelot
 Environment=RUST_LOG=info
 Environment=CAMELOT_SENTINEL_SIGNING_KEY=/var/lib/camelot/sentinel/lease-ed25519.key
 Environment=CAMELOT_AUTHORITY_EPOCH=1
+# Optional persona continuity registry. Enable only by supplying all paired values
+# in /etc/camelot/sentinel.env:
+# CAMELOT_KNIGHT_REGISTRY_DIR=/etc/camelot/knights
+# CAMELOT_KNIGHT_PUBLIC_KEY=<32-byte Ed25519 public key hex>
+# CAMELOT_KNIGHT_TENANT_SCOPE=tenant_primary
+# CAMELOT_KNIGHT_WORKSPACE_SCOPE=ws_camelot
 EnvironmentFile=-/etc/camelot/sentinel.env
 Restart=on-failure
 RestartSec=3
@@ -41,6 +47,7 @@ SystemCallArchitectures=native
 CapabilityBoundingSet=
 AmbientCapabilities=
 ReadWritePaths=/var/lib/camelot/sentinel
+ReadOnlyPaths=-/etc/camelot/knights
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 IPAddressDeny=any
 IPAddressAllow=localhost

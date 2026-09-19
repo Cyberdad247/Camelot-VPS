@@ -3,11 +3,21 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+pub struct KnightLeaseBinding {
+    pub package_id: String,
+    pub package_digest: String,
+    pub persona_id: String,
+    pub persona_class: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CapabilityLease {
     pub lease_id: Uuid,
     pub tenant_id: Uuid,
     pub actor_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub knight_binding: Option<KnightLeaseBinding>,
     #[serde(default)]
     pub session_id: Option<Uuid>,
     pub capabilities: Vec<String>,
@@ -105,6 +115,7 @@ mod tests {
             lease_id: Uuid::new_v4(),
             tenant_id: Uuid::nil(),
             actor_id: "sir_codex".into(),
+            knight_binding: None,
             session_id: Some(Uuid::new_v4()),
             capabilities: vec!["shadow.read".into(), "shadow.write".into()],
             resource_bounds: vec!["shadow://abc/workspace/**".into()],
