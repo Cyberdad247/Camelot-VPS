@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot-os/schemas/persona.schema.json",
+  "title": "Camelot Knight Persona",
+  "description": "v1.2 Stunspot-compiled Knight persona (§16). Personas declare competence maps (primary/secondary/prohibited), input/output contracts, token budgets, and runtime resource profiles. The prohibited list is enforced at compile time and at §13.3 step 3. See Camelot-OS SADD+LLDD v1.2 §16.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "persona_id",
+    "version",
+    "class",
+    "identity",
+    "competence_map",
+    "input_contract",
+    "output_contract",
+    "budget"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "camelot-persona/1"
+    },
+    "persona_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "class": {
+      "description": "Persona class bound to Symbolect glyphs and workloads, e.g. 'engineering_builder'.",
+      "type": "string"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "function"],
+      "properties": {
+        "title": { "type": "string" },
+        "function": { "type": "string" },
+        "tone": { "type": "string" }
+      }
+    },
+    "competence_map": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary", "secondary", "prohibited"],
+      "properties": {
+        "primary": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "secondary": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "prohibited": {
+          "description": "Structurally forbidden capabilities; enforced at compile and at §13.3 step 3.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "policy_decision",
+              "lease_issuance",
+              "direct_main_branch_write",
+              "secret_handling",
+              "unrestricted_network_access",
+              "auto_merge",
+              "auto_deploy",
+              "promotion_issue",
+              "epoch_increment"
+            ]
+          }
+        }
+      }
+    },
+    "input_contract": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "output_contract": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "identity_tokens_max": { "type": "integer", "minimum": 0 },
+        "skills_tokens_max": { "type": "integer", "minimum": 0 },
+        "constraints_tokens_max": { "type": "integer", "minimum": 0 },
+        "examples_tokens_max": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "runtime_resource_profile": {
+      "description": "v1.2: cpu quota, disk quota, ephemeral fds.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cpu_quota": { "type": "string" },
+        "disk_quota_mb": { "type": "integer", "minimum": 0 },
+        "ephemeral_fds_max": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
