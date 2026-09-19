@@ -4,6 +4,7 @@ members = [
     "crates/camelot-epoch",
     "crates/camelot-receipts",
     "crates/camelot-lease",
+    "crates/camelot-knight",
     "crates/camelot-vfs",
     "crates/camelot-cloudbrain",
     "apps/epoch-fencer",
