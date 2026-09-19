@@ -171,7 +171,7 @@ async fn require_token(
         .get(AUTHORIZATION)
         .and_then(|value| value.to_str().ok())
         .unwrap_or_default();
-    let authorized = actual.as_bytes().ct_eq(expected.as_bytes()).into();
+    let authorized: bool = actual.as_bytes().ct_eq(expected.as_bytes()).into();
     if !authorized {
         return Err(StatusCode::UNAUTHORIZED);
     }
