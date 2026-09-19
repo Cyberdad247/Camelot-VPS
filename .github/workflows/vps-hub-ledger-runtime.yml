@@ -5,8 +5,10 @@ on:
     paths:
       - 'apps/receipt-service/**'
       - 'crates/camelot-receipts/**'
+      - 'crates/camelot-epoch/**'
       - 'crates/camelot-crypto/**'
       - 'contracts/receipt.schema.json'
+      - 'contracts/authority-epoch.schema.json'
       - 'infra/systemd/receipt-service.service'
       - '.github/workflows/vps-hub-ledger-runtime.yml'
   push:
@@ -27,12 +29,12 @@ jobs:
         with:
           components: rustfmt, clippy
       - name: Format
-        run: cargo fmt --package camelot-crypto --package camelot-receipts --package receipt-service -- --check
+        run: cargo fmt --package camelot-crypto --package camelot-epoch --package camelot-receipts --package receipt-service -- --check
       - name: Check
-        run: cargo check -p camelot-crypto -p camelot-receipts -p receipt-service
+        run: cargo check -p camelot-crypto -p camelot-epoch -p camelot-receipts -p receipt-service
       - name: Test
-        run: cargo test -p camelot-crypto -p camelot-receipts -p receipt-service
+        run: cargo test -p camelot-crypto -p camelot-epoch -p camelot-receipts -p receipt-service
       - name: Clippy
-        run: cargo clippy -p camelot-crypto -p camelot-receipts -p receipt-service --all-targets -- -D warnings
+        run: cargo clippy -p camelot-crypto -p camelot-epoch -p camelot-receipts -p receipt-service --all-targets -- -D warnings
       - name: Contract JSON
-        run: jq empty contracts/receipt.schema.json
+        run: jq empty contracts/receipt.schema.json contracts/authority-epoch.schema.json
