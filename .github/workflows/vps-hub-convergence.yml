@@ -8,18 +8,14 @@ on:
       - 'crystal/**'
       - 'apps/bifrost-hub/**'
       - 'apps/sentinel/**'
-      - 'apps/receipt-service/**'
       - 'apps/vfs-guardian/**'
       - 'apps/state-service/**'
       - 'apps/node-agent/**'
       - 'crates/camelot-crypto/**'
-      - 'crates/camelot-epoch/**'
-      - 'crates/camelot-receipts/**'
       - 'crates/camelot-lease/**'
       - 'crates/camelot-vfs/**'
       - 'infra/systemd/bifrost.service'
       - 'infra/systemd/sentinel.service'
-      - 'infra/systemd/receipt-service.service'
       - 'infra/systemd/vfs-guardian.service'
       - 'infra/systemd/state-service.service'
       - 'infra/systemd/node-agent.service'
@@ -66,13 +62,13 @@ jobs:
         with:
           components: rustfmt, clippy
       - name: Format authority packages
-        run: cargo fmt --package camelot-crypto --package camelot-epoch --package camelot-receipts --package camelot-lease --package camelot-vfs --package receipt-service --package sentinel --package vfs-guardian --package state-service --package node-agent -- --check
+        run: cargo fmt --package camelot-crypto --package camelot-lease --package camelot-vfs --package sentinel --package vfs-guardian --package state-service --package node-agent -- --check
       - name: Check authority packages
-        run: cargo check -p camelot-crypto -p camelot-epoch -p camelot-receipts -p camelot-lease -p camelot-vfs -p receipt-service -p sentinel -p vfs-guardian -p state-service -p node-agent
+        run: cargo check -p camelot-crypto -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian -p state-service -p node-agent
       - name: Test authority packages
-        run: cargo test -p camelot-crypto -p camelot-epoch -p camelot-receipts -p camelot-lease -p camelot-vfs -p receipt-service -p sentinel -p vfs-guardian -p state-service -p node-agent
+        run: cargo test -p camelot-crypto -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian -p state-service -p node-agent
       - name: Clippy authority packages
-        run: cargo clippy -p camelot-crypto -p camelot-epoch -p camelot-receipts -p camelot-lease -p camelot-vfs -p receipt-service -p sentinel -p vfs-guardian -p state-service -p node-agent --all-targets -- -D warnings
+        run: cargo clippy -p camelot-crypto -p camelot-lease -p camelot-vfs -p sentinel -p vfs-guardian -p state-service -p node-agent --all-targets -- -D warnings
 
   experience-contract:
     name: Experience Plane Build
