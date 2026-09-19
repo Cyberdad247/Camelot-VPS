@@ -18,35 +18,42 @@ impl EpochSource {
             .ok()
             .map(|value| value.trim().to_string())
             .filter(|value| !value.is_empty());
-
-        match (&certificate_path, &pinned_public_key) {
-            (Some(_), None) | (None, Some(_)) => {
-                return Err(
-                    "CAMELOT_EPOCH_CERTIFICATE_PATH and CAMELOT_EPOCH_PUBLIC_KEY must be configured together"
-                        .into(),
-                )
-            }
-            _ => {}
-        }
-
-        if let Some(key) = &pinned_public_key {
-            if key.len() != 64 || !key.bytes().all(|value| value.is_ascii_hexdigit()) {
-                return Err("CAMELOT_EPOCH_PUBLIC_KEY must be a 32-byte Ed25519 public key in hex".into());
-            }
-        }
-
         let static_epoch = env::var("CAMELOT_AUTHORITY_EPOCH")
             .ok()
             .and_then(|value| value.parse::<u64>().ok())
             .unwrap_or(1);
-        if static_epoch == 0 {
-            return Err("CAMELOT_AUTHORITY_EPOCH must be greater than zero".into());
-        }
 
+        match (certificate_path, pinned_public_key) {
+            (Some(path), Some(key)) => Self::dynamic(path, key, static_epoch),
+            (Some(_), None) | (None, Some(_)) => Err(
+                "CAMELOT_EPOCH_CERTIFICATE_PATH and CAMELOT_EPOCH_PUBLIC_KEY must be configured together"
+                    .into(),
+            ),
+            (None, None) => Self::static_epoch(static_epoch),
+        }
+    }
+
+    pub fn dynamic(
+        certificate_path: PathBuf,
+        pinned_public_key: String,
+        fallback_epoch: u64,
+    ) -> Result<Self, String> {
+        if fallback_epoch == 0 {
+            return Err("authority epoch must be positive".into());
+        }
+        if pinned_public_key.len() != 64
+            || !pinned_public_key
+                .bytes()
+                .all(|value| value.is_ascii_hexdigit())
+        {
+            return Err(
+                "CAMELOT_EPOCH_PUBLIC_KEY must be a 32-byte Ed25519 public key in hex".into(),
+            );
+        }
         Ok(Self {
-            certificate_path,
-            pinned_public_key,
-            static_epoch,
+            certificate_path: Some(certificate_path),
+            pinned_public_key: Some(pinned_public_key),
+            static_epoch: fallback_epoch,
         })
     }
 
@@ -92,10 +99,55 @@ impl EpochSource {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{BrainId, PromotionMode};
+    use camelot_crypto::KeyPair;
+
+    fn digest(ch: char) -> String {
+        format!("sha256:{}", ch.to_string().repeat(64))
+    }
 
     #[test]
     fn static_source_is_fail_closed_on_zero() {
         assert!(EpochSource::static_epoch(0).is_err());
         assert_eq!(EpochSource::static_epoch(3).unwrap().current_epoch().unwrap(), 3);
+    }
+
+    #[test]
+    fn dynamic_source_observes_certificate_rotation_without_restart() {
+        let signer = KeyPair::generate();
+        let path = std::env::temp_dir().join(format!(
+            "camelot-epoch-source-{}.json",
+            uuid::Uuid::new_v4()
+        ));
+
+        let first = AuthorityEpochCertificate::bootstrap(
+            7,
+            BrainId::OpenNotebook,
+            41,
+            digest('a'),
+            "bootstrap".into(),
+            &signer,
+        )
+        .unwrap();
+        fs::write(&path, serde_json::to_vec(&first).unwrap()).unwrap();
+
+        let source =
+            EpochSource::dynamic(path.clone(), signer.public_key_hex(), 1).unwrap();
+        assert_eq!(source.current_epoch().unwrap(), 7);
+
+        let next = AuthorityEpochCertificate::promoted(
+            &first,
+            BrainId::Notebooklm,
+            PromotionMode::Planned,
+            42,
+            digest('b'),
+            "planned handoff".into(),
+            &signer,
+        )
+        .unwrap();
+        fs::write(&path, serde_json::to_vec(&next).unwrap()).unwrap();
+
+        assert_eq!(source.current_epoch().unwrap(), 8);
+        let _ = fs::remove_file(path);
     }
 }
