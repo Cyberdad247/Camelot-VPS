@@ -109,7 +109,13 @@ mod tests {
     #[test]
     fn static_source_is_fail_closed_on_zero() {
         assert!(EpochSource::static_epoch(0).is_err());
-        assert_eq!(EpochSource::static_epoch(3).unwrap().current_epoch().unwrap(), 3);
+        assert_eq!(
+            EpochSource::static_epoch(3)
+                .unwrap()
+                .current_epoch()
+                .unwrap(),
+            3
+        );
     }
 
     #[test]
@@ -131,8 +137,7 @@ mod tests {
         .unwrap();
         fs::write(&path, serde_json::to_vec(&first).unwrap()).unwrap();
 
-        let source =
-            EpochSource::dynamic(path.clone(), signer.public_key_hex(), 1).unwrap();
+        let source = EpochSource::dynamic(path.clone(), signer.public_key_hex(), 1).unwrap();
         assert_eq!(source.current_epoch().unwrap(), 7);
 
         let next = AuthorityEpochCertificate::promoted(
