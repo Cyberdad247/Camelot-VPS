@@ -181,42 +181,52 @@ pub fn valid_visibility(value: &str) -> bool {
 }
 
 pub fn can_transition(from: Option<TaskState>, to: TaskState) -> bool {
-    match (from, to) {
-        (None, TaskState::Proposed) => true,
-        (
-            Some(TaskState::Proposed),
-            TaskState::PolicyPending | TaskState::Denied | TaskState::Failed,
-        ) => true,
-        (
-            Some(TaskState::PolicyPending),
-            TaskState::ApprovalPending | TaskState::Leased | TaskState::Denied | TaskState::Failed,
-        ) => true,
-        (
-            Some(TaskState::ApprovalPending),
-            TaskState::Leased | TaskState::Denied | TaskState::Revoked | TaskState::Failed,
-        ) => true,
-        (
-            Some(TaskState::Leased),
-            TaskState::VfsPreflight | TaskState::Revoked | TaskState::Failed,
-        ) => true,
-        (
-            Some(TaskState::VfsPreflight),
-            TaskState::Queued | TaskState::Denied | TaskState::Revoked | TaskState::Failed,
-        ) => true,
-        (Some(TaskState::Queued), TaskState::Running | TaskState::Revoked | TaskState::Failed) => {
-            true
-        }
-        (
-            Some(TaskState::Running),
-            TaskState::Verifying | TaskState::Revoked | TaskState::Failed,
-        ) => true,
-        (
-            Some(TaskState::Verifying),
-            TaskState::Resolved | TaskState::Quarantined | TaskState::Failed,
-        ) => true,
-        (Some(TaskState::Resolved), TaskState::Receipted | TaskState::Failed) => true,
-        _ => false,
-    }
+    matches!(
+        (from, to),
+        (None, TaskState::Proposed)
+            | (
+                Some(TaskState::Proposed),
+                TaskState::PolicyPending | TaskState::Denied | TaskState::Failed,
+            )
+            | (
+                Some(TaskState::PolicyPending),
+                TaskState::ApprovalPending
+                    | TaskState::Leased
+                    | TaskState::Denied
+                    | TaskState::Failed,
+            )
+            | (
+                Some(TaskState::ApprovalPending),
+                TaskState::Leased | TaskState::Denied | TaskState::Revoked | TaskState::Failed,
+            )
+            | (
+                Some(TaskState::Leased),
+                TaskState::VfsPreflight | TaskState::Revoked | TaskState::Failed,
+            )
+            | (
+                Some(TaskState::VfsPreflight),
+                TaskState::Queued
+                    | TaskState::Denied
+                    | TaskState::Revoked
+                    | TaskState::Failed,
+            )
+            | (
+                Some(TaskState::Queued),
+                TaskState::Running | TaskState::Revoked | TaskState::Failed,
+            )
+            | (
+                Some(TaskState::Running),
+                TaskState::Verifying | TaskState::Revoked | TaskState::Failed,
+            )
+            | (
+                Some(TaskState::Verifying),
+                TaskState::Resolved | TaskState::Quarantined | TaskState::Failed,
+            )
+            | (
+                Some(TaskState::Resolved),
+                TaskState::Receipted | TaskState::Failed,
+            )
+    )
 }
 
 pub fn build_event(request: AppendEventRequest, sequence: i64) -> Result<WorkspaceEvent, String> {
