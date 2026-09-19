@@ -1,10 +1,24 @@
 schema_version: camelot-governance/2
-baseline:
-  document_id: CAMELOT-OS-SADD-LLDD-vMAX-20260912
-  version: 2.0.0
+
+binding_baseline:
+  document_id: CAMELOT-OS-SADD-LLDD-v2.1-20260913
+  version: 2.1.0
   status: LIVING_BASELINE
   authority: SOVEREIGN_TRUTH
   scope: CAMELOT_OS_VPS_HUB
+
+candidate_baseline:
+  document_id: CAMELOT-OS-SADD-LLDD-v3.0-20260919
+  version: 3.0.0-REFORGE-CANDIDATE
+  status: REFORGE_CANDIDATE
+  authority: PROPOSED_SOVEREIGN_TRUTH
+  scope: CAMELOT_OS_DIGITAL_ENTERPRISE
+  promotion_requires:
+    - explicit_human_promotion
+    - contract_compatibility_gate
+    - runtime_authority_closure_gate
+    - knight_identity_closure_gate
+    - canonical_effect_loop_gate
 
 axiom:
   - DOCUMENTATION_IS_THE_SYSTEM
@@ -12,6 +26,10 @@ axiom:
   - CAMELOT_RESOLVES
   - CAMELOT_AUTHORIZES
   - CAMELOT_RENDERS
+  - THE_MODEL_PROPOSES
+  - THE_CONTRACT_DEFINES_MEANING
+  - THE_SENTINEL_DEFINES_PERMISSION
+  - THE_LEDGER_REMEMBERS_TRUTH
 
 truth_precedence:
   - L0_governance
@@ -27,14 +45,40 @@ truth_precedence:
 non_negotiable_principles:
   - model_output_is_proposal_not_authority
   - sentinel_is_sole_policy_lease_and_revocation_authority
-  - tenant_context_is_resolved_server_side
-  - consequential_effects_require_manifest_policy_lease_verification_and_receipt
   - bifrost_transports_and_authenticates_but_does_not_grant_authority
+  - tenant_context_is_resolved_server_side
+  - consequential_effects_require_manifest_policy_lease_verification_resolution_and_receipt
+  - persona_identity_may_persist_across_model_changes
+  - soul_defines_identity_not_authority
+  - enterprise_role_defines_organization_not_authority
+  - spark_defines_short_lived_context_not_authority
+  - rune_defines_procedure_not_capability
+  - pill_defines_possible_reach_not_permission
   - cartridges_and_pills_cannot_replace_core_authority
+  - memory_cannot_store_reusable_authority
   - watchtower_observes_but_does_not_execute
   - offline_mode_preserves_drafts_but_cannot_create_new_effect_authority
   - learning_creates_versioned_candidates_and_cannot_self_promote
+  - authority_epoch_is_dynamic_at_authority_boundaries
   - native_hot_path_only
+  - helios_is_development_only
+  - cognition_may_be_distributed_authority_may_not
+
+persona_enterprise:
+  enabled: true
+  purpose: persistent_human_facing_digital_enterprise
+  continuity:
+    identity: persistent
+    role: persistent
+    relationships: governed
+    memory: governed
+    communication_profile: persistent
+    model_provider: replaceable
+  authority:
+    personas_issue_leases: false
+    personas_promote_epochs: false
+    personas_activate_canonical_memory: false
+    personas_create_canonical_truth_directly: false
 
 hot_path:
   prohibited_runtime_dependencies:
@@ -52,14 +96,31 @@ hot_path:
     experience: browser_pwa
 
 authority_chain:
-  proposal: anya
+  proposal: persona_enterprise_plane
   policy_and_leases: sentinel
   human_approval: excalibur
   independent_verification: gideon
   final_resolution: arthur
   immutable_evidence: ledger
 
-risk_tiers:
+# v3 candidate vocabulary. These do not silently replace the binding v2.1
+# terminology until candidate promotion is approved.
+effect_risk_tiers_candidate:
+  T0: read_only_or_internal_non_consequential
+  T1: bounded_internal_effect
+  T2: scoped_mutation_with_lease
+  T3: consequential_policy_evaluation_and_possible_approval
+  T4: explicit_human_or_multi_party_approval
+
+cognition_offline_levels_candidate:
+  L0: rendering_and_local_read
+  L1: bounded_retrieval_reasoning_and_draft
+  L2: shadow_workspace_or_provisional_local_write
+  L3: queued_or_explicit_offline_safe_lease
+  L4: consequential_external_effect_denied_or_pending
+  L5: sovereign_or_irreversible_effect_denied
+
+legacy_binding_risk_tiers:
   L0: session_scoped_allow
   L1: policy_and_budget_allow
   L2: capability_lease_required
@@ -85,9 +146,20 @@ network_posture:
   cartridge_to_database: deny
   worker_to_internet: named_destination_plus_lease_only
 
+cross_repo_contract_posture:
+  camelot_vps_runtime_contracts: grandfathered_until_explicit_migration
+  camelot_os_v3_contracts: candidate
+  silent_wire_compatibility_assumption: forbidden
+  required_migrations:
+    - authority_epoch_family_compatibility
+    - receipt_family_compatibility
+    - knight_package_runtime_admission
+    - effective_capability_set_runtime_emission
+
 change_control:
   on_documentation_code_conflict:
     action: STOP_AND_EMIT_DOCUMENTATION_MISMATCH
     correction: HUMAN_REVIEW_REQUIRED
   self_promotion: forbidden
   silent_policy_mutation: forbidden
+  silent_schema_migration: forbidden
