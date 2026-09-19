@@ -297,8 +297,7 @@ fn canonical_string(value: &Value) -> Result<String, String> {
                     }
                     entries.push((normalized_key, value));
                 }
-                entries.sort_by(|left, right| left.0.cmp(&right.0));
-                out.push('{');
+                entries.sort_by(|left, right| left.0.cmp(&right.0));                out.push('{');
                 for (index, (key, value)) in entries.iter().enumerate() {
                     if index > 0 {
                         out.push(',');
@@ -421,14 +420,20 @@ fn validate_signed_common(common: &CommonSigned, now: DateTime<Utc>) -> Result<(
         return Err(format!("object {} is not ACTIVE", common.object_id));
     }
     if now < common.not_before || now >= common.expires_at {
-        return Err(format!("object {} is outside its validity window", common.object_id));
+        return Err(format!(
+            "object {} is outside its validity window",
+            common.object_id
+        ));
     }
     Ok(())
 }
 
 fn validate_package_time(package: &KnightPackage, now: DateTime<Utc>) -> Result<(), String> {
     if package.lifecycle != "ACTIVE" {
-        return Err(format!("Knight package {} is not ACTIVE", package.package_id));
+        return Err(format!(
+            "Knight package {} is not ACTIVE",
+            package.package_id
+        ));
     }
     if now < package.not_before || now >= package.expires_at {
         return Err(format!(
@@ -547,8 +552,12 @@ pub fn load_knight_bundle(
         return Err("persona identity/class mismatch".into());
     }
 
-    let persona_prohibited: HashSet<&str> =
-        persona.competence_map.prohibited.iter().map(String::as_str).collect();
+    let persona_prohibited: HashSet<&str> = persona
+        .competence_map
+        .prohibited
+        .iter()
+        .map(String::as_str)
+        .collect();
     if REQUIRED_PERSONA_PROHIBITIONS
         .iter()
         .any(|item| !persona_prohibited.contains(item))
@@ -556,8 +565,11 @@ pub fn load_knight_bundle(
         return Err("persona profile is missing mandatory authority prohibitions".into());
     }
 
-    let package_prohibited: HashSet<&str> =
-        package.prohibited_capabilities.iter().map(String::as_str).collect();
+    let package_prohibited: HashSet<&str> = package
+        .prohibited_capabilities
+        .iter()
+        .map(String::as_str)
+        .collect();
     if REQUIRED_PACKAGE_PROHIBITIONS
         .iter()
         .any(|item| !package_prohibited.contains(item))
@@ -598,7 +610,6 @@ pub fn load_knight_bundle(
         authority: false,
     })
 }
-
 pub fn load_bundle_dir(
     path: &Path,
     keyring: &Keyring,
@@ -606,8 +617,8 @@ pub fn load_bundle_dir(
     now: DateTime<Utc>,
 ) -> Result<LoadedKnight, String> {
     let read = |name: &str| -> Result<Value, String> {
-        let raw = fs::read_to_string(path.join(name))
-            .map_err(|error| format!("read {name}: {error}"))?;
+        let raw =
+            fs::read_to_string(path.join(name)).map_err(|error| format!("read {name}: {error}"))?;
         serde_json::from_str(&raw).map_err(|error| format!("decode {name}: {error}"))
     };
 
