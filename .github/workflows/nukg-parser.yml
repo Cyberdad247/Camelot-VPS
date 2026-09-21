@@ -1,0 +1,50 @@
+name: νKG Contract and Parser Gate
+
+on:
+  pull_request:
+    paths:
+      - "crates/camelot-glyph/**"
+      - "contracts/v3/ukg.schema.json"
+      - "contracts/v3/ukg-dictionary.schema.json"
+      - "contracts/v3/ukg-lineage.schema.json"
+      - "contracts/v3/ukg-decision.schema.json"
+      - "Cargo.toml"
+      - ".github/workflows/nukg-parser.yml"
+  push:
+    branches:
+      - "reforge/helios/knowledge/**"
+    paths:
+      - "crates/camelot-glyph/**"
+      - "contracts/v3/ukg.schema.json"
+      - "contracts/v3/ukg-dictionary.schema.json"
+      - "contracts/v3/ukg-lineage.schema.json"
+      - "contracts/v3/ukg-decision.schema.json"
+      - "Cargo.toml"
+      - ".github/workflows/nukg-parser.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  nukg-parser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format
+        run: cargo fmt --package camelot-glyph -- --check
+      - name: Check
+        run: cargo check -p camelot-glyph
+      - name: Test
+        run: cargo test -p camelot-glyph
+      - name: Clippy
+        run: cargo clippy -p camelot-glyph --all-targets -- -D warnings
+      - name: Validate νKG contracts
+        run: >-
+          jq empty
+          contracts/v3/ukg.schema.json
+          contracts/v3/ukg-dictionary.schema.json
+          contracts/v3/ukg-lineage.schema.json
+          contracts/v3/ukg-decision.schema.json

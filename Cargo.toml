@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/camelot-crypto",
+    "crates/camelot-glyph",
     "crates/camelot-epoch",
     "crates/camelot-receipts",
     "crates/camelot-lease",
