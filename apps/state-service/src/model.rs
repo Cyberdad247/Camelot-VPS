@@ -205,10 +205,7 @@ pub fn can_transition(from: Option<TaskState>, to: TaskState) -> bool {
             )
             | (
                 Some(TaskState::VfsPreflight),
-                TaskState::Queued
-                    | TaskState::Denied
-                    | TaskState::Revoked
-                    | TaskState::Failed,
+                TaskState::Queued | TaskState::Denied | TaskState::Revoked | TaskState::Failed,
             )
             | (
                 Some(TaskState::Queued),
