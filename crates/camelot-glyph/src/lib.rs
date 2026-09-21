@@ -237,8 +237,7 @@ fn sha256_prefixed(data: &[u8]) -> String {
 mod tests {
     use super::*;
 
-    const THREAD_SEED: &str =
-        "νKG⋮MoE5⊞Pent→Frac→Merlin→Knight→Fab≫CP⊳Fab⟹[6✓ 3⚠ 3⊘]⊳MTHD:1→M→A";
+    const THREAD_SEED: &str = "νKG⋮MoE5⊞Pent→Frac→Merlin→Knight→Fab≫CP⊳Fab⟹[6✓ 3⚠ 3⊘]⊳MTHD:1→M→A";
 
     #[test]
     fn parses_thread_seed_deterministically() {
