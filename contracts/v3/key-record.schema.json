@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "camelot://contracts/camelot-key-record/1",
+  "title": "Camelot Key Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "authoritySemantics",
+    "keyId",
+    "keyEpoch",
+    "signerClass",
+    "publicKey",
+    "allowedSignatureDomains",
+    "notBefore",
+    "expiresAt",
+    "rotationWindowSeconds",
+    "status",
+    "recoveryClass"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "camelot-key-record/1" },
+    "authoritySemantics": { "const": "key-metadata-not-authority" },
+    "keyId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "keyEpoch": { "type": "integer", "minimum": 1 },
+    "signerClass": {
+      "enum": [
+        "ROOT", "POLICY", "EPOCH", "RECEIPT", "KNIGHT_REGISTRY",
+        "CONTEXT_COMPILER", "UKG_REGISTRY", "RELEASE", "HOST",
+        "ADAPTER", "MIGRATION", "INCIDENT"
+      ]
+    },
+    "publicKey": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "allowedSignatureDomains": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 160 }
+    },
+    "notBefore": { "type": "string", "format": "date-time" },
+    "expiresAt": {
+      "oneOf": [
+        { "type": "string", "format": "date-time" },
+        { "type": "null" }
+      ]
+    },
+    "rotationWindowSeconds": { "type": "integer", "minimum": 0 },
+    "status": { "enum": ["ACTIVE", "RETIRING", "REVOKED", "EXPIRED"] },
+    "recoveryClass": { "type": "string", "minLength": 1, "maxLength": 160 }
+  }
+}
