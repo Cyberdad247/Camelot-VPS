@@ -1,0 +1,37 @@
+name: Key Lifecycle Gate
+
+on:
+  pull_request:
+    paths:
+      - "crates/camelot-crypto/**"
+      - "contracts/v3/key-record.schema.json"
+      - ".github/workflows/key-lifecycle.yml"
+  push:
+    branches:
+      - "reforge/helios/security/**"
+    paths:
+      - "crates/camelot-crypto/**"
+      - "contracts/v3/key-record.schema.json"
+      - ".github/workflows/key-lifecycle.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  key-lifecycle:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Check
+        run: cargo check -p camelot-crypto
+      - name: Test
+        run: cargo test -p camelot-crypto
+      - name: Clippy
+        run: cargo clippy -p camelot-crypto --all-targets -- -D warnings
+      - name: Validate key record contract
+        run: jq empty contracts/v3/key-record.schema.json
