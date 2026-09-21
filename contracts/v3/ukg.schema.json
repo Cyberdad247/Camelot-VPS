@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot-os/schemas/ukg.schema.json",
+  "title": "Camelot Universal Knowledge Glyph Capsule",
+  "description": "Signed, scoped semantic knowledge capsule. A νKG is a content-addressed knowledge representation and never effect authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "object_id",
+    "tenant_id",
+    "workspace_id",
+    "issuer_id",
+    "issued_at",
+    "lifecycle",
+    "derived_from",
+    "integrity",
+    "ontology_version",
+    "dictionary_ref",
+    "dictionary_digest",
+    "source_refs",
+    "glyph",
+    "lineage_ref",
+    "decision_refs",
+    "decompression_rules_ref",
+    "evidence_refs",
+    "authority_semantics"
+  ],
+  "properties": {
+    "schema_version": { "const": "camelot-ukg/3" },
+    "object_id": { "type": "string", "pattern": "^[a-z][a-z0-9._:-]{2,127}$" },
+    "tenant_id": { "type": "string", "pattern": "^tenant_[A-Za-z0-9_-]+$" },
+    "workspace_id": { "type": "string", "pattern": "^ws_[A-Za-z0-9_-]+$" },
+    "issuer_id": { "type": "string", "minLength": 1 },
+    "issued_at": { "type": "string", "format": "date-time" },
+    "lifecycle": {
+      "enum": ["CANDIDATE", "ACTIVE", "QUARANTINED", "SUPERSEDED", "REVOKED"]
+    },
+    "derived_from": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonicalization",
+        "digest_algorithm",
+        "digest",
+        "signature_algorithm",
+        "signature_domain",
+        "signer_key_id",
+        "signature"
+      ],
+      "properties": {
+        "canonicalization": { "const": "camelot-c14n-json/1" },
+        "digest_algorithm": { "const": "sha256" },
+        "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "signature_algorithm": { "const": "ed25519" },
+        "signature_domain": { "const": "camelot-signature:camelot-ukg/3" },
+        "signer_key_id": { "type": "string", "minLength": 1 },
+        "signature": { "type": "string", "pattern": "^[A-Za-z0-9+/]+={0,2}$" }
+      }
+    },
+    "ontology_version": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "dictionary_ref": { "type": "string", "minLength": 1 },
+    "dictionary_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "source_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ref", "digest", "trust_class"],
+        "properties": {
+          "ref": { "type": "string", "minLength": 1 },
+          "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+          "trust_class": {
+            "enum": [
+              "TRUSTED_CANONICAL",
+              "VERIFIED_EXTERNAL",
+              "SIGNED_UKG",
+              "USER_SUPPLIED",
+              "AGENT_GENERATED",
+              "UNTRUSTED_EXTERNAL",
+              "QUARANTINED"
+            ]
+          }
+        }
+      }
+    },
+    "glyph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "grammar",
+        "seed",
+        "normalized",
+        "normalized_sha256",
+        "compression_mode"
+      ],
+      "properties": {
+        "grammar": { "const": "camelot-nukg-glyph/1" },
+        "seed": { "type": "string", "minLength": 1, "maxLength": 16384 },
+        "normalized": { "type": "string", "minLength": 1, "maxLength": 16384 },
+        "normalized_sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "compression_mode": {
+          "enum": ["SEMANTIC_ADDRESS", "NANO", "ULTRA_NANO", "ZERO_NANO"]
+        }
+      }
+    },
+    "lineage_ref": { "type": "string", "minLength": 1 },
+    "decision_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "decompression_rules_ref": { "type": "string", "minLength": 1 },
+    "evidence_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "authority_semantics": { "const": "knowledge-not-authority" }
+  }
+}

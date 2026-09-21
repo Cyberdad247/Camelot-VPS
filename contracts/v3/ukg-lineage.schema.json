@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot-os/schemas/ukg-lineage.schema.json",
+  "title": "Camelot νKG Lineage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "object_id",
+    "tenant_id",
+    "workspace_id",
+    "nodes",
+    "edges",
+    "integrity",
+    "authority_semantics"
+  ],
+  "properties": {
+    "schema_version": { "const": "camelot-ukg-lineage/1" },
+    "object_id": { "type": "string", "pattern": "^[a-z][a-z0-9._:-]{2,127}$" },
+    "tenant_id": { "type": "string", "pattern": "^tenant_[A-Za-z0-9_-]+$" },
+    "workspace_id": { "type": "string", "pattern": "^ws_[A-Za-z0-9_-]+$" },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node_id", "concept_id", "label", "source_refs"],
+        "properties": {
+          "node_id": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "concept_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "label": { "type": "string", "minLength": 1, "maxLength": 512 },
+          "source_refs": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to", "relation"],
+        "properties": {
+          "from": { "type": "string", "minLength": 1 },
+          "to": { "type": "string", "minLength": 1 },
+          "relation": {
+            "enum": [
+              "DERIVED_FROM",
+              "TRANSFORMS",
+              "COMPOSES",
+              "COMPARES",
+              "SELECTS",
+              "CRITIQUES",
+              "REVISITS"
+            ]
+          }
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonicalization",
+        "digest_algorithm",
+        "digest",
+        "signature_algorithm",
+        "signature_domain",
+        "signer_key_id",
+        "signature"
+      ],
+      "properties": {
+        "canonicalization": { "const": "camelot-c14n-json/1" },
+        "digest_algorithm": { "const": "sha256" },
+        "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "signature_algorithm": { "const": "ed25519" },
+        "signature_domain": { "const": "camelot-signature:camelot-ukg-lineage/1" },
+        "signer_key_id": { "type": "string", "minLength": 1 },
+        "signature": { "type": "string", "pattern": "^[A-Za-z0-9+/]+={0,2}$" }
+      }
+    },
+    "authority_semantics": { "const": "lineage-not-authority" }
+  }
+}
