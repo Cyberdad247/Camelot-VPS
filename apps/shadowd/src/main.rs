@@ -356,9 +356,8 @@ fn receipt_canonical(item: &ShadowReceipt) -> Value {
 
 async fn verify_ledger(store: &ShadowStore) -> Result<Option<String>, String> {
     let receipts = store.all_receipts().await?;
-    let mut expected_sequence = 1_u64;
     let mut parent: Option<String> = None;
-    for item in receipts {
+    for (expected_sequence, item) in (1_u64..).zip(receipts) {
         if item.sequence != expected_sequence {
             return Err(format!(
                 "receipt sequence break: expected {expected_sequence}, observed {}",
@@ -384,7 +383,6 @@ async fn verify_ledger(store: &ShadowStore) -> Result<Option<String>, String> {
             &item.signature,
         )?;
         parent = Some(item.receipt_hash.clone());
-        expected_sequence += 1;
     }
     Ok(parent)
 }
@@ -454,6 +452,9 @@ async fn append_audit_mirror(path: &FsPath, item: &ShadowReceipt) {
     }
 }
 
+// The receipt constructor mirrors the canonical receipt fields one-for-one; keeping
+// the call explicit makes audit review clearer than hiding fields in an opaque tuple.
+#[allow(clippy::too_many_arguments)]
 async fn receipt(
     state: &AppState,
     session_id: Uuid,
@@ -631,17 +632,13 @@ async fn recover_sessions(state: &AppState) -> Result<usize, String> {
         let expected = session.state_version;
         let mut changed = false;
         let mut purge_workspace = false;
-        if Utc::now() > session.expires_at
-            && !matches!(session.state, SessionState::Sealed | SessionState::Aborted)
-        {
-            session.state = SessionState::Aborted;
-            changed = true;
-            purge_workspace = true;
-        } else if session.state == SessionState::Summoned && session.receipt_count == 0 {
-            session.state = SessionState::Aborted;
-            changed = true;
-            purge_workspace = true;
-        } else if session.state == SessionState::Executing {
+        let expired_open_session = Utc::now() > session.expires_at
+            && !matches!(session.state, SessionState::Sealed | SessionState::Aborted);
+        let incomplete_session =
+            session.state == SessionState::Summoned && session.receipt_count == 0;
+        let interrupted_execution = session.state == SessionState::Executing;
+
+        if expired_open_session || incomplete_session || interrupted_execution {
             session.state = SessionState::Aborted;
             changed = true;
             purge_workspace = true;

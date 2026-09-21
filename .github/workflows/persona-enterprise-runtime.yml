@@ -1,0 +1,54 @@
+name: Persona Enterprise Runtime Gate
+
+on:
+  pull_request:
+    paths:
+      - 'crates/camelot-knight/**'
+      - 'apps/knight-registry/**'
+      - 'apps/context-compiler/**'
+      - 'contracts/v3/**'
+      - 'infra/systemd/knight-registry.service'
+      - 'infra/systemd/context-compiler.service'
+      - 'config/knights/**'
+      - 'Cargo.toml'
+      - 'Makefile'
+      - '.env.example'
+      - '.agent/governance.yaml'
+      - 'CAMELOT_ARCHITECTURE_OVERVIEW.md'
+      - '.github/workflows/persona-enterprise-runtime.yml'
+  push:
+    branches:
+      - 'reforge/runtime-authority-handoff-v1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: persona-enterprise-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  persona-runtime:
+    name: Signed Knight and Spark Runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Format
+        run: cargo fmt --package camelot-knight --package knight-registry --package context-compiler -- --check
+
+      - name: Check
+        run: cargo check -p camelot-knight -p knight-registry -p context-compiler
+
+      - name: Test
+        run: cargo test -p camelot-knight -p knight-registry -p context-compiler
+
+      - name: Clippy
+        run: cargo clippy -p camelot-knight -p knight-registry -p context-compiler --all-targets -- -D warnings
+
+      - name: Validate mirrored v3 contracts
+        run: jq empty contracts/v3/soul.schema.json contracts/v3/persona.schema.json contracts/v3/enterprise-role.schema.json contracts/v3/knight-package.schema.json contracts/v3/spark.schema.json

@@ -13,17 +13,16 @@ use tracing::info;
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let epoch_source = Arc::new(
-        EpochSource::from_environment().expect("load signed authority epoch source"),
-    );
+    let epoch_source =
+        Arc::new(EpochSource::from_environment().expect("load signed authority epoch source"));
     let boot_epoch = epoch_source
         .current_epoch()
         .expect("verify current authority epoch at State Service startup");
 
     let database_url = env::var("CAMELOT_STATE_DATABASE_URL")
         .unwrap_or_else(|_| "sqlite:///var/lib/camelot/state/runtime.sqlite3".into());
-    let receipt_base_url = env::var("CAMELOT_RECEIPT_URL")
-        .unwrap_or_else(|_| "http://127.0.0.1:3001".into());
+    let receipt_base_url =
+        env::var("CAMELOT_RECEIPT_URL").unwrap_or_else(|_| "http://127.0.0.1:3001".into());
     let store = StateStore::open(&database_url)
         .await
         .expect("initialize authoritative state database");

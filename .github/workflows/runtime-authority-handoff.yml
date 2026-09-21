@@ -1,26 +1,30 @@
-name: VPS Hub Ledger Runtime Gate
+name: Runtime Authority Handoff Gate
 
 on:
   pull_request:
     paths:
       - 'apps/receipt-service/**'
-      - 'crates/camelot-receipts/**'
-      - 'crates/camelot-epoch/**'
       - 'crates/camelot-crypto/**'
-      - 'contracts/receipt.schema.json'
+      - 'crates/camelot-epoch/**'
+      - 'crates/camelot-receipts/**'
       - 'contracts/authority-epoch.schema.json'
+      - 'contracts/receipt.schema.json'
       - 'infra/systemd/receipt-service.service'
-      - '.github/workflows/vps-hub-ledger-runtime.yml'
+      - '.github/workflows/runtime-authority-handoff.yml'
   push:
     branches:
-      - 'feature/vps-hub-sovereign-convergence-v2'
+      - 'reforge/runtime-authority-handoff-v1'
 
 permissions:
   contents: read
 
+concurrency:
+  group: runtime-authority-handoff-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  receipt-ledger:
-    name: Signed Receipt Ledger
+  receipt-epoch-boundary:
+    name: Receipt Epoch Admission Boundary
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -28,13 +32,18 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Format
+
+      - name: Format scoped packages
         run: cargo fmt --package camelot-crypto --package camelot-epoch --package camelot-receipts --package receipt-service -- --check
-      - name: Check
+
+      - name: Check scoped packages
         run: cargo check -p camelot-crypto -p camelot-epoch -p camelot-receipts -p receipt-service
-      - name: Test
+
+      - name: Test scoped packages
         run: cargo test -p camelot-crypto -p camelot-epoch -p camelot-receipts -p receipt-service
-      - name: Clippy
+
+      - name: Clippy scoped packages
         run: cargo clippy -p camelot-crypto -p camelot-epoch -p camelot-receipts -p receipt-service --all-targets -- -D warnings
-      - name: Contract JSON
+
+      - name: Validate receipt and epoch contracts
         run: jq empty contracts/receipt.schema.json contracts/authority-epoch.schema.json

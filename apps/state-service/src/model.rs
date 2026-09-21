@@ -139,6 +139,7 @@ pub struct TaskStatePayload {
     pub state: TaskState,
     pub authority_epoch: u64,
     #[serde(default)]
+    #[allow(dead_code)]
     pub reason: Option<String>,
 }
 
@@ -180,23 +181,54 @@ pub fn valid_visibility(value: &str) -> bool {
 }
 
 pub fn can_transition(from: Option<TaskState>, to: TaskState) -> bool {
-    match (from, to) {
-        (None, TaskState::Proposed) => true,
-        (Some(TaskState::Proposed), TaskState::PolicyPending | TaskState::Denied | TaskState::Failed) => true,
-        (Some(TaskState::PolicyPending), TaskState::ApprovalPending | TaskState::Leased | TaskState::Denied | TaskState::Failed) => true,
-        (Some(TaskState::ApprovalPending), TaskState::Leased | TaskState::Denied | TaskState::Revoked | TaskState::Failed) => true,
-        (Some(TaskState::Leased), TaskState::VfsPreflight | TaskState::Revoked | TaskState::Failed) => true,
-        (Some(TaskState::VfsPreflight), TaskState::Queued | TaskState::Denied | TaskState::Revoked | TaskState::Failed) => true,
-        (Some(TaskState::Queued), TaskState::Running | TaskState::Revoked | TaskState::Failed) => true,
-        (Some(TaskState::Running), TaskState::Verifying | TaskState::Revoked | TaskState::Failed) => true,
-        (Some(TaskState::Verifying), TaskState::Resolved | TaskState::Quarantined | TaskState::Failed) => true,
-        (Some(TaskState::Resolved), TaskState::Receipted | TaskState::Failed) => true,
-        _ => false,
-    }
+    matches!(
+        (from, to),
+        (None, TaskState::Proposed)
+            | (
+                Some(TaskState::Proposed),
+                TaskState::PolicyPending | TaskState::Denied | TaskState::Failed,
+            )
+            | (
+                Some(TaskState::PolicyPending),
+                TaskState::ApprovalPending
+                    | TaskState::Leased
+                    | TaskState::Denied
+                    | TaskState::Failed,
+            )
+            | (
+                Some(TaskState::ApprovalPending),
+                TaskState::Leased | TaskState::Denied | TaskState::Revoked | TaskState::Failed,
+            )
+            | (
+                Some(TaskState::Leased),
+                TaskState::VfsPreflight | TaskState::Revoked | TaskState::Failed,
+            )
+            | (
+                Some(TaskState::VfsPreflight),
+                TaskState::Queued | TaskState::Denied | TaskState::Revoked | TaskState::Failed,
+            )
+            | (
+                Some(TaskState::Queued),
+                TaskState::Running | TaskState::Revoked | TaskState::Failed,
+            )
+            | (
+                Some(TaskState::Running),
+                TaskState::Verifying | TaskState::Revoked | TaskState::Failed,
+            )
+            | (
+                Some(TaskState::Verifying),
+                TaskState::Resolved | TaskState::Quarantined | TaskState::Failed,
+            )
+            | (
+                Some(TaskState::Resolved),
+                TaskState::Receipted | TaskState::Failed,
+            )
+    )
 }
 
 pub fn build_event(request: AppendEventRequest, sequence: i64) -> Result<WorkspaceEvent, String> {
-    let payload_json = serde_json::to_string(&request.payload).map_err(|error| error.to_string())?;
+    let payload_json =
+        serde_json::to_string(&request.payload).map_err(|error| error.to_string())?;
     if payload_json.len() > MAX_EVENT_BYTES {
         return Err("event payload exceeds 64 KiB".into());
     }
@@ -215,7 +247,9 @@ pub fn build_event(request: AppendEventRequest, sequence: i64) -> Result<Workspa
         visibility: request.visibility,
         payload: request.payload,
         provenance: request.provenance,
-        integrity: Integrity { payload_hash: hash_payload(&payload_json) },
+        integrity: Integrity {
+            payload_hash: hash_payload(&payload_json),
+        },
     })
 }
 
@@ -226,9 +260,18 @@ mod tests {
     #[test]
     fn state_machine_rejects_shortcuts() {
         assert!(can_transition(None, TaskState::Proposed));
-        assert!(can_transition(Some(TaskState::Proposed), TaskState::PolicyPending));
-        assert!(!can_transition(Some(TaskState::Proposed), TaskState::Running));
-        assert!(!can_transition(Some(TaskState::Receipted), TaskState::Running));
+        assert!(can_transition(
+            Some(TaskState::Proposed),
+            TaskState::PolicyPending
+        ));
+        assert!(!can_transition(
+            Some(TaskState::Proposed),
+            TaskState::Running
+        ));
+        assert!(!can_transition(
+            Some(TaskState::Receipted),
+            TaskState::Running
+        ));
     }
 
     #[test]

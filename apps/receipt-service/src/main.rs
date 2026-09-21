@@ -7,6 +7,7 @@ use axum::{
     Json, Router,
 };
 use camelot_crypto::KeyPair;
+use camelot_epoch::EpochSource;
 use camelot_receipts::{Receipt, ReceiptDraft, RECEIPT_SCHEMA};
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -72,25 +73,26 @@ async fn health_live() -> Json<Value> {
 }
 
 async fn health_ready(State(store): State<Arc<LedgerStore>>) -> (StatusCode, Json<Value>) {
-    if store.ready().await {
-        (
+    match store.ready().await {
+        Ok(authority_epoch) => (
             StatusCode::OK,
             Json(json!({
                 "status": "ready",
                 "service": "camelot-receipt-ledger",
                 "schema": RECEIPT_SCHEMA,
-                "authorityEpoch": store.authority_epoch(),
+                "authorityEpoch": authority_epoch,
+                "dynamicEpoch": store.dynamic_epoch(),
                 "signerPublicKey": store.signer_public_key()
             })),
-        )
-    } else {
-        (
+        ),
+        Err(reason) => (
             StatusCode::SERVICE_UNAVAILABLE,
             Json(json!({
                 "status": "not_ready",
-                "service": "camelot-receipt-ledger"
+                "service": "camelot-receipt-ledger",
+                "reason": reason
             })),
-        )
+        ),
     }
 }
 
@@ -134,13 +136,11 @@ async fn list_receipts(
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let authority_epoch = env::var("CAMELOT_AUTHORITY_EPOCH")
-        .ok()
-        .and_then(|value| value.parse::<u64>().ok())
-        .unwrap_or(1);
-    if authority_epoch == 0 {
-        panic!("CAMELOT_AUTHORITY_EPOCH must be greater than zero");
-    }
+    let epoch_source =
+        EpochSource::from_environment().expect("configure receipt authority epoch source");
+    let authority_epoch = epoch_source
+        .current_epoch()
+        .expect("verify current receipt authority epoch");
     let database_url = env::var("CAMELOT_RECEIPT_DATABASE_URL")
         .unwrap_or_else(|_| "sqlite:///var/lib/camelot/receipts/ledger.sqlite3".into());
     let key_path = PathBuf::from(
@@ -149,7 +149,7 @@ async fn main() {
     );
     let signer = load_or_create_signer(&key_path).expect("load receipt signing identity");
     let store = Arc::new(
-        LedgerStore::open(&database_url, signer, authority_epoch)
+        LedgerStore::open(&database_url, signer, epoch_source)
             .await
             .expect("open and verify receipt ledger"),
     );
@@ -178,6 +178,7 @@ async fn main() {
         .expect("bind receipt ledger");
     info!(
         authority_epoch,
+        dynamic_epoch = store.dynamic_epoch(),
         signer_public_key = %store.signer_public_key(),
         "Camelot signed receipt ledger online"
     );

@@ -6,6 +6,7 @@ members = [
     "crates/camelot-lease",
     "crates/camelot-vfs",
     "crates/camelot-cloudbrain",
+    "crates/camelot-knight",
     "apps/epoch-fencer",
     "apps/receipt-service",
     "apps/sentinel",
@@ -15,6 +16,8 @@ members = [
     "apps/gideon",
     "apps/arthur",
     "apps/cloudbrain-broker",
+    "apps/knight-registry",
+    "apps/context-compiler",
     "apps/shadowd"
 ]
 resolver = "2"

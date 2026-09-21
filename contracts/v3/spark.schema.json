@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://camelot-os/schemas/spark.schema.json",
+  "title": "Camelot Spark",
+  "description": "Short-lived compiled task context for a Knight/persona. A Spark binds identity, quest/task context, trusted context references, token budgets, permitted Rune/Pill references, and a cognition/effect ceiling. A Spark cannot issue authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "object_id",
+    "tenant_id",
+    "workspace_id",
+    "issuer_id",
+    "issued_at",
+    "not_before",
+    "expires_at",
+    "lifecycle",
+    "derived_from",
+    "integrity",
+    "persona_id",
+    "soul_ref",
+    "quest_ref",
+    "task_ref",
+    "context_sources",
+    "token_budget",
+    "allowed_runes",
+    "allowed_pills",
+    "cognition_ceiling",
+    "authority_semantics"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "camelot-spark/1"
+    },
+    "object_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._:-]{2,127}$"
+    },
+    "tenant_id": {
+      "type": "string",
+      "pattern": "^tenant_[A-Za-z0-9_-]+$"
+    },
+    "workspace_id": {
+      "type": "string",
+      "pattern": "^ws_[A-Za-z0-9_-]+$"
+    },
+    "issuer_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "not_before": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "lifecycle": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "EXPIRED",
+        "REVOKED",
+        "SUPERSEDED"
+      ]
+    },
+    "derived_from": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonicalization",
+        "digest_algorithm",
+        "digest",
+        "signature_algorithm",
+        "signature_domain",
+        "signer_key_id",
+        "signature"
+      ],
+      "properties": {
+        "canonicalization": {
+          "type": "string",
+          "const": "camelot-c14n-json/1"
+        },
+        "digest_algorithm": {
+          "type": "string",
+          "const": "sha256"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "signature_algorithm": {
+          "type": "string",
+          "const": "ed25519"
+        },
+        "signature_domain": {
+          "type": "string",
+          "const": "camelot-signature:camelot-spark/1"
+        },
+        "signer_key_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+        }
+      }
+    },
+    "persona_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "soul_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "quest_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "context_sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ref",
+          "trust_class"
+        ],
+        "properties": {
+          "ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "trust_class": {
+            "type": "string",
+            "enum": [
+              "TRUSTED_CANONICAL",
+              "VERIFIED_EXTERNAL",
+              "SIGNED_UKG",
+              "USER_SUPPLIED",
+              "AGENT_GENERATED",
+              "UNTRUSTED_EXTERNAL",
+              "QUARANTINED"
+            ]
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "token_budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total_tokens",
+        "scratch_reserve_tokens"
+      ],
+      "properties": {
+        "total_tokens": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "scratch_reserve_tokens": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "allowed_runes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "allowed_pills": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "cognition_ceiling": {
+      "type": "string",
+      "enum": [
+        "L0",
+        "L1",
+        "L2",
+        "L3",
+        "L4",
+        "L5"
+      ]
+    },
+    "authority_semantics": {
+      "type": "string",
+      "const": "context-not-authority"
+    }
+  }
+}

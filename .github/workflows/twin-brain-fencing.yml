@@ -6,8 +6,10 @@ on:
       - 'crates/camelot-epoch/**'
       - 'apps/epoch-fencer/**'
       - 'apps/sentinel/**'
+      - 'apps/receipt-service/**'
       - 'contracts/authority-epoch.schema.json'
       - 'infra/systemd/epoch-fencer.service'
+      - 'infra/systemd/receipt-service.service'
       - 'Cargo.toml'
       - 'Makefile'
       - '.github/workflows/twin-brain-fencing.yml'
@@ -33,12 +35,12 @@ jobs:
         with:
           components: rustfmt, clippy
       - name: Format
-        run: cargo fmt --package camelot-epoch --package epoch-fencer --package sentinel -- --check
+        run: cargo fmt --package camelot-epoch --package epoch-fencer --package sentinel --package receipt-service -- --check
       - name: Check
-        run: cargo check -p camelot-epoch -p epoch-fencer -p sentinel
+        run: cargo check -p camelot-epoch -p epoch-fencer -p sentinel -p receipt-service
       - name: Test
-        run: cargo test -p camelot-epoch -p epoch-fencer -p sentinel
+        run: cargo test -p camelot-epoch -p epoch-fencer -p sentinel -p receipt-service
       - name: Clippy
-        run: cargo clippy -p camelot-epoch -p epoch-fencer -p sentinel --all-targets -- -D warnings
+        run: cargo clippy -p camelot-epoch -p epoch-fencer -p sentinel -p receipt-service --all-targets -- -D warnings
       - name: Validate authority epoch contract
         run: jq empty contracts/authority-epoch.schema.json
