@@ -1,0 +1,38 @@
+{
+  "registryVersion": "camelot-contract-registry/1",
+  "baseline": "v2.1-SOVEREIGN_TRUTH+v3-REFORGE_CANDIDATE",
+  "authoritySemantics": "contract-registry-not-authority",
+  "lockFile": "contracts/contracts.lock",
+  "requiredFeatures": [
+    "fail-closed-required-features",
+    "exact-source-byte-lock"
+  ],
+  "compatibility": {
+    "vpsRuntimeContracts": "grandfathered",
+    "v3MirroredContracts": "reforge-candidate",
+    "silentWireCompatibility": false
+  },
+  "sets": [
+    {
+      "id": "vps-runtime-root",
+      "glob": "contracts/*.schema.json",
+      "status": "binding-runtime"
+    },
+    {
+      "id": "legacy-schema-pack",
+      "glob": "contracts/schemas/*.schema.json",
+      "status": "grandfathered"
+    },
+    {
+      "id": "v3-persona-mirror",
+      "glob": "contracts/v3/*.schema.json",
+      "status": "reforge-candidate"
+    }
+  ],
+  "integrity": {
+    "sourceLockAlgorithm": "git-blob-sha1",
+    "releaseDigestAlgorithm": "sha256",
+    "releaseDigestRequiredBeforeProduction": true,
+    "note": "The source lock pins exact repository bytes. H-090 Release Proof must bind a SHA-256 contract-set digest before production promotion."
+  }
+}

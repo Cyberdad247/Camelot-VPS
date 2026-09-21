@@ -1,0 +1,134 @@
+{
+  "lockVersion": "camelot-contract-lock/1",
+  "authoritySemantics": "contract-lock-not-authority",
+  "sourceBaselineCommit": "191a6aae8c8129f79441dc14e106b8f1e6ac7a35",
+  "sourceIntegrityAlgorithm": "git-blob-sha1",
+  "releaseDigestRequirement": "sha256",
+  "contracts": [
+    {
+      "path": "contracts/actor.schema.json",
+      "gitBlobSha": "9826f626b27e27cb4be5b473da33bf116f444958",
+      "status": "binding-runtime"
+    },
+    {
+      "path": "contracts/arthur-resolution.schema.json",
+      "gitBlobSha": "af576fdb4ba867676a0e6f52dff604a1412f29a0",
+      "status": "binding-runtime"
+    },
+    {
+      "path": "contracts/authority-epoch.schema.json",
+      "gitBlobSha": "97ece8eaae96091bad28522b315cc488f7e90818",
+      "status": "binding-runtime"
+    },
+    {
+      "path": "contracts/bifrost-envelope.schema.json",
+      "gitBlobSha": "44d5c34e135be5544a3411ed802fcd2bd3d318fe",
+      "status": "binding-runtime"
+    },
+    {
+      "path": "contracts/context-packet.schema.json",
+      "gitBlobSha": "27cac814a54cad6119368a90ed8a28e0b3def481",
+      "status": "binding-runtime"
+    },
+    {
+      "path": "contracts/gideon-verdict.schema.json",
+      "gitBlobSha": "af637f821d9b6deee716069d13ec319704c15291",
+      "status": "binding-runtime"
+    },
+    {
+      "path": "contracts/receipt.schema.json",
+      "gitBlobSha": "88e45080eaabce0150bcac2be3cb39007682d901",
+      "status": "binding-runtime"
+    },
+    {
+      "path": "contracts/task-snapshot.schema.json",
+      "gitBlobSha": "048d2539d3d296a0f3a75e9434232bdb72df30dc",
+      "status": "binding-runtime"
+    },
+    {
+      "path": "contracts/vfs-attestation.schema.json",
+      "gitBlobSha": "b31439da45d4b6b9e3ce16fd76b10659f5cadf5c",
+      "status": "binding-runtime"
+    },
+    {
+      "path": "contracts/wasm-execution.schema.json",
+      "gitBlobSha": "5bdd6d6bcd0a2d2d39333e07607b784c5141d59d",
+      "status": "binding-runtime"
+    },
+    {
+      "path": "contracts/workspace-event.schema.json",
+      "gitBlobSha": "d554310b53bc61f8a4d9c8597d320a90ce504037",
+      "status": "binding-runtime"
+    },
+    {
+      "path": "contracts/schemas/capability-lease.schema.json",
+      "gitBlobSha": "4cd7c1c4cbf628abdfd35486953bc89ad3514f19",
+      "status": "grandfathered"
+    },
+    {
+      "path": "contracts/schemas/cartridge-manifest.schema.json",
+      "gitBlobSha": "4c0ea56b0b63c509c0cb8e3453fc05d1fa4a19e0",
+      "status": "grandfathered"
+    },
+    {
+      "path": "contracts/schemas/effect-manifest.schema.json",
+      "gitBlobSha": "784203875d7abe86df958213b8a21cf6f3c5a2ad",
+      "status": "grandfathered"
+    },
+    {
+      "path": "contracts/schemas/gideon-verdict.schema.json",
+      "gitBlobSha": "2545c6f381b06cee8f631722d04912909e6a2701",
+      "status": "grandfathered"
+    },
+    {
+      "path": "contracts/schemas/ouroboros-loop.schema.json",
+      "gitBlobSha": "d134cf0ef47cb0e935abe2a77967d5abd894a6a5",
+      "status": "grandfathered"
+    },
+    {
+      "path": "contracts/schemas/receipt.schema.json",
+      "gitBlobSha": "3dfb9421c95613a7cd842419d17de838980bc002",
+      "status": "grandfathered"
+    },
+    {
+      "path": "contracts/schemas/task-dag.schema.json",
+      "gitBlobSha": "9986a7b879ef9c3471e6da5602253c8a71e6693c",
+      "status": "grandfathered"
+    },
+    {
+      "path": "contracts/schemas/ternary-quantization.schema.json",
+      "gitBlobSha": "f52bd26b3d7453f8b1ee338d883bc3bd2bc377ea",
+      "status": "grandfathered"
+    },
+    {
+      "path": "contracts/schemas/vfs-attestation.schema.json",
+      "gitBlobSha": "679eb70580c4cfc2524b990eea1a99bfb1b2a182",
+      "status": "grandfathered"
+    },
+    {
+      "path": "contracts/v3/enterprise-role.schema.json",
+      "gitBlobSha": "0c123dc9c729a8464b7c93f8de73d0d8c9002e57",
+      "status": "reforge-candidate"
+    },
+    {
+      "path": "contracts/v3/knight-package.schema.json",
+      "gitBlobSha": "5ba174798b6e892fa4e4160ec6e796aa0da2c445",
+      "status": "reforge-candidate"
+    },
+    {
+      "path": "contracts/v3/persona.schema.json",
+      "gitBlobSha": "b6059b89392fd65760dac1fd0e2424d4b23f0faf",
+      "status": "reforge-candidate"
+    },
+    {
+      "path": "contracts/v3/soul.schema.json",
+      "gitBlobSha": "b233908b607421643d0cdfcc7694cea3d7f2e2a6",
+      "status": "reforge-candidate"
+    },
+    {
+      "path": "contracts/v3/spark.schema.json",
+      "gitBlobSha": "13aebd266ad4574e2a2ec1c91d15d79379043ba5",
+      "status": "reforge-candidate"
+    }
+  ]
+}
