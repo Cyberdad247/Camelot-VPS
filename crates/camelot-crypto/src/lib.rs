@@ -82,7 +82,6 @@ pub fn hash_payload(payload: &str) -> String {
     format!("sha256:{:x}", result)
 }
 
-
 pub const KEY_RECORD_SCHEMA: &str = "camelot-key-record/1";
 pub const KEY_AUTHORITY_SEMANTICS: &str = "key-metadata-not-authority";
 
