@@ -137,7 +137,9 @@ impl KeyRecord {
             return Err("invalid key record schema or authority semantics".into());
         }
         if self.key_id.trim().is_empty() || self.key_id.len() > 160 || self.key_epoch == 0 {
-            return Err("key id must contain 1..160 characters and key epoch must be positive".into());
+            return Err(
+                "key id must contain 1..160 characters and key epoch must be positive".into(),
+            );
         }
         decode_hex_32(&self.public_key)?;
         if self.allowed_signature_domains.is_empty() {
@@ -217,7 +219,12 @@ pub fn validate_key_rotation(previous: &KeyRecord, next: &KeyRecord) -> Result<(
     if previous.key_id != next.key_id || previous.signer_class != next.signer_class {
         return Err("rotation must preserve key identity and signer class".into());
     }
-    if next.key_epoch != previous.key_epoch.checked_add(1).ok_or("key epoch overflow")? {
+    if next.key_epoch
+        != previous
+            .key_epoch
+            .checked_add(1)
+            .ok_or("key epoch overflow")?
+    {
         return Err("rotation must increment key epoch by exactly one".into());
     }
     if previous.public_key == next.public_key {
