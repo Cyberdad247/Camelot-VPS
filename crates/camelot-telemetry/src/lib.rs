@@ -104,15 +104,24 @@ impl TelemetryEnvelope {
             validate_sha256(digest)?;
         }
         if self.attributes.len() > MAX_ATTRIBUTES {
-            return Err(format!("telemetry attributes exceed {MAX_ATTRIBUTES} entries"));
+            return Err(format!(
+                "telemetry attributes exceed {MAX_ATTRIBUTES} entries"
+            ));
         }
         for (key, value) in &self.attributes {
             bounded("attribute key", key, 1, 80)?;
             bounded("attribute value", value, 0, 1024)?;
             let lowered = key.to_ascii_lowercase();
-            if ["authorization", "cookie", "password", "secret", "token", "private_key"]
-                .iter()
-                .any(|needle| lowered.contains(needle))
+            if [
+                "authorization",
+                "cookie",
+                "password",
+                "secret",
+                "token",
+                "private_key",
+            ]
+            .iter()
+            .any(|needle| lowered.contains(needle))
             {
                 return Err(format!("telemetry attribute key is secret-like: {key}"));
             }
@@ -240,11 +249,12 @@ mod tests {
     #[test]
     fn child_preserves_trace_and_records_parent() {
         let parent = envelope();
-        let child = parent
-            .child("3333333333333333", "gideon", "0.1.0")
-            .unwrap();
+        let child = parent.child("3333333333333333", "gideon", "0.1.0").unwrap();
         assert_eq!(child.trace_id, parent.trace_id);
-        assert_eq!(child.parent_span_id.as_deref(), Some(parent.span_id.as_str()));
+        assert_eq!(
+            child.parent_span_id.as_deref(),
+            Some(parent.span_id.as_str())
+        );
         assert_eq!(child.span_id, "3333333333333333");
     }
 
@@ -268,8 +278,7 @@ mod tests {
     #[test]
     fn validates_contract_registry_digest() {
         let mut value = envelope();
-        value.contract_registry_digest =
-            Some(format!("sha256:{}", "a".repeat(64)));
+        value.contract_registry_digest = Some(format!("sha256:{}", "a".repeat(64)));
         value.validate().expect("valid digest");
 
         value.contract_registry_digest = Some("sha256:BAD".into());
