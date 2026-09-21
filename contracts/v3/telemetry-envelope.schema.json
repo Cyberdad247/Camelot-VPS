@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "camelot://contracts/camelot-telemetry-envelope/1",
+  "title": "Camelot Telemetry Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "authoritySemantics",
+    "traceId",
+    "spanId",
+    "parentSpanId",
+    "questId",
+    "taskId",
+    "tenantId",
+    "workspaceId",
+    "personaId",
+    "effectId",
+    "leaseId",
+    "authorityEpoch",
+    "knowledgeEpoch",
+    "receiptId",
+    "service",
+    "serviceVersion",
+    "releaseProofId",
+    "contractRegistryDigest",
+    "observedAt",
+    "attributes"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "camelot-telemetry-envelope/1" },
+    "authoritySemantics": { "const": "telemetry-not-authority" },
+    "traceId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$",
+      "not": { "const": "00000000000000000000000000000000" }
+    },
+    "spanId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$",
+      "not": { "const": "0000000000000000" }
+    },
+    "parentSpanId": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$",
+          "not": { "const": "0000000000000000" }
+        },
+        { "type": "null" }
+      ]
+    },
+    "questId": { "$ref": "#/$defs/optionalId" },
+    "taskId": { "$ref": "#/$defs/optionalId" },
+    "tenantId": { "$ref": "#/$defs/optionalId" },
+    "workspaceId": { "$ref": "#/$defs/optionalId" },
+    "personaId": { "$ref": "#/$defs/optionalId" },
+    "effectId": { "$ref": "#/$defs/optionalId" },
+    "leaseId": { "$ref": "#/$defs/optionalId" },
+    "authorityEpoch": {
+      "oneOf": [
+        { "type": "integer", "minimum": 1 },
+        { "type": "null" }
+      ]
+    },
+    "knowledgeEpoch": {
+      "oneOf": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "null" }
+      ]
+    },
+    "receiptId": { "$ref": "#/$defs/optionalId" },
+    "service": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "serviceVersion": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "releaseProofId": { "$ref": "#/$defs/optionalId" },
+    "contractRegistryDigest": {
+      "oneOf": [
+        { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        { "type": "null" }
+      ]
+    },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "attributes": {
+      "type": "object",
+      "maxProperties": 64,
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 1024
+      },
+      "propertyNames": {
+        "minLength": 1,
+        "maxLength": 80
+      }
+    }
+  },
+  "$defs": {
+    "optionalId": {
+      "oneOf": [
+        { "type": "string", "minLength": 1, "maxLength": 200 },
+        { "type": "null" }
+      ]
+    }
+  }
+}
