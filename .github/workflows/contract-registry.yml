@@ -1,0 +1,26 @@
+name: Contract Registry Gate
+
+on:
+  pull_request:
+    paths:
+      - "contracts/**"
+      - "tools/verify_contract_registry.py"
+      - ".github/workflows/contract-registry.yml"
+  push:
+    branches:
+      - "reforge/helios/**"
+    paths:
+      - "contracts/**"
+      - "tools/verify_contract_registry.py"
+      - ".github/workflows/contract-registry.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify-contract-registry:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify contract registry and exact source lock
+        run: python3 tools/verify_contract_registry.py
