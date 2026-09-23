@@ -1,0 +1,324 @@
+###############################################################################
+# CLOUDBRAIN TLS TERMINATION — Caddyfile (Caddy v2)
+###############################################################################
+#
+# PURPOSE
+# -------
+# Terminate TLS in front of the Hermes Agent dashboard/API so no session,
+# cookie, or admin credential ever crosses plain HTTP again. Today that
+# surface is plain HTTP on the public Internet — this is launch-blocker #1
+# (CB-011; verifications V-NET-003, V-TLS-001, V-WEB-001).
+#
+# THE PRIVILEGED-PORT PROBLEM
+# ---------------------------
+# The VPS runs everything under the `hermes` operator user (uid 10000) on
+# Debian 13 with NO sudo and NO root. On Linux, an unprivileged user CANNOT
+# bind ports < 1024, so a user-space Caddy binary CANNOT listen on the
+# standard HTTPS port 443 (nor HTTP port 80). Likewise, ACME/Let's Encrypt
+# HTTP-01 challenges need port 80 — unavailable without root — so the only
+# viable public-TLS certificate path is DNS-01 (see tls-notes.md).
+#
+# VARIANTS — pick ONE, activate it, keep the rest commented
+# ----------------------------------------------------------
+#   VARIANT 1 (active by default): 127.0.0.1-only listener.
+#     Safe to run as-is; exposes NOTHING beyond loopback. Use as the
+#     always-safe base config and for behind-Tailscale deployments where
+#     `tailscale serve` points at Caddy for header-hardening/logging.
+#
+#   VARIANT 2 (commented): public TLS ingress on a high port (:8443).
+#     For the owner if they choose public TLS (option B in tls-notes.md).
+#     DNS-01 ACME required. Operators bookmark https://<host>:8443.
+#     WARNING: only buy anything once the plaintext Hermes port is
+#     unreachable from the public Internet (provider firewall handoff in
+#     firewall-notes.md) AND the credential-rotation warning in
+#     tls-notes.md has been honored.
+#
+#   VARIANT 3 (commented): tailnet-interface listener (option A, RECOMMENDED).
+#     Binds the TLS listener to the Tailscale interface address only, so
+#     nothing Hermes-related touches the public interface at all. Caddy
+#     terminates TLS here (or use `tailscale serve` instead — see notes).
+#
+# PLACEHOLDERS: <vps-tailnet-name> (e.g. hermes.example.ts.net),
+# <tailnet-ip> (the VPS's 100.x.y.z address), <hermes-port>, <acme-email>.
+# Nothing here contains real hostnames, IPs, or credentials.
+#
+###############################################################################
+
+# ─── Global options ─────────────────────────────────────────────────────────
+{
+	# Admin API disabled: the /config endpoint of the admin API is a
+	# credential-exposure surface (today's /api/config serves plaintext
+	# passwords); there is no reason to expose Caddy's admin API on a
+	# shared host, so turn it off entirely.
+	admin off
+
+	# Where Caddy keeps its ACME state (account keys, cert cache, OCSP).
+	# Under /opt/data so it survives without root and stays inside the
+	# hermes user's writable tree. Back this dir up with the config.
+	storage file_system {
+		root /opt/data/cloudbrain/caddy/data
+	}
+
+	# Let's Encrypt is the default CA; uncomment ZeroSSL only if you need
+	# its multi-year/cert-transparency behavior. Keep ONE active CA so
+	# renewal behavior is predictable.
+	# ca https://acme.zerossl.com/v2/DV90
+
+	# TLS 1.2+ ONLY. TLS 1.0/1.1 are hard-disabled here. TLS 1.2 is kept
+	# for legacy client compatibility; TLS 1.3 is preferred by default
+	# whenever the client offers it.
+	servers {
+		protocols h1 h2
+	}
+
+	# Global logging defaults live per-site below so each variant can set
+	# its own log path (variant-specific blocks override this).
+
+	# ACME contact email for Let's Encrypt expiry notices and account
+	# recovery. TODO(operator): set before enabling Variant 2.
+	email <acme-email>
+}
+
+# ═══════════════════════════════════════════════════════════════════════════
+# VARIANT 1 — loopback-only listener (ACTIVE DEFAULT — safe to run as-is)
+# ═══════════════════════════════════════════════════════════════════════════
+# Listens ONLY on 127.0.0.1:8443 with a local CA (Caddy's internal CA) or
+# the Tailscale identity in front. Nothing here is reachable from the
+# public interface, so this variant can never accidentally expose Hermes.
+# Use it:
+#   • as the checked-in default (fail-closed), and
+#   • behind `tailscale serve` when you want Caddy's header-hardening,
+#     scanner blocking, and sanitized access logging on the tailnet path.
+https://127.0.0.1:8443 {
+
+	# ── Upstream: Hermes dashboard/API on loopback only ──────────────────
+	# TODO(operator): set the port Hermes listens on locally (loopback).
+	reverse_proxy 127.0.0.1:<hermes-port> {
+		# Fail fast instead of hanging clients on a dead upstream:
+		# try for 5s total, pausing 250ms between attempts.
+		lb_try_duration 5s
+		lb_try_interval 250ms
+
+		# Pass the real client address through so Hermes logs see the
+		# true remote IP (Caddy sets X-Forwarded-For automatically;
+		# keep this comment so nobody re-adds it manually).
+	}
+
+	# ── Request size limits (V-WEB-001) ──────────────────────────────────
+	# Reject absurd request bodies BEFORE they reach Hermes: 10 MiB is
+	# generous for a dashboard/API. Raises default limits so a huge POST
+	# is answered 413 by Caddy, not buffered by the app.
+	request_body {
+		max_size 10MB
+	}
+
+	# ── TLS minimums (defense in depth; global default is already 1.2+) ──
+	# TLS 1.2 cipher list trimmed to forward-secret, AEAD-only suites.
+	# RSA key-exchange and 3DES/CBC suites are EXCLUDED. TLS 1.3 suites
+	# are not configurable here and are always the strong defaults.
+	tls {
+		protocols tls1.2 tls1.3
+		ciphers TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+	}
+
+	# ── Security response headers ────────────────────────────────────────
+	header {
+		# HSTS: force HTTPS for all future visits, one year, all
+		# subdomains. Only include `preload` after confirming the whole
+		# domain tree is HTTPS-ready; preload submission is effectively
+		# irreversible for months.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		# Stop MIME-sniffing attacks.
+		X-Content-Type-Options "nosniff"
+		# No framing anywhere (dashboard has no embed use-case).
+		X-Frame-Options "DENY"
+		# Never leak the admin URL in Referer headers.
+		Referrer-Policy "no-referrer"
+		# Deny browser features the dashboard doesn't need.
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		# Strip the Server banner (version fingerprinting).
+		-Server
+	}
+
+	# ── Secure-cookie handling NOTE (read before cutover) ────────────────
+	# Caddy CANNOT add flags to Set-Cookie headers it did not originate,
+	# so cookie security must be fixed IN HERMES: session/auth cookies
+	# MUST be set with `Secure; HttpOnly; SameSite=Lax` (or Strict).
+	# After cutover, ROTATE every session/token that was ever sent over
+	# plain HTTP — they must be treated as exposed (see tls-notes.md §5).
+	# Spot check:
+	#   curl -skI https://127.0.0.1:8443/ | grep -i set-cookie
+
+	# ── Block obvious scanner paths (uncomment to enforce) ──────────────
+	# @scanners {
+	# 	path /wp-admin/* /wp-login.php /xmlrpc.php /.git/* /.env /phpmyadmin/*
+	# }
+	# handle @scanners {
+	# 	# `abort` kills the connection with no response body: scanners
+	# 	# learn nothing, and no log line with a body is produced.
+	# 	abort
+	# }
+
+	# ── Access logging: sanitized, JSON, rotated (V-WEB-001) ─────────────
+	# Caddy's default log excludes Authorization/Cookie VALUES; the filter
+	# below additionally drops all request headers and TLS session
+	# details so no credential material can ever land in the log files.
+	# Do NOT add {request>headers} wholesale to the format.
+	log {
+		output file /opt/data/cloudbrain/caddy/logs/access-loopback.log {
+			roll_size 50MiB
+			roll_keep 10
+			roll_keep_for 720h
+		}
+		format filter {
+			wrap json
+			fields {
+				request>headers delete
+				request>tls delete
+			}
+		}
+	}
+}
+
+# ═══════════════════════════════════════════════════════════════════════════
+# VARIANT 2 — public TLS ingress on :8443 (COMMENTED — owner decision)
+# ═══════════════════════════════════════════════════════════════════════════
+# Uncomment ONLY if the owner chooses public TLS ingress (option B in
+# tls-notes.md). Requires:
+#   1. A real public hostname with an A record → 162.35.107.134
+#      (placeholder below: <public-hostname>).
+#   2. ACME email set in the global block (TODO above).
+#   3. DNS-01 challenge configured for your DNS provider, because this
+#      Caddy cannot bind port 80 for HTTP-01 (unprivileged user). The
+#      DNS-01 path needs a Caddy build WITH the provider's DNS module
+#      (see tls-notes.md §1 for the build/fetch note).
+#   4. Provider-level firewall allowing inbound TCP 8443 ONLY, and the
+#      plaintext Hermes port NOT reachable publicly (firewall-notes.md).
+#
+# Everything inside is identical to Variant 1 except the listener address;
+# the comments are not repeated — read Variant 1 for the rationale.
+# https://<public-hostname>:8443 {
+# 	bind 0.0.0.0
+#
+# 	tls {
+# 		protocols tls1.2 tls1.3
+# 		ciphers TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+# 		# DNS-01: the ONLY viable challenge without port 80.
+# 		# TODO(operator): uncomment ONE line matching your DNS provider
+# 		# (module must be compiled into this Caddy binary):
+# 		# dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+# 		# dns route53
+# 		# dns digitalocean {env.DO_AUTH_TOKEN}
+# 	}
+#
+# 	reverse_proxy 127.0.0.1:<hermes-port> {
+# 		lb_try_duration 5s
+# 		lb_try_interval 250ms
+# 	}
+#
+# 	request_body {
+# 		max_size 10MB
+# 	}
+#
+# 	header {
+# 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+# 		X-Content-Type-Options "nosniff"
+# 		X-Frame-Options "DENY"
+# 		Referrer-Policy "no-referrer"
+# 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+# 		-Server
+# 	}
+#
+# 	# @scanners {
+# 	# 	path /wp-admin/* /wp-login.php /xmlrpc.php /.git/* /.env /phpmyadmin/*
+# 	# }
+# 	# handle @scanners {
+# 	# 	abort
+# 	# }
+#
+# 	log {
+# 		output file /opt/data/cloudbrain/caddy/logs/access-public.log {
+# 			roll_size 50MiB
+# 			roll_keep 10
+# 			roll_keep_for 720h
+# 		}
+# 		format filter {
+# 			wrap json
+# 			fields {
+# 				request>headers delete
+# 				request>tls delete
+# 			}
+# 		}
+# 	}
+# }
+#
+# ── Plain-HTTP → HTTPS redirector (Variant 2 companion) ──────────────────
+# If the owner picks public TLS, ALSO run this so any stray http:// link
+# upgrades instead of 404ing. It listens on a HIGH port (8080) because
+# port 80 is unbindable; a provider-level redirect rule on port 80 is
+# still preferred. Uncomment together with Variant 2.
+# http://<public-hostname>:8080 {
+# 	redir https://{http.request.host}:8443{http.request.uri} permanent
+# }
+
+# ═══════════════════════════════════════════════════════════════════════════
+# VARIANT 3 — tailnet-interface listener (COMMENTED — RECOMMENDED option A)
+# ═══════════════════════════════════════════════════════════════════════════
+# Binds the TLS listener to the VPS's Tailscale address ONLY. Nothing
+# Hermes-related touches the public interface. Obtain <tailnet-ip> from
+# `tailscale ip -4` on the VPS after `tailscale up` (userspace-networking
+# mode — no root needed). Using the literal IP in `bind` pins the listener
+# to the tailnet interface even if tailscaled restarts and re-resolves.
+#
+# Two sub-options:
+#   (i)  Caddy terminates TLS here with the tailnet hostname cert
+#        (Caddy fetches it automatically for <vps-tailnet-name>; Tailscale
+#        MagicDNS must resolve it). Header hardening + sanitized logging
+#        stay in Caddy — this is the value-add over plain `tailscale serve`.
+#   (ii) Skip Caddy: `tailscale serve --https=443 --bg
+#        http://127.0.0.1:<hermes-port>` and keep this Caddyfile parked.
+#        Simpler, but you lose the scanner blocking, size limits, and
+#        sanitized access logs. See tls-notes.md §3 for the trade-off.
+#
+# Body is the same hardened block as Variant 1; comments not repeated.
+# https://<vps-tailnet-name>:8443 {
+# 	bind <tailnet-ip>
+#
+# 	tls {
+# 		protocols tls1.2 tls1.3
+# 		ciphers TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+# 	}
+#
+# 	reverse_proxy 127.0.0.1:<hermes-port> {
+# 		lb_try_duration 5s
+# 		lb_try_interval 250ms
+# 	}
+#
+# 	request_body {
+# 		max_size 10MB
+# 	}
+#
+# 	header {
+# 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+# 		X-Content-Type-Options "nosniff"
+# 		X-Frame-Options "DENY"
+# 		Referrer-Policy "no-referrer"
+# 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+# 		-Server
+# 	}
+#
+# 	log {
+# 		output file /opt/data/cloudbrain/caddy/logs/access-tailnet.log {
+# 			roll_size 50MiB
+# 			roll_keep 10
+# 			roll_keep_for 720h
+# 		}
+# 		format filter {
+# 			wrap json
+# 			fields {
+# 				request>headers delete
+# 				request>tls delete
+# 			}
+# 		}
+# 	}
+# }
