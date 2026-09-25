@@ -10,6 +10,10 @@ const HOST = process.env.BIFROST_HOST || '127.0.0.1';
 const SHADOWD_URL = String(process.env.CAMELOT_SHADOW_URL || 'http://127.0.0.1:4190').replace(/\/$/, '');
 const SHADOWD_TOKEN = String(process.env.CAMELOT_SHADOW_TOKEN || '');
 const HITL_TOKEN = String(process.env.CAMELOT_HITL_TOKEN || '');
+const OPENROUTER_API_KEY = String(process.env.OPENROUTER_API_KEY || '');
+const OPENROUTER_BASE_URL = String(process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1').replace(/\/$/, '');
+const OPENROUTER_DEFAULT_MODEL = String(process.env.OPENROUTER_DEFAULT_MODEL || '');
+const OPENROUTER_TIMEOUT_MS = Math.min(Math.max(Number(process.env.OPENROUTER_TIMEOUT_MS || 120000), 5000), 300000);
 const ALLOWED_ORIGINS = new Set(
   String(process.env.BIFROST_ALLOWED_ORIGINS || 'http://127.0.0.1:3000,http://localhost:3000')
     .split(',')
@@ -213,6 +217,52 @@ async function executeCrossing(crossing) {
   return { result: 'ROUTE VALIDATED', detail: 'Crossing contract validated locally. No remote mutation was performed.' };
 }
 
+const CHAT_ROLES = new Set(['system', 'user', 'assistant']);
+
+function validateChatRequest(body) {
+  const model = String(body.model || OPENROUTER_DEFAULT_MODEL).trim();
+  const messages = Array.isArray(body.messages) ? body.messages : [];
+  if (!model || model.length > 200) return { error: 'A valid model is required (body.model or OPENROUTER_DEFAULT_MODEL)' };
+  if (!messages.length || messages.length > 50) return { error: 'messages must be a non-empty array of at most 50 entries' };
+  const clean = [];
+  for (const entry of messages) {
+    if (!entry || typeof entry !== 'object') return { error: 'Each message must be an object' };
+    const role = String(entry.role || '');
+    const content = String(entry.content || '');
+    if (!CHAT_ROLES.has(role)) return { error: 'Message roles are limited to system, user, assistant' };
+    if (!content || content.length > 32000) return { error: 'Message content is required and capped at 32KB' };
+    clean.push({ role, content });
+  }
+  const temperature = body.temperature === undefined ? 0.7 : Number(body.temperature);
+  if (!Number.isFinite(temperature) || temperature < 0 || temperature > 2) return { error: 'temperature must be between 0 and 2' };
+  const maxTokens = body.max_tokens === undefined ? 1024 : Math.floor(Number(body.max_tokens));
+  if (!Number.isFinite(maxTokens) || maxTokens < 1 || maxTokens > 4096) return { error: 'max_tokens must be between 1 and 4096' };
+  return { model, messages: clean, temperature, maxTokens };
+}
+
+async function openrouterChat({ model, messages, temperature, maxTokens }) {
+  const response = await fetchWithTimeout(`${OPENROUTER_BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+      'HTTP-Referer': 'https://github.com/Cyberdad247/CAMELOT_OS',
+      'X-Title': 'Camelot-Bifrost',
+    },
+    body: JSON.stringify({ model, messages, temperature, max_tokens: maxTokens }),
+  }, OPENROUTER_TIMEOUT_MS);
+  const text = await response.text();
+  let payload;
+  try { payload = text ? JSON.parse(text) : {}; }
+  catch { payload = { detail: text.slice(0, 4000) }; }
+  return { ok: response.ok, status: response.status, payload };
+}
+
+function providerErrorDetail(payload) {
+  const message = payload && payload.error && payload.error.message;
+  return typeof message === 'string' && message ? message.slice(0, 500) : null;
+}
+
 async function shadowRequest(path, init = {}, requireAuth = true) {
   if (requireAuth && !SHADOWD_TOKEN) {
     return { ok: false, status: 503, body: { error: 'Shadow Subspace is not configured on this Bifrost gateway' } };
@@ -297,6 +347,11 @@ const server = http.createServer(async (req, res) => {
         publicCredentialExposure: false,
         hitlAuthenticated: Boolean(HITL_TOKEN && HITL_TOKEN.length >= 24),
       },
+      models: {
+        configured: Boolean(OPENROUTER_API_KEY),
+        defaultModel: OPENROUTER_DEFAULT_MODEL || null,
+        publicCredentialExposure: false,
+      },
       policy: 'allowlisted-fail-closed',
       allowedOrigins: [...ALLOWED_ORIGINS],
     });
@@ -320,9 +375,35 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  if (req.method === 'POST' && url.pathname === '/api/bifrost/models/chat') {
+    if (!OPENROUTER_API_KEY) {
+      return sendJson(req, res, 503, { error: 'OpenRouter is not configured on this Bifrost gateway' });
+    }
+    let body;
+    try { body = await readJson(req); }
+    catch (error) { return sendJson(req, res, 400, { error: error instanceof Error ? error.message : 'Invalid request body' }); }
+    const chat = validateChatRequest(body);
+    if (chat.error) return sendJson(req, res, 400, chat);
+    try {
+      const result = await openrouterChat(chat);
+      if (!result.ok) {
+        const detail = providerErrorDetail(result.payload);
+        return sendJson(req, res, 502, {
+          error: 'Model provider error',
+          providerStatus: result.status,
+          ...(detail ? { detail } : {}),
+        });
+      }
+      return sendJson(req, res, 200, result.payload);
+    } catch (error) {
+      return sendJson(req, res, 502, { error: error instanceof Error ? error.message : 'Model provider unreachable' });
+    }
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/bifrost/shadow/health') {
     return proxyShadow(req, res, '/health', { requireAuth: false });
   }
+
   if (req.method === 'GET' && url.pathname === '/api/bifrost/shadow/sessions') {
     return proxyShadow(req, res, '/v1/shadow/sessions');
   }
@@ -385,6 +466,7 @@ server.listen(PORT, HOST, () => {
   console.log(`[BIFROST] Hermes/Heimdall command center listening on http://${HOST}:${PORT}`);
   console.log('[BIFROST] Remote targets are allowlisted. No arbitrary proxy route is exposed.');
   console.log(`[BIFROST] Shadow Subspace adapter: ${SHADOWD_TOKEN ? 'configured' : 'disabled (missing CAMELOT_SHADOW_TOKEN)'}`);
+  console.log(`[BIFROST] OpenRouter model route: ${OPENROUTER_API_KEY ? 'configured' : 'disabled (missing OPENROUTER_API_KEY)'}`);
   console.log(`[BIFROST] Authenticated HITL: ${HITL_TOKEN && HITL_TOKEN.length >= 24 ? 'configured' : 'disabled'}`);
   console.log(`[BIFROST] Allowed UI origins: ${[...ALLOWED_ORIGINS].join(', ') || '(none)'}`);
 });

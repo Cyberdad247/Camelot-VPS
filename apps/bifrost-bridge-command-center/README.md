@@ -65,10 +65,29 @@ Allowed local origins are configured with:
 BIFROST_ALLOWED_ORIGINS=http://127.0.0.1:3000,http://localhost:3000
 ```
 
+## Model route (OpenRouter)
+
+`POST /api/bifrost/models/chat` proxies chat completions through OpenRouter
+with the server-side `OPENROUTER_API_KEY`. The key never reaches the browser;
+`/api/bifrost/config` only reports whether the route is configured.
+
+```bash
+curl -s http://127.0.0.1:4188/api/bifrost/models/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"meta-llama/llama-3.3-70b-instruct:free","messages":[{"role":"user","content":"Say hello."}],"max_tokens":64}'
+```
+
+Request fields: `messages` (1–50 entries, roles limited to
+system/user/assistant, 32KB per message), `model` (or
+`OPENROUTER_DEFAULT_MODEL`), `temperature` (0–2), `max_tokens` (1–4096,
+clamped server-side). The route fails closed with 503 when no key is
+configured and returns 502 with the provider's error detail when OpenRouter
+rejects the call. Request bodies are capped at 64KB, as with every Bifrost
+route.
+
 ## Security model
 
 The gateway is an allowlisted adapter, **not an open proxy**.
-
 - Remote targets are defined server-side.
 - The browser cannot submit arbitrary hosts or URLs.
 - Request bodies are capped.
