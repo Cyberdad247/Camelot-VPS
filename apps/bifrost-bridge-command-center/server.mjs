@@ -223,6 +223,7 @@ function validateChatRequest(body) {
   const model = String(body.model || OPENROUTER_DEFAULT_MODEL).trim();
   const messages = Array.isArray(body.messages) ? body.messages : [];
   if (!model || model.length > 200) return { error: 'A valid model is required (body.model or OPENROUTER_DEFAULT_MODEL)' };
+  if (!model.endsWith(':free')) return { error: 'Only OpenRouter free models (IDs ending in ":free") are permitted on this route' };
   if (!messages.length || messages.length > 50) return { error: 'messages must be a non-empty array of at most 50 entries' };
   const clean = [];
   for (const entry of messages) {

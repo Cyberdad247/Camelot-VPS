@@ -80,7 +80,8 @@ curl -s http://127.0.0.1:4188/api/bifrost/models/chat \
 Request fields: `messages` (1–50 entries, roles limited to
 system/user/assistant, 32KB per message), `model` (or
 `OPENROUTER_DEFAULT_MODEL`), `temperature` (0–2), `max_tokens` (1–4096,
-clamped server-side). The route fails closed with 503 when no key is
+clamped server-side). **Free models only**: the model ID must end in `:free`;
+anything else is rejected with 400. The route fails closed with 503 when no key is
 configured and returns 502 with the provider's error detail when OpenRouter
 rejects the call. Request bodies are capped at 64KB, as with every Bifrost
 route.
