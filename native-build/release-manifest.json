@@ -1,6 +1,8 @@
 {
  "files": {
   "/etc/systemd/system/bob-gateway.service": "f2ca32b374d70c8b914e3e8c5fd458c07265511a01566b54c91bb6ee3d13d23f",
+  "/etc/systemd/system/camelot-backup.service": "819a7934b8247dfc30ed3eb3be1411a4dcb7d35c59971f365ee451cb364a2b84",
+  "/etc/systemd/system/camelot-backup.timer": "0a1008cee38d43ce807a510875318959d89e2dad025200f6b15e2147557571ba",
   "/etc/systemd/system/camelot-bifrost.service": "085416575bdf4afcf36ddc823a5ff2648d33f77235ca421af6ea9e1348892b7b",
   "/etc/systemd/system/camelot-edge-bus.service": "34eb3aa5ae281b4d909f0598471a81255d50f9e66d77bdee08d3d6259abff109",
   "/etc/systemd/system/camelot-heimdall-bifrost.service": "a9ef003268e27da0727a8c8bd260a75e18263a8e94e0f03a53889f4d4839e6fd",
@@ -567,6 +569,7 @@
   "/opt/hermesagent/data/cloudbrain/bob/knowledge/shopper.md": "0037abf0b6c89bb96c090525da13920b0796930a2263a37f8703f21ef39aefb1",
   "/opt/hermesagent/data/cloudbrain/bob/notebooklm/bob-notebooklm.py": "a36eb18c1bc52211a90fa6147f779dc66ec19b8f3ba4a6a0f42aaeda5fc3ca63",
   "/opt/hermesagent/data/cloudbrain/bob/notebooklm/notebooks.json": "b1c7ef9038fddabd86e6f2210c6f5bc491aa59bd455e29ca706622c1eed9cfdb",
+  "/usr/local/lib/camelot/backup-native.sh": "e22f99c233f9063922f047805b00a4fa64c1850086c67e4f7b9bc3818edd0aae",
   "/usr/local/lib/camelot/drift_check.py": "c1432087b8474a9af532ab745d4bf9b2c64925135666fc5962a09c60664ff513",
   "/usr/local/lib/camelot/hub-selfcheck.sh": "7a6bc3be308d9252993f243ead074cd2f8ef4bd8691c9ebe4eedac23c84e0439",
   "/usr/local/lib/camelot/native_selfcheck.py": "8b4778209dbce3e94d64dfa056267e0cce62d631fd3eaa90187d4a953b392764",
