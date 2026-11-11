@@ -432,7 +432,7 @@
   "/opt/camelot-releases/69afdb0f/control_plane/infra/voice_pro_adapter.py": "d2f3411478cd6963bc4bf4e76b0a6666514944bd4739909c847177192a446de0",
   "/opt/camelot-releases/69afdb0f/control_plane/infra/vps_github_webhook.py": "985f373289ff4875d10e9d3ed8353af9f862acfd4da76449f45452ef82b03998",
   "/opt/camelot-releases/69afdb0f/control_plane/infra/vps_hermes_prime.py": "489506a02f1c0b5eb2f89281b207c2e3a254b6b24406091db658876fe21c734c",
-  "/opt/camelot-releases/69afdb0f/control_plane/infra/watchtower.py": "0721a604abead5eb9dcecfae9e0434502656f34b3f0de2f438d6fb27653e266f",
+  "/opt/camelot-releases/69afdb0f/control_plane/infra/watchtower.py": "3467ad4bf0373f435ce0c7a14fc8c57635d314af4e61abb7ac2df77b5a544af4",
   "/opt/camelot-releases/69afdb0f/control_plane/infra/webhook_deploy.py": "be6f999468278554e59724bea9455926f7b7afb9d413f33de6554dca629852f6",
   "/opt/camelot-releases/69afdb0f/control_plane/infra/webhook_server.py": "4c46d2344f15b821603deb5992b63a7ed00e0a79a0b051760726cc39760ef699",
   "/opt/camelot-releases/69afdb0f/control_plane/infra/xinference_engine_adapter.py": "16c50c6137bb8c9263c1ed53905168f77f45994b278c18007fafe0f52034c39c",

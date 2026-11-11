@@ -589,6 +589,25 @@ def vps_watchtower_probe(
     }
 
 
+def bifrost_bridge_probe(timeout_s: float = 2.5) -> dict[str, Any]:
+    """Senses the Bifrost Bridge on Cybertronia (CLIProxyAPI, tailnet :8080).
+
+    Root 200 = bridge up. /v1/models is key-gated by design (401 is healthy
+    there) so it is never the probe. Guardian: SIR_HEIMDALL (P0-3c, 2026-11-10).
+    """
+    import urllib.request
+    url = "http://100.118.224.52:8080/"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "camelot-watchtower"})
+        with urllib.request.urlopen(req, timeout=timeout_s) as r:
+            code = r.status
+        return {"status": "UP" if code == 200 else "DEGRADED", "http": code,
+                "guardian": "SIR_HEIMDALL", "endpoint": url}
+    except Exception as exc:  # noqa: BLE001 -- probe must never raise
+        return {"status": "DOWN", "http": None, "guardian": "SIR_HEIMDALL",
+                "endpoint": url, "detail": f"{type(exc).__name__}: {exc}"[:120]}
+
+
 def knight_governance_probe(vps_probe: dict[str, Any] | None = None) -> dict[str, Any]:
     """Integrates Knight roster status across the local node and VPS Hub."""
     local_knights = [
@@ -1143,6 +1162,7 @@ def tick(
     vps_probe = vps_watchtower_probe(timeout_s=1.5)
     knights_state = knight_governance_probe(vps_probe)
     rs_governor = pagekeeper_rs_probe(home=base)
+    bridge_state = bifrost_bridge_probe()
 
     node_ws_mb = snapshot.get("process_working_set_mb", 0.0)
     telemetry = {
@@ -1158,6 +1178,7 @@ def tick(
         "nul_findings": list(findings),
         "conform": conform_probe(home=base),
         "mesh_vps": vps_probe,
+        "bifrost_bridge": bridge_state,
         "knights": knights_state,
         "excalibur_mobile": excalibur_mobile_probe(),
         "memory_governor_rs": rs_governor,
