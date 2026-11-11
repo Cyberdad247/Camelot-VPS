@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: MIT
+#
+# Drives camelot-selfcheck-watchdog.service.
+#
+# Cadence: hourly, and deliberately SLOWER than the 15-minute audit it watches. Two
+# independent timers at the same cadence would tend to fail together — the same host
+# condition, the same boot, the same clock — and a watchdog that dies with the thing it
+# watches is not a watchdog. The 4x ratio means the watchdog observes at least four
+# audit cycles per verdict.
+#
+# OnBootSec=15min gives the audit time to produce its first status before the watchdog
+# judges it, so a fresh boot cannot be miscategorised as a stopped monitor.
+#
+# As in camelot-selfcheck.timer, there is deliberately NO `Requires=` on the service:
+# a timer schedules, `Unit=` names the target, and a dependency would both bypass the
+# schedule and couple this unit's liveness to the unit it is watching.
+
+[Unit]
+Description=Camelot-OS Hub self-check watchdog cadence (monitor liveness, hourly)
+
+[Timer]
+Unit=camelot-selfcheck-watchdog.service
+OnBootSec=15min
+OnUnitActiveSec=1h
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,25 @@
+[Unit]
+Description=Camelot-OS Sir Heimdall Bifrost Bridge Guardian & Governance
+After=network.target tailscaled.service
+Wants=tailscaled.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/camelot-ecosystem
+ExecStart=/usr/bin/python3 -m control_plane.infra.heimdall_bifrost_governance
+Restart=always
+RestartSec=5s
+Environment=PYTHONUNBUFFERED=1
+Environment=CAMELOT_OS_HOME=/opt/camelot-ecosystem
+Environment=BIFROST_PORT=3001
+Environment=VPS_HOST=162.35.107.134
+
+# Scarcity Cap (cgroups v2)
+MemoryAccounting=true
+MemoryMax=512M
+CPUAccounting=true
+CPUQuota=100%
+
+[Install]
+WantedBy=multi-user.target

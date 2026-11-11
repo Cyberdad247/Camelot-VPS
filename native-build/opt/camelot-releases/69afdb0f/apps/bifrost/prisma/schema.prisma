@@ -1,0 +1,66 @@
+// SPDX-License-Identifier: MIT
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+// Zero-Cost + sovereign default: local SQLite file (no managed Postgres, no
+// Docker). Set DATABASE_URL="file:./vault.db" (see .env.example). For a heavier
+// local setup, switch provider to "postgresql" against a native install.
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Transaction {
+  id        String   @id @default(uuid())
+  entity    String
+  action    String
+  debit     Float    @default(0)
+  credit    Float    @default(0)
+  accountId String
+  createdAt DateTime @default(now())
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  threadId  String
+  direction String
+  channel   String
+  content   String
+  status    String
+  createdAt DateTime @default(now())
+}
+
+model Contact {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  tags      String   @default("[]") // JSON-encoded string list (SQLite has no scalar arrays)
+  createdAt DateTime @default(now())
+}
+
+// Append-only operator evidence chain (slice #2 Operator Console).
+// Rows are never updated or deleted; parentHash links the previous event
+// for the same task, forming the integrity chain (design §4).
+model OperatorEvent {
+  id            String   @id @default(uuid())
+  eventId       String   @unique
+  taskId        String
+  correlationId String
+  timestamp     String
+  actorId       String
+  actorRole     String
+  kind          String
+  payload       String // canonical JSON
+  payloadHash   String
+  parentHash    String?
+  integrity     String
+  createdAt     DateTime @default(now())
+
+  @@index([taskId, createdAt])
+}

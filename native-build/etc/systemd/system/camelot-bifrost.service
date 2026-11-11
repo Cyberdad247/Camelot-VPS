@@ -1,0 +1,58 @@
+# SPDX-License-Identifier: MIT
+#
+# Camelot-OS Bifrost Gateway — the mesh transport on :3001.
+#
+# WHY THIS UNIT EXISTS
+#
+# :3001 was served by PM2 (`bifrost`, fork mode, running as root) under
+# pm2-root.service, while `camelot-bifrost.service` sat `inactive` + `disabled`.
+# The hub therefore had two supervisors for one service, and systemd reported the
+# gateway as dead while it was actively serving traffic — an operator running
+# `systemctl status camelot-bifrost` saw a stopped service that was not stopped.
+# That is the same defect shape as HERMES_PRIME being advertised ALWAYS_ON_HUB
+# while its unit was disabled: a supervisor's view of the world disagreeing with
+# the world.
+#
+# The ExecStart below is what PM2 was already running, with the same working
+# directory, so the cutover is behaviour-preserving:
+#
+#     pm2 describe bifrost
+#       script path   /opt/camelot-ecosystem/apps/bifrost/dist/server.js
+#       exec cwd      /opt/camelot-ecosystem/apps/bifrost
+#       interpreter   node (v22.23.2)
+#       exec mode     fork_mode
+#
+# Restart=always matches PM2's semantics rather than inventing new ones during a
+# supervisor migration; systemd's default StartLimit still rate-limits a
+# crash-loop, which PM2 did not.
+#
+# KNOWN GAP, NOT FIXED HERE: this runs as root because PM2 did. The port is
+# >1024 so root is not required, but dropping to a dedicated user requires the
+# app's write paths to be confirmed first. Guessing at them during a cutover is
+# how an outage is manufactured; it is tracked as a follow-up instead.
+#
+# NOTE ON RULE 7: Node in the hot path is forbidden by the constitution.
+# Retiring PM2 neither causes nor repairs that — it removes a duplicate
+# supervisor.
+
+[Unit]
+Description=Camelot-OS Bifrost Gateway (mesh transport, :3001)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/camelot-ecosystem/apps/bifrost
+ExecStart=/usr/bin/node /opt/camelot-ecosystem/apps/bifrost/dist/server.js
+Environment=NODE_ENV=production
+Environment=BIFROST_PORT=3001
+Restart=always
+RestartSec=5s
+# PM2 logged to /root/.pm2/logs/bifrost-*.log. Move to a stable path so the logs
+# outlive the supervisor and stay readable after PM2 is gone.
+StandardOutput=append:/var/log/camelot-bifrost.log
+StandardError=append:/var/log/camelot-bifrost.log
+
+[Install]
+WantedBy=multi-user.target

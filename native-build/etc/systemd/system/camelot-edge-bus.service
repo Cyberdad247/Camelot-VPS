@@ -1,0 +1,27 @@
+[Unit]
+Description=Camelot signed Android edge bus
+After=network-online.target tailscaled.service
+Wants=network-online.target tailscaled.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/camelot-ecosystem
+EnvironmentFile=/etc/camelot-edge/edge-bus.env
+Environment=CAMELOT_EDGE_BUS_BIND_HOST=100.110.180.18
+Environment=CAMELOT_EDGE_BUS_PORT=8096
+ExecStart=/usr/bin/python3 -m control_plane.dispatch.edge_bus
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/camelot-ecosystem/03_VAULT/runtime_state
+MemoryAccounting=true
+MemoryMax=128M
+CPUAccounting=true
+CPUQuota=25%
+
+[Install]
+WantedBy=multi-user.target

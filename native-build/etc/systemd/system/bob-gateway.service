@@ -1,0 +1,19 @@
+[Unit]
+Description=Sir BoB storefront gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/hermesagent/data/cloudbrain/bob
+ExecStart=/usr/bin/python3 /opt/hermesagent/data/cloudbrain/bob/bob-gateway.py
+Restart=always
+RestartSec=5
+MemoryMax=512M
+Environment=PYTHONUNBUFFERED=1
+StandardOutput=append:/opt/camelot-state/logs/bob-gateway.log
+StandardError=append:/opt/camelot-state/logs/bob-gateway.log
+
+[Install]
+WantedBy=multi-user.target

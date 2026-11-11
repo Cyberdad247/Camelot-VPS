@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "resolveJsonModule": true,
+    // npm hoists @types/express-serve-static-core@5 (for the v5 typings another
+    // workspace pulls in) while this app's express@4 keeps @types/express@4
+    // nested. Two copies of the same type => `app.post(..., rateLimit(), ...)`
+    // fails overload resolution, because express-rate-limit's RequestHandler is
+    // branded against the other copy. Pin the specifier to the v4 copy that
+    // matches this app's express so there is exactly one type identity.
+    "paths": {
+      "express-serve-static-core": ["./node_modules/@types/express-serve-static-core"]
+    },
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+}

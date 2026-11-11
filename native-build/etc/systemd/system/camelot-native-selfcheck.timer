@@ -1,0 +1,10 @@
+[Unit]
+Description=Run native selfcheck every 15 min
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=15min
+RandomizedDelaySec=30s
+
+[Install]
+WantedBy=timers.target

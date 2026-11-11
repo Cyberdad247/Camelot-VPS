@@ -1,0 +1,503 @@
+{
+  "generator": "control_plane.omni_voice_dag",
+  "generator_version": "9000.27",
+  "fingerprint": "νKG_CRYSTAL_OMNI_VOICE_DAG_VMAX",
+  "system_identity": "OMNI_VOICE_ROUTER_vMAX",
+  "hardware_ceiling_mb": 384,
+  "bypass_prefix": "ᛟ_",
+  "feature_dims": [
+    "lexical_intent",
+    "urgency",
+    "privacy_sensitive",
+    "telemetry_request",
+    "build_intent",
+    "audio_focus"
+  ],
+  "tau_policy": {
+    "allowed_tau_values": [
+      0,
+      1
+    ],
+    "deterministic_tau": 0,
+    "exploratory_tau": 1
+  },
+  "weights": {
+    "merlin_omega": [
+      0.8,
+      0.1,
+      0.2,
+      0.3,
+      0.2,
+      0.2
+    ],
+    "sir_boris": [
+      0.6,
+      0.3,
+      0.2,
+      0.6,
+      0.3,
+      0.1
+    ],
+    "sir_forge": [
+      0.3,
+      0.5,
+      0.1,
+      0.2,
+      0.9,
+      0.1
+    ],
+    "sir_helio": [
+      0.7,
+      0.8,
+      0.1,
+      0.2,
+      0.2,
+      0.8
+    ],
+    "sir_sentinel": [
+      0.2,
+      0.4,
+      0.9,
+      0.2,
+      0.1,
+      0.1
+    ],
+    "sir_sonus": [
+      0.9,
+      0.2,
+      0.1,
+      0.1,
+      0.1,
+      0.9
+    ]
+  },
+  "bypass_commands": [
+    {
+      "token": "ᛟ_FORGE",
+      "knight": "sir_forge",
+      "delegates_rune": "//FORGE"
+    },
+    {
+      "token": "ᛟ_MULTIVOICE",
+      "knight": "sir_sonus",
+      "delegates_rune": "//MULTIVOICE_ROUTE"
+    },
+    {
+      "token": "ᛟ_SILENCE",
+      "knight": "sir_sentinel",
+      "delegates_rune": "//BIFROST_LOCK"
+    },
+    {
+      "token": "ᛟ_STATUS",
+      "knight": "sir_lucas",
+      "delegates_rune": "//STATUS"
+    },
+    {
+      "token": "ᛟ_SUMMON",
+      "knight": "sir_sonus",
+      "delegates_rune": "//VOICE_ROUTER"
+    }
+  ],
+  "vectors": [
+    {
+      "input": "ᛟ_SUMMON the voice knight",
+      "status": "ROUTED_BYPASS",
+      "path": "runic_bypass",
+      "token": "ᛟ_SUMMON",
+      "knight": "sir_sonus",
+      "delegates_rune": "//VOICE_ROUTER"
+    },
+    {
+      "input": "ᛟ_SILENCE",
+      "status": "ROUTED_BYPASS",
+      "path": "runic_bypass",
+      "token": "ᛟ_SILENCE",
+      "knight": "sir_sentinel",
+      "delegates_rune": "//BIFROST_LOCK"
+    },
+    {
+      "input": "ᛟ_STATUS",
+      "status": "ROUTED_BYPASS",
+      "path": "runic_bypass",
+      "token": "ᛟ_STATUS",
+      "knight": "sir_lucas",
+      "delegates_rune": "//STATUS"
+    },
+    {
+      "input": "ᛟ_MULTIVOICE",
+      "status": "ROUTED_BYPASS",
+      "path": "runic_bypass",
+      "token": "ᛟ_MULTIVOICE",
+      "knight": "sir_sonus",
+      "delegates_rune": "//MULTIVOICE_ROUTE"
+    },
+    {
+      "input": "ᛟ_FORGE",
+      "status": "ROUTED_BYPASS",
+      "path": "runic_bypass",
+      "token": "ᛟ_FORGE",
+      "knight": "sir_forge",
+      "delegates_rune": "//FORGE"
+    },
+    {
+      "input": "ᛟ_SILENCE.",
+      "status": "ROUTED_BYPASS",
+      "path": "runic_bypass",
+      "token": "ᛟ_SILENCE",
+      "knight": "sir_sentinel",
+      "delegates_rune": "//BIFROST_LOCK"
+    },
+    {
+      "input": "please ᛟ_SILENCE",
+      "status": "ROUTED_SOFTMAX",
+      "path": "softmax",
+      "tau": 0,
+      "features": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "logits": {
+        "merlin_omega": 0.0,
+        "sir_boris": 0.0,
+        "sir_forge": 0.0,
+        "sir_helio": 0.0,
+        "sir_sentinel": 0.0,
+        "sir_sonus": 0.0
+      },
+      "probabilities": {
+        "merlin_omega": 0.0,
+        "sir_boris": 0.0,
+        "sir_forge": 0.0,
+        "sir_helio": 0.0,
+        "sir_sentinel": 0.0,
+        "sir_sonus": 1.0
+      },
+      "knight": "sir_sonus",
+      "confidence": 1.0
+    },
+    {
+      "input": "ᛟ_NOPE",
+      "status": "ROUTED_SOFTMAX",
+      "path": "softmax",
+      "tau": 0,
+      "features": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "logits": {
+        "merlin_omega": 0.0,
+        "sir_boris": 0.0,
+        "sir_forge": 0.0,
+        "sir_helio": 0.0,
+        "sir_sentinel": 0.0,
+        "sir_sonus": 0.0
+      },
+      "probabilities": {
+        "merlin_omega": 0.0,
+        "sir_boris": 0.0,
+        "sir_forge": 0.0,
+        "sir_helio": 0.0,
+        "sir_sentinel": 0.0,
+        "sir_sonus": 1.0
+      },
+      "knight": "sir_sonus",
+      "confidence": 1.0
+    },
+    {
+      "input": "",
+      "status": "ROUTED_SOFTMAX",
+      "path": "softmax",
+      "tau": 0,
+      "features": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "logits": {
+        "merlin_omega": 0.0,
+        "sir_boris": 0.0,
+        "sir_forge": 0.0,
+        "sir_helio": 0.0,
+        "sir_sentinel": 0.0,
+        "sir_sonus": 0.0
+      },
+      "probabilities": {
+        "merlin_omega": 0.0,
+        "sir_boris": 0.0,
+        "sir_forge": 0.0,
+        "sir_helio": 0.0,
+        "sir_sentinel": 0.0,
+        "sir_sonus": 1.0
+      },
+      "knight": "sir_sonus",
+      "confidence": 1.0
+    },
+    {
+      "input": "forge a new audio pipeline now",
+      "status": "ROUTED_SOFTMAX",
+      "path": "softmax",
+      "tau": 0,
+      "features": [
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "logits": {
+        "merlin_omega": 0.5,
+        "sir_boris": 0.7,
+        "sir_forge": 1.5,
+        "sir_helio": 1.8,
+        "sir_sentinel": 0.6000000000000001,
+        "sir_sonus": 1.2
+      },
+      "probabilities": {
+        "merlin_omega": 0.0,
+        "sir_boris": 0.0,
+        "sir_forge": 0.0,
+        "sir_helio": 1.0,
+        "sir_sentinel": 0.0,
+        "sir_sonus": 0.0
+      },
+      "knight": "sir_helio",
+      "confidence": 1.0
+    },
+    {
+      "input": "forge a new audio pipeline now",
+      "status": "ROUTED_SOFTMAX",
+      "path": "softmax",
+      "tau": 1,
+      "features": [
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "logits": {
+        "merlin_omega": 0.5,
+        "sir_boris": 0.7,
+        "sir_forge": 1.5,
+        "sir_helio": 1.8,
+        "sir_sentinel": 0.6000000000000001,
+        "sir_sonus": 1.2
+      },
+      "probabilities": {
+        "merlin_omega": 0.08526672157136116,
+        "sir_boris": 0.10414500890653577,
+        "sir_forge": 0.23177897981970794,
+        "sir_helio": 0.31286889732061346,
+        "sir_sentinel": 0.09423430096032186,
+        "sir_sonus": 0.17170609142145982
+      },
+      "knight": "sir_helio",
+      "confidence": 0.31286889732061346
+    },
+    {
+      "input": "let me speak to you",
+      "status": "ROUTED_SOFTMAX",
+      "path": "softmax",
+      "tau": 0,
+      "features": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "logits": {
+        "merlin_omega": 0.2,
+        "sir_boris": 0.1,
+        "sir_forge": 0.1,
+        "sir_helio": 0.8,
+        "sir_sentinel": 0.1,
+        "sir_sonus": 0.9
+      },
+      "probabilities": {
+        "merlin_omega": 0.0,
+        "sir_boris": 0.0,
+        "sir_forge": 0.0,
+        "sir_helio": 0.0,
+        "sir_sentinel": 0.0,
+        "sir_sonus": 1.0
+      },
+      "knight": "sir_sonus",
+      "confidence": 1.0
+    },
+    {
+      "input": "my password and private key leaked",
+      "status": "ROUTED_SOFTMAX",
+      "path": "softmax",
+      "tau": 0,
+      "features": [
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "logits": {
+        "merlin_omega": 0.2,
+        "sir_boris": 0.2,
+        "sir_forge": 0.1,
+        "sir_helio": 0.1,
+        "sir_sentinel": 0.9,
+        "sir_sonus": 0.1
+      },
+      "probabilities": {
+        "merlin_omega": 0.0,
+        "sir_boris": 0.0,
+        "sir_forge": 0.0,
+        "sir_helio": 0.0,
+        "sir_sentinel": 1.0,
+        "sir_sonus": 0.0
+      },
+      "knight": "sir_sentinel",
+      "confidence": 1.0
+    },
+    {
+      "input": "status report on the swarm health",
+      "status": "ROUTED_SOFTMAX",
+      "path": "softmax",
+      "tau": 0,
+      "features": [
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "logits": {
+        "merlin_omega": 0.3,
+        "sir_boris": 0.6,
+        "sir_forge": 0.2,
+        "sir_helio": 0.2,
+        "sir_sentinel": 0.2,
+        "sir_sonus": 0.1
+      },
+      "probabilities": {
+        "merlin_omega": 0.0,
+        "sir_boris": 1.0,
+        "sir_forge": 0.0,
+        "sir_helio": 0.0,
+        "sir_sentinel": 0.0,
+        "sir_sonus": 0.0
+      },
+      "knight": "sir_boris",
+      "confidence": 1.0
+    },
+    {
+      "input": "what is the reason for this",
+      "status": "ROUTED_SOFTMAX",
+      "path": "softmax",
+      "tau": 0,
+      "features": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "logits": {
+        "merlin_omega": 0.8,
+        "sir_boris": 0.6,
+        "sir_forge": 0.3,
+        "sir_helio": 0.7,
+        "sir_sentinel": 0.2,
+        "sir_sonus": 0.9
+      },
+      "probabilities": {
+        "merlin_omega": 0.0,
+        "sir_boris": 0.0,
+        "sir_forge": 0.0,
+        "sir_helio": 0.0,
+        "sir_sentinel": 0.0,
+        "sir_sonus": 1.0
+      },
+      "knight": "sir_sonus",
+      "confidence": 1.0
+    },
+    {
+      "input": "immediately fix the urgent thing",
+      "status": "ROUTED_SOFTMAX",
+      "path": "softmax",
+      "tau": 0,
+      "features": [
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "logits": {
+        "merlin_omega": 0.1,
+        "sir_boris": 0.3,
+        "sir_forge": 0.5,
+        "sir_helio": 0.8,
+        "sir_sentinel": 0.4,
+        "sir_sonus": 0.2
+      },
+      "probabilities": {
+        "merlin_omega": 0.0,
+        "sir_boris": 0.0,
+        "sir_forge": 0.0,
+        "sir_helio": 1.0,
+        "sir_sentinel": 0.0,
+        "sir_sonus": 0.0
+      },
+      "knight": "sir_helio",
+      "confidence": 1.0
+    },
+    {
+      "input": "create a new build for the voice pipeline",
+      "status": "ROUTED_SOFTMAX",
+      "path": "softmax",
+      "tau": 1,
+      "features": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "logits": {
+        "merlin_omega": 0.4,
+        "sir_boris": 0.4,
+        "sir_forge": 1.0,
+        "sir_helio": 1.0,
+        "sir_sentinel": 0.2,
+        "sir_sonus": 1.0
+      },
+      "probabilities": {
+        "merlin_omega": 0.12069879065630461,
+        "sir_boris": 0.12069879065630461,
+        "sir_forge": 0.2199275356392509,
+        "sir_helio": 0.2199275356392509,
+        "sir_sentinel": 0.09881981176963794,
+        "sir_sonus": 0.2199275356392509
+      },
+      "knight": "sir_sonus",
+      "confidence": 0.2199275356392509
+    }
+  ]
+}

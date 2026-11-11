@@ -1,0 +1,11 @@
+{
+  "commit": "69afdb0fa2cc493c9eb9d98da0182b36a7e590f2",
+  "release": "69afdb0f",
+  "ref": "HEAD",
+  "branch": "feat/invisioned-marketing-digital-factory",
+  "deployed_at": "2026-11-08T14:04:00-05:00",
+  "deployed_from": "Cybertronia",
+  "tarball_sha256": "df168ef3f689e1b07b96ff1dc310bc4c68d932929a6b2fa3d99aaf5961bb2f78",
+  "size_bytes": 102674412,
+  "hub": "vps-camelot-hub"
+}

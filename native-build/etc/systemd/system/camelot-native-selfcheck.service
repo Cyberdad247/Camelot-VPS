@@ -1,0 +1,7 @@
+[Unit]
+Description=Camelot-OS native-topology selfcheck (surface liveness)
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/lib/camelot/native_selfcheck.py

@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: MIT
+#
+# Camelot-OS — Hermes Prime cadence.
+#
+# This timer exists because the cadence cannot live in the service. The engine
+# is a single-shot CLI (see camelot-hermes-prime.service for the evidence), so
+# "one MGV cycle every 60 seconds" is implemented as repeated timer activation
+# of a Type=oneshot unit rather than a resident process.
+#
+# Install with:
+#     systemctl daemon-reload
+#     systemctl enable --now camelot-hermes-prime.timer
+
+[Unit]
+Description=Camelot-OS Hermes Prime — drive one MGV research cycle every 60s
+Requires=camelot-hermes-prime.service
+
+[Timer]
+Unit=camelot-hermes-prime.service
+
+# First cycle shortly after boot, then every 60s measured from the end of the
+# previous cycle (OnUnitActiveSec on a oneshot restarts after deactivation, so
+# a slow cycle never overlaps itself).
+OnBootSec=3min
+OnUnitActiveSec=60s
+AccuracySec=10s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

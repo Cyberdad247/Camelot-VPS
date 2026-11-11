@@ -1,0 +1,13 @@
+[package]
+name = "rtk"
+version = "9000.14.0"
+edition = "2021"
+description = "RTK — Real-Time Kontext noise stripper (CYBERTRONIA P1-T09) for the anya_gate ctypes bridge"
+
+[lib]
+name = "rtk"
+# rlib added so the rtk_cli binary (src/bin/) can link the real `strip` engine;
+# cdylib retained for the existing anya_gate ctypes bridge.
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]

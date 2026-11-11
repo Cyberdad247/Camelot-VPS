@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: MIT
+#
+# Runs the hub post-condition audit. Driven by camelot-selfcheck.timer.
+#
+# Why this unit exists: the audit (`vps_hub_bootstrap.sh --self-check`) was already
+# written and already correct, but nothing invoked it, so the contract was only ever
+# checked when a human remembered. A check that does not run is documentation.
+#
+# CONTRACT: this unit is EXPECTED to fail while the hub is not production-ready. A
+# failed state here is the signal, not a fault in the unit. `systemctl --failed` is
+# therefore a meaningful place to look, and `OnFailure=` below fires the alert.
+#
+# It is deliberately NOT `Restart=always`: a failing post-condition must surface as a
+# failed unit for a human, not be silently retried until someone notices the log.
+
+[Unit]
+Description=Camelot-OS Hub self-check (post-condition audit)
+Documentation=file:///usr/local/lib/camelot/vps_hub_bootstrap.sh
+After=network-online.target
+Wants=network-online.target
+OnFailure=camelot-selfcheck-alert.service
+
+[Service]
+Type=oneshot
+User=root
+# An unhandled non-zero exit becomes the unit's failure, which is what fires OnFailure.
+ExecStart=/usr/local/lib/camelot/hub-selfcheck.sh run
+# The audit needs no capabilities beyond reading service state and two local curls.
+ProtectHome=no

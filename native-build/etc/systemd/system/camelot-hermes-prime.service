@@ -1,0 +1,74 @@
+# SPDX-License-Identifier: MIT
+#
+# Camelot-OS — Hermes Prime MGV research cycle (hub: KVM563 / vps3573819)
+#
+# WHY THIS IS A ONE-SHOT AND NOT A RESIDENT DAEMON
+#
+# The previous revision of this unit ran:
+#     ExecStart=/usr/bin/python3 .../hermes_prime_phial.py --loop 60
+#
+# That invocation cannot work. `--loop` is not a flag this engine accepts:
+#     $ hermes_prime_phial.py --loop 60
+#     hermes_prime_phial: error: unrecognized arguments: --loop 60     (exit=2)
+#
+# The engine is a single-shot CLI by design: it has no loop mode, no
+# `while True`, and no sleep call. Combined with the old unit's
+# `Restart=always` / `RestartSec=10s`, enabling it would have crash-looped
+# every 10 seconds indefinitely. The documented cadence therefore belongs to
+# the TIMER (camelot-hermes-prime.timer), which drives one `--cycle` per
+# interval — it does not belong in ExecStart.
+#
+# CAMELOT_OS_HOME is deliberately NOT set here. The engine resolves its root
+# from its own location (`_CAMELOT_ROOT = Path(__file__).resolve().parents[3]`)
+# and never reads that variable, so setting it only implied an override that
+# did not exist. Removing it removes the false affordance.
+#
+# State persists to 03_VAULT/runtime_state/hermes_prime_phial.json, which is
+# gitignored in the deployment clone. The parent directory must be writable by
+# the service user, otherwise the cycle dies with PermissionError and exit=1
+# *after* doing its work. Prepare it once with:
+#     chown ubuntu:ubuntu /opt/camelot-ecosystem/03_VAULT/runtime_state
+# Use a directory-only chown (no -R): tracked files in that directory stay
+# root-owned and unwritable by the service user.
+#
+# WHY THE PATH IS LOWERCASE
+#
+# The hub used to carry TWO checkouts whose names differed only by case, and the
+# filesystem is case-sensitive, so they were genuinely different directories:
+#
+#     /opt/Camelot-Ecosystem   HEAD 990300d1  stale bootstrap clone   [RETIRED]
+#     /opt/camelot-ecosystem   canonical checkout, carries control_plane/
+#
+# The live consumer of this state — control_plane.dispatch.vps_mobile_mesh_bridge,
+# served on :8095 by camelot-vps-mesh.service — resolves its state path from its
+# own __file__, so it reads whichever tree its code was loaded from. Writing state
+# into the uppercase tree produced a producer/consumer split: cycles succeeded,
+# the state file existed, and GET /api/hermes still returned an empty
+# phial_engine because the reader was looking in a different directory.
+#
+# The uppercase tree is now RETIRED (archived under /root/retired/ and removed),
+# and every unit names the canonical path directly — this unit no longer depends on
+# a drop-in to correct it. The case difference is documented because it is the
+# whole cause of the split; a future operator meeting "Camelot-Ecosystem" in an
+# old script should treat it as dead rather than recreate it.
+
+[Unit]
+Description=Camelot-OS Hermes Prime — one MGV research cycle (60s cadence via camelot-hermes-prime.timer)
+Documentation=file:///opt/camelot-ecosystem/docs/architecture/CAMELOT_OS_V1000_APEX_NORTHSTAR.md
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/opt/camelot-ecosystem
+Environment=VPS_HOST=162.35.107.134
+Environment=HERMES_PRIME_SEED=hub-autonomous
+ExecStart=/usr/bin/python3 01_KERNEL/titan/phials/hermes_prime_phial.py --cycle ${HERMES_PRIME_SEED}
+
+# Scarcity cap (cgroups v2) — this hub is a small VPS.
+MemoryAccounting=true
+MemoryMax=768M
+CPUAccounting=true
+CPUQuota=150%
+
+# No [Install] section by design: the timer owns activation.

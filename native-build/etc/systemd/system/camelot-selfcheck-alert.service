@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: MIT
+#
+# Fired by camelot-selfcheck.service via OnFailure=. Not on a timer.
+#
+# Delivery is honest about its channels. On this hub, sendmail/postfix are installed and
+# active, so mail is a real channel; with CAMELOT_ALERT_EMAIL unset it lands in root's
+# local mailbox and the journal — a genuine delivery, but not a remote one. The unit's
+# output names every channel it used, and names the ones it did not, so nothing implies
+# a notification went somewhere it did not.
+#
+# To push alerts off the box:
+#     systemctl edit camelot-selfcheck-alert
+#     [Service]
+#     Environment=CAMELOT_ALERT_EMAIL=you@example.com
+#     Environment=CAMELOT_ALERT_WEBHOOK=https://...
+#     Environment=CAMELOT_ALERT_RESEND_KEY=re_...
+#     Environment=CAMELOT_ALERT_FROM=alerts@your-verified-domain
+#
+# Prefer CAMELOT_ALERT_RESEND_KEY over CAMELOT_ALERT_EMAIL on this host. Local postfix
+# delivers to a consumer mailbox unsuccessfully: the MTA ACCEPTS the message and the
+# failure arrives afterwards as a bounce, so the alert log reports a channel that
+# delivered nothing. The HTTPS API answers on the request, so a rejection is knowable
+# immediately. The from-address must be on a domain verified with the provider.
+#
+# Verify whichever you set, rather than assuming it works:
+#     /usr/local/lib/camelot/hub-selfcheck.sh test-alert
+# It reads the MTA's own bounce report and prints DELIVERED / DELIVERY FAILED / NO BOUNCE.
+#
+# Deduplication lives in the script: the timer re-runs every 15 minutes, and repeating
+# an identical alert 96 times a day is how people learn to ignore alerts.
+
+[Unit]
+Description=Camelot-OS Hub self-check alert (on-failure notification)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/local/lib/camelot/hub-selfcheck.sh alert
+# The alert script always exits 0: the failure signal belongs to
+# camelot-selfcheck.service, and a failing alert unit would mask it.
+SuccessExitStatus=0

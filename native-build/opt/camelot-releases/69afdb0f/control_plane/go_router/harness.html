@@ -1,0 +1,122 @@
+<!-- SPDX-License-Identifier: MIT -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>go_router — SSE harness</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    margin: 0; padding: 24px; background: #0b0f17; color: #e6edf3;
+  }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  .sub { color: #7d8da1; margin: 0 0 20px; }
+  .bar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .pill { padding: 3px 10px; border-radius: 999px; font-size: 12px; }
+  .pill.on  { background: #10331f; color: #4ade80; }
+  .pill.off { background: #3a1d1d; color: #f87171; }
+  button, input {
+    font: inherit; background: #161b26; color: #e6edf3;
+    border: 1px solid #2a3344; border-radius: 6px; padding: 6px 12px;
+  }
+  button { cursor: pointer; }
+  button:hover { border-color: #3b82f6; }
+  .roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap: 10px; margin-bottom: 24px; }
+  .knight {
+    border: 1px solid #2a3344; border-radius: 10px; padding: 14px;
+    text-align: center; transition: all .25s ease; opacity: .45;
+  }
+  .knight.active { opacity: 1; border-color: #3b82f6; background: #11203b; box-shadow: 0 0 0 1px #3b82f6, 0 0 24px -6px #3b82f6; }
+  .knight .name { font-weight: 600; text-transform: capitalize; }
+  .knight .meta { font-size: 11px; color: #7d8da1; margin-top: 4px; min-height: 14px; }
+  #log {
+    background: #0d1220; border: 1px solid #1e2738; border-radius: 8px;
+    padding: 12px; height: 260px; overflow-y: auto; white-space: pre-wrap;
+  }
+  .log-node  { color: #818cf8; }
+  .log-knight{ color: #4ade80; }
+  .log-sys   { color: #7d8da1; }
+  .log-err   { color: #f87171; }
+</style>
+</head>
+<body>
+  <h1>go_router — active_knight SSE harness</h1>
+  <p class="sub">Subscribes to <code>/events</code> and renders the live stream. Same-origin with the daemon.</p>
+
+  <div class="bar">
+    <span id="status" class="pill off">disconnected</span>
+    <span id="node" class="pill" style="background:#161b26;color:#7d8da1;">node: —</span>
+    <input id="rune" value="ENGINEER" size="14" aria-label="rune name" />
+    <button id="fire">Fire /rune</button>
+    <button id="clear">Clear log</button>
+  </div>
+
+  <div class="roster" id="roster"></div>
+
+  <div id="log"></div>
+
+<script>
+  // Mirror of the daemon's knightRoster in main.go.
+  const KNIGHTS = ["anya", "merlin", "codex", "hashimoto", "boris", "helios"];
+  const roster = document.getElementById("roster");
+  const cards = {};
+  for (const k of KNIGHTS) {
+    const el = document.createElement("div");
+    el.className = "knight";
+    el.innerHTML = `<div class="name">${k}</div><div class="meta"></div>`;
+    roster.appendChild(el);
+    cards[k] = el;
+  }
+
+  const logEl = document.getElementById("log");
+  function log(msg, cls) {
+    const line = document.createElement("div");
+    line.className = cls || "log-sys";
+    line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setActive(knight) {
+    for (const k of KNIGHTS) cards[k].classList.remove("active");
+    if (cards[knight]) cards[knight].classList.add("active");
+  }
+
+  const statusEl = document.getElementById("status");
+  const nodeEl = document.getElementById("node");
+
+  const es = new EventSource("/events");
+
+  es.onopen = () => { statusEl.textContent = "connected"; statusEl.className = "pill on"; log("SSE connected", "log-sys"); };
+  es.onerror = () => { statusEl.textContent = "reconnecting…"; statusEl.className = "pill off"; log("SSE error / reconnecting", "log-err"); };
+
+  es.addEventListener("node", (e) => {
+    const d = JSON.parse(e.data);
+    nodeEl.textContent = "node: " + d.node;
+    log("node → " + d.node, "log-node");
+  });
+
+  es.addEventListener("active_knight", (e) => {
+    const d = JSON.parse(e.data);
+    setActive(d.knight);
+    if (cards[d.knight]) cards[d.knight].querySelector(".meta").textContent = `${d.rune} · ${d.status}`;
+    log(`active_knight → ${d.knight}  (${d.rune} · ${d.status})`, "log-knight");
+  });
+
+  document.getElementById("fire").onclick = async () => {
+    const rune = document.getElementById("rune").value.trim() || "ENGINEER";
+    try {
+      const res = await fetch(`/rune?rune=${encodeURIComponent(rune)}&task=harness`);
+      const body = await res.json();
+      log(`fired /rune ${rune} → ${body.status}`, "log-sys");
+    } catch (err) {
+      log("fire failed: " + err, "log-err");
+    }
+  };
+  document.getElementById("clear").onclick = () => { logEl.innerHTML = ""; };
+</script>
+</body>
+</html>

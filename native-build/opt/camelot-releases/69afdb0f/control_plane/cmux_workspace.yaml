@@ -1,0 +1,17 @@
+# CMUX 3-Tier Multi-Agent Orchestration Layout
+name: camelot_omni_nexus
+windows:
+  - name: 3-Tier-Factory
+    layout: 
+      # Left Pane: The Master Orchestrator (Merlin)
+      - pane: 
+          focus: true
+          command: "tail -f /var/lib/camelot/ledger.db | grep 'SUCCESS'"
+      # Top Right Pane: Team Leads (Sir Boris / Sir Codex)
+      - pane:
+          split: vertical
+          command: "go run multivoice_router.go"
+      # Bottom Right Pane: Specialized Workers / Firecracker Logs
+      - pane:
+          split: horizontal
+          command: "journalctl -u camelot-spawner.service -f"

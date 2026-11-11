@@ -1,0 +1,18 @@
+[Unit]
+Description=Cloudflare tunnel - Sir BoB (bob.lisascustomkeychains.com -> localhost:8102)
+After=network-online.target bob-gateway.service
+Wants=network-online.target
+Requires=bob-gateway.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/opt/hermesagent/data/cloudbrain/bob/cloudflared tunnel --no-autoupdate run --token-file /opt/hermesagent/data/cloudbrain/bob/tunnel.token
+Restart=always
+RestartSec=5
+MemoryMax=256M
+StandardOutput=append:/opt/camelot-state/logs/cloudflared-bob.log
+StandardError=append:/opt/camelot-state/logs/cloudflared-bob.log
+
+[Install]
+WantedBy=multi-user.target

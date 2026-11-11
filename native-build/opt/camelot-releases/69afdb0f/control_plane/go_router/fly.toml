@@ -1,0 +1,25 @@
+# Fly.io config for go_router (durable SSE endpoint).
+# Deploy:  fly auth login && fly launch --no-deploy --copy-config && fly deploy
+app = "camelot-go-router"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  CAMELOT_NODE = "fly-excalibur"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # SSE needs persistent connections — do NOT auto-stop the machine, and keep
+  # at least one running so the stream is always reachable.
+  auto_stop_machines = "off"
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/healthz"
+    interval = "30s"
+    timeout = "5s"

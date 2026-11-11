@@ -1,0 +1,103 @@
+{
+  "$schema": "camelot.department-config/v1",
+  "department_id": "dept_kinetic_engineering",
+  "name": "Department of Kinetic Engineering & Systems Implementation",
+  "acronym": "DKESI",
+  "charter": "Sovereign execution, architectural rigor, hotpath performance, and zero-regression kinetic engineering across all Camelot-OS subsystems.",
+  "leadership": {
+    "director": {
+      "knight_id": "SIR_KAY",
+      "name": "Sir Kay (Kai Richter: Agentic Architect)",
+      "spark_id": "0x7E4A8C12F9B3D650E1A8C7B2D3E4F5A6",
+      "role": "Chief Engineering Director & Head of Implementation"
+    },
+    "technical_lead": {
+      "knight_id": "SIR_CODEX",
+      "name": "Sir Codex",
+      "spark_id": "0xE3B8C190F4A2D765E8B1C9F0A3D4E5B6",
+      "role": "Lead Kinetic Implementer & Zero-Trust Architect"
+    }
+  },
+  "roster": [
+    {
+      "knight_id": "SIR_FORGE",
+      "specialization": "Kinetic Code Synthesis, Compiles, and Build Automation",
+      "substrate": "Gemini 3.8 Flash / //FORGE Dispatch"
+    },
+    {
+      "knight_id": "SIR_DEBUG",
+      "specialization": "PIV Self-Healing Loops, AST Diagnostics, and Error Remediation",
+      "substrate": "Gemini 3.8 Flash / PIV Engine"
+    },
+    {
+      "knight_id": "SIR_RUSTCLAW",
+      "specialization": "Bare-Metal Rust, Memory Safety, and WASM Micro-Kernel Engines",
+      "substrate": "Rust 1.96 / Cargo"
+    },
+    {
+      "knight_id": "SIR_ALEX",
+      "specialization": "DAG Task Breakdown, Milestone Scheduling, and Dependency Graphs",
+      "substrate": "Gemini 3.8 Flash / AST Planner"
+    }
+  ],
+  "governed_codebases": [
+    {
+      "path": "04_KINETIC",
+      "domain": "Multivoice Go Router, Audio Dispatch, and Native Services",
+      "language": "Go 1.22+",
+      "hotpath": true
+    },
+    {
+      "path": "02_FORGE",
+      "domain": "Application UI, Omni-Eye Dashboard, and Tooling",
+      "language": "TypeScript / React / Next.js",
+      "hotpath": false
+    },
+    {
+      "path": "control_plane",
+      "domain": "Runic Routing, OmniRoute Policies, 9Router, and Bifrost Gateway",
+      "language": "Python / Go / Rust",
+      "hotpath": false
+    },
+    {
+      "path": "src",
+      "domain": "Core Router Policies, Schemas, and High-Velocity Endpoints",
+      "language": "TypeScript / Go",
+      "hotpath": true
+    }
+  ],
+  "engineering_invariants": [
+    {
+      "rule_id": "RULE_7_HOTPATH_PURITY",
+      "statement": "0% Python and 0% Node in the runtime line-rate hotpath. Hotpath routing and streaming must execute 100% in Go, Rust, or WASM.",
+      "enforcement": "Strict CI compile checks & static AST inspection."
+    },
+    {
+      "rule_id": "TDD_MANDATORY_GATE",
+      "statement": "Every new feature or bugfix requires a prior failing test that demonstrates the change or defect before implementation code is written.",
+      "enforcement": "Pre-commit verification & Crucible review."
+    },
+    {
+      "rule_id": "TEN_LINE_SCOPE_REVIEW",
+      "statement": "Any code diff exceeding ten net lines requires explicit scope bounds and architecture review.",
+      "enforcement": "AST diff compressor & Iron Gate tiering."
+    },
+    {
+      "rule_id": "ZERO_CREDENTIAL_PERSISTENCE",
+      "statement": "Zero plaintext API keys or secrets in code, config, or logs. Routes through SIR_GHOST air-gap vault.",
+      "enforcement": "Pre-commit regex taint scanning."
+    }
+  ],
+  "sprint_cadence": {
+    "planning_rune": "//ENGINEERING_SPRINT",
+    "execution_rune": "//DIRECT_BUILD",
+    "verification_rune": "//REGRESSION_AUDIT",
+    "hotpath_check_rune": "//HOTPATH_VERIFY"
+  },
+  "service_level_objectives": {
+    "ttft_max_ms": 2000,
+    "multivoice_latency_p95_ms": 50,
+    "test_coverage_minimum_pct": 85.0,
+    "zero_downtime_deployments": true
+  }
+}
